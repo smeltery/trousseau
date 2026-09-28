@@ -76,6 +76,35 @@ export function isOverdue(item: LineItem, today: string): boolean {
   return Boolean(item.dueDate && item.status !== 'paid' && item.dueDate < today)
 }
 
+export type DayTone = 'empty' | 'paid' | 'due' | 'overdue'
+
+/** Strongest urgency among items due on a day. */
+export function dayTone(items: LineItem[], today: string): DayTone {
+  if (!items.length) return 'empty'
+  if (items.some((i) => isOverdue(i, today))) return 'overdue'
+  if (items.some((i) => i.status !== 'paid')) return 'due'
+  return 'paid'
+}
+
+export function monthDueStats(
+  items: LineItem[],
+  year: number,
+  month: number,
+  today: string,
+): { overdue: number; upcoming: number; paid: number } {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`
+  let overdue = 0
+  let upcoming = 0
+  let paid = 0
+  for (const item of itemsWithDueDates(items)) {
+    if (!item.dueDate?.startsWith(prefix)) continue
+    if (item.status === 'paid') paid += 1
+    else if (item.dueDate < today) overdue += 1
+    else upcoming += 1
+  }
+  return { overdue, upcoming, paid }
+}
+
 function nextDateKey(iso: string): string {
   const d = parseDateKey(iso)
   d.setDate(d.getDate() + 1)

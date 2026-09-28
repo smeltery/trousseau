@@ -19,7 +19,10 @@ const STATUSES: LineStatus[] = ['planned', 'deposit', 'partial', 'paid']
 
 export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
   const titleId = useId()
-  const item = useLiveQuery(() => db.lineItems.get(lineItemId), [lineItemId])
+  const item = useLiveQuery(async () => {
+    const row = await db.lineItems.get(lineItemId)
+    return row ?? null
+  }, [lineItemId])
   const category = useLiveQuery(
     () => (item ? db.categories.get(item.categoryId) : undefined),
     [item?.categoryId],
@@ -42,7 +45,15 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
     }
   }, [onClose])
 
-  if (!item) {
+  if (item === undefined) {
+    return (
+      <SheetShell titleId={titleId} onClose={onClose} title="Expense">
+        <p className="text-[var(--ink-muted)]">Opening…</p>
+      </SheetShell>
+    )
+  }
+
+  if (item === null) {
     return (
       <SheetShell titleId={titleId} onClose={onClose} title="Expense">
         <p className="text-[var(--ink-muted)]">This expense was removed.</p>
