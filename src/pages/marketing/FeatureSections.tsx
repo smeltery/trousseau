@@ -1,21 +1,24 @@
-import { SketchBouquet } from '../../components/sketches'
 import { customs, features, steps, tracks } from './content'
 
 export function WhySection() {
   return (
-    <section className="bg-[var(--wash)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
-          Why Trousseau
-        </p>
-        <h2 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
-          Built for the couple keeping score, not the spreadsheet
-        </h2>
-        <div className="mt-16 grid gap-14 md:grid-cols-3 md:gap-12">
+    <section className="bg-[var(--mist)] page-pad py-24">
+      <div className="page-shell flex flex-col gap-14">
+        <div className="flex max-w-[640px] flex-col gap-4">
+          <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
+            Why Trousseau
+          </p>
+          <h2 className="font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
+            Built for the couple keeping score, not the spreadsheet
+          </h2>
+        </div>
+        <div className="grid gap-12 md:grid-cols-3">
           {features.map((f) => (
-            <div key={f.title}>
-              <h3 className="font-[family-name:var(--font-display)] text-2xl tracking-tight">{f.title}</h3>
-              <p className="mt-3 leading-relaxed text-[var(--ink-muted)]">{f.body}</p>
+            <div key={f.title} className="flex flex-col gap-3">
+              <h3 className="font-[family-name:var(--font-display)] text-[28px] leading-[34px]">
+                {f.title}
+              </h3>
+              <p className="text-base leading-[26px] text-[var(--ink-muted)]">{f.body}</p>
             </div>
           ))}
         </div>
@@ -26,9 +29,9 @@ export function WhySection() {
 
 export function InsideSection() {
   return (
-    <section className="bg-[var(--grove)] px-6 py-24 text-[var(--on-dark)] sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
+    <section className="bg-[var(--grove)] page-pad py-24 text-[var(--on-dark)]">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--accent)] uppercase">
           Inside the tracker
         </p>
         <h2 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -58,13 +61,9 @@ export function InsideSection() {
 
 export function HowSection() {
   return (
-    <section className="relative bg-[var(--paper)]">
-      <div className="relative mx-auto w-full max-w-[var(--max)] px-6 py-24 sm:px-10 lg:px-16">
-        <SketchBouquet
-          aria-hidden
-          className="pointer-events-none absolute top-16 right-4 w-28 text-[var(--lichen)] opacity-45 select-none sm:right-10 sm:w-36"
-        />
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section className="bg-[var(--paper)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
           How it works
         </p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -95,9 +94,9 @@ export function HowSection() {
 
 export function YoursSection() {
   return (
-    <section className="bg-[var(--wash)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section className="bg-[var(--mist)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
           Make it yours
         </p>
         <h2 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">

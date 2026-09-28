@@ -3,10 +3,10 @@ import { faqs } from './content'
 
 export function PrivacySection() {
   return (
-    <section className="bg-[var(--grove)] px-6 py-24 text-[var(--on-dark)] sm:px-10 lg:px-16">
-      <div className="mx-auto flex w-full max-w-[var(--max)] flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
+    <section className="bg-[var(--grove)] page-pad py-24 text-[var(--on-dark)]">
+      <div className="page-shell flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
         <div className="max-w-xl">
-          <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
+          <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--accent)] uppercase">
             Private by design
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3rem)] leading-[1.08] tracking-[-0.02em]">
@@ -32,9 +32,9 @@ export function PrivacySection() {
 
 export function BackupSection() {
   return (
-    <section className="bg-[var(--paper)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section className="bg-[var(--paper)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
           Backup
         </p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -62,9 +62,9 @@ export function BackupSection() {
 
 export function QuestionsSection() {
   return (
-    <section className="bg-[var(--wash)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section className="bg-[var(--mist)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
           Questions
         </p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -92,10 +92,10 @@ export function QuestionsSection() {
 
 export function BeginSection() {
   return (
-    <section className="bg-[var(--paper-deep)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
+    <section className="bg-[var(--paper-deep)] page-pad py-24">
+      <div className="page-shell">
         <div className="max-w-2xl">
-          <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+          <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
             Begin
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">

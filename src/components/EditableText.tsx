@@ -43,19 +43,20 @@ export function EditableText({
   }
 
   const shared =
-    'w-full min-w-0 bg-transparent outline-none transition-colors placeholder:text-[var(--ink-faint)] focus:text-[var(--accent-deep)]'
+    'editable-text min-w-0 bg-transparent outline-none placeholder:text-[var(--ink-faint)]'
 
   if (multiline) {
     return (
       <textarea
         aria-label={ariaLabel}
+        title="Click to edit"
         value={draft}
         placeholder={placeholder}
         rows={2}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => void commit()}
         onKeyDown={onKeyDown}
-        className={`${shared} resize-y ${className}`}
+        className={`${shared} w-full resize-y ${className}`}
         style={style}
       />
     )
@@ -64,12 +65,14 @@ export function EditableText({
   return (
     <input
       aria-label={ariaLabel}
+      title="Click to edit"
       value={draft}
       placeholder={placeholder}
+      size={Math.max(draft.length, 1)}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => void commit()}
       onKeyDown={onKeyDown}
-      className={`${shared} ${className}`}
+      className={`${shared} w-auto max-w-full [field-sizing:content] ${className}`}
       style={style}
     />
   )

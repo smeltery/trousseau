@@ -7,7 +7,6 @@ import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
-import { SiteNav } from '../components/SiteNav'
 import { ensureSeeded, db, loadDemoSample } from '../db/dexie'
 import { sum } from '../lib/money'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
@@ -65,9 +64,7 @@ export function TrackerApp() {
   }
 
   return (
-    <div className="relative pb-8">
-      <SiteNav variant="app" />
-
+    <div className="relative">
       <OverviewHero
         site={site}
         allocated={allocated}
@@ -81,6 +78,7 @@ export function TrackerApp() {
         categories={categories}
         lineItems={lineItems}
         attachments={attachments}
+        allocated={allocated}
         onOpenItem={setOpenItemId}
         onAddExpense={() => setAdding(true)}
       />

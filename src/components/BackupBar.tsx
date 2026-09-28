@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { downloadBlob, exportBackup, importBackup } from '../lib/export-import'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
 
+/** Tracker backup — styled to match Paper Backup marketing section. */
 export function BackupBar() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -38,73 +39,87 @@ export function BackupBar() {
   }
 
   return (
-    <footer className="mx-auto w-full max-w-[var(--max)] px-6 py-20 sm:px-10 lg:px-16">
-      <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
-        Keep it safe
-      </p>
-      <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.75rem)] tracking-tight">
-        Backup
-      </h2>
-      <p className="mt-4 max-w-xl text-[var(--ink-muted)]">
-        Everything lives in this browser. Export a zip before clearing site data or switching
-        devices. Reset clears your data to a blank starter; load demo fills sample numbers.
-      </p>
+    <section className="bg-[var(--paper)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+          Backup
+        </p>
+        <h2 className="mt-4 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
+          Take it with you
+        </h2>
+        <p className="mt-4 max-w-lg text-base leading-[26px] text-[var(--ink-muted)]">
+          Download a zip of your budget and attachments whenever you switch machines or want a durable
+          copy. Import brings everything back.
+        </p>
 
-      <div className="mt-10 flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void onExport()}
-          className="btn-primary disabled:opacity-50"
-        >
-          Export backup
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-          className="btn-ghost disabled:opacity-50"
-        >
-          Import backup
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={async () => {
-            if (!confirm('Reset to a blank starter? This clears attachments and custom labels.')) {
-              return
-            }
-            setBusy(true)
-            try {
-              await resetToBlank()
-              setMessage('Reset to blank starter.')
-            } finally {
-              setBusy(false)
-            }
-          }}
-          className="px-4 py-2.5 text-sm text-[var(--ink-faint)] hover:text-[var(--danger)] disabled:opacity-50"
-        >
-          Reset blank
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={async () => {
-            if (!confirm('Load the filled demo sample? This replaces your current budget.')) {
-              return
-            }
-            setBusy(true)
-            try {
-              await loadDemoSample()
-              setMessage('Demo sample loaded.')
-            } finally {
-              setBusy(false)
-            }
-          }}
-          className="px-4 py-2.5 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-50"
-        >
-          Load demo
-        </button>
+        <div className="mt-14 flex flex-col gap-8 border-t border-[var(--line-soft)] pt-10 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
+          <p className="max-w-sm font-[family-name:var(--font-display)] text-2xl leading-snug tracking-tight">
+            Export before you clear history. Import when you land somewhere new.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void onExport()}
+              className="btn-primary disabled:opacity-50"
+            >
+              Export backup
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+              className="btn-ghost disabled:opacity-50"
+            >
+              Import backup
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-6 text-sm text-[var(--ink-faint)]">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              if (!confirm('Reset to a blank starter? This clears attachments and custom labels.')) {
+                return
+              }
+              setBusy(true)
+              try {
+                await resetToBlank()
+                setMessage('Reset to blank starter.')
+              } finally {
+                setBusy(false)
+              }
+            }}
+            className="hover:text-[var(--danger)] disabled:opacity-50"
+          >
+            Reset blank
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              if (!confirm('Load the filled demo sample? This replaces your current budget.')) {
+                return
+              }
+              setBusy(true)
+              try {
+                await loadDemoSample()
+                setMessage('Demo sample loaded.')
+              } finally {
+                setBusy(false)
+              }
+            }}
+            className="hover:text-[var(--ink)] disabled:opacity-50"
+          >
+            Load demo
+          </button>
+          <Link to="/" className="text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)]">
+            About Trousseau
+          </Link>
+        </div>
+
         <input
           ref={inputRef}
           type="file"
@@ -116,17 +131,11 @@ export function BackupBar() {
             e.target.value = ''
           }}
         />
+
+        {message ? (
+          <p className="mt-5 text-sm font-medium text-[var(--accent-deep)]">{message}</p>
+        ) : null}
       </div>
-
-      <p className="mt-8 text-sm text-[var(--ink-faint)]">
-        <Link to="/" className="text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)]">
-          Back to Trousseau home
-        </Link>
-      </p>
-
-      {message ? (
-        <p className="mt-5 text-sm font-medium text-[var(--accent-deep)]">{message}</p>
-      ) : null}
-    </footer>
+    </section>
   )
 }

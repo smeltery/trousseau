@@ -4,8 +4,8 @@ import { footerColumns } from './content'
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-[#071410] text-[var(--on-dark)]">
-      <div className="mx-auto w-full max-w-[var(--max)] px-6 pt-20 pb-12 sm:px-10 lg:px-16">
+    <footer className="bg-[#071410] page-pad text-[var(--on-dark)]">
+      <div className="page-shell pt-20 pb-12">
         <div className="flex flex-col gap-16 lg:flex-row lg:justify-between lg:gap-20">
           <div className="max-w-md">
             <TrousseauLogo
