@@ -20,8 +20,8 @@ export interface SiteSettings {
 
 export const DEFAULT_SITE: SiteSettings = {
   heroEyebrow: 'Wedding budget',
-  brandLeft: 'Your',
-  brandRight: 'Names',
+  brandLeft: 'Groom',
+  brandRight: 'Bride',
   fundsEyebrow: 'Where it comes from',
   fundsTitle: 'Gift Summary',
   fundsSub: 'Gifts and wedding savings that make up your allocated total.',
@@ -37,12 +37,12 @@ export const DEFAULT_SITE: SiteSettings = {
   },
 }
 
-/** Demo sample labels for “Try demo”. */
+/** Demo sample labels for “Try demo”: fictional couple. */
 export const DEMO_SITE: SiteSettings = {
   ...DEFAULT_SITE,
-  brandLeft: 'Nick',
-  brandRight: 'Lauren',
-  fundsSub: 'Gifts and wedding savings that make up your allocated total.',
+  brandLeft: 'Alex',
+  brandRight: 'Jordan',
+  fundsSub: 'Sample gifts and savings so you can explore the layout before using your own numbers.',
 }
 
 export function parseSiteSettings(raw: string | undefined): SiteSettings {

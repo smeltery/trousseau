@@ -219,7 +219,7 @@ function ExpenseGroupBlock({
                           ? formatMoney(item.paidAmount)
                           : item.amount > 0
                             ? formatMoney(item.amount)
-                            : '—'
+                            : '-'
                       return (
                         <li key={item.id}>
                           <button
@@ -292,11 +292,7 @@ function formatDue(iso: string): string {
 
 /** Paper overview status column: Paid / Due / - */
 function paperLineStatus(item: LineItem): { label: string; tone: string } {
-  if (item.status === 'paid') {
-    return { label: 'Paid', tone: 'text-[var(--lichen)]' }
-  }
-  if (/^budget$/i.test(item.label.trim())) {
-    return { label: '-', tone: 'text-[var(--ink-faint)]' }
-  }
+  if (item.status === 'paid') return { label: 'Paid', tone: 'text-[var(--lichen)]' }
+  if (/^budget$/i.test(item.label.trim())) return { label: '-', tone: 'text-[var(--ink-faint)]' }
   return { label: 'Due', tone: 'text-[var(--ink-faint)]' }
 }

@@ -11,7 +11,7 @@
 [![Dev env: Flox](https://img.shields.io/badge/dev%20env-flox-7c3aed.svg)](https://flox.dev)
 
 <p align="center">
-  <img src="public/og.png" alt="Trousseau — a wedding budget that lives with you" width="800" />
+  <img src="public/og.png" alt="Trousseau: a wedding budget that lives with you" width="800" />
 </p>
 
 Local-first wedding budget tracker. Gifts, vendor lines, and receipts stay in your browser. Rename anything. Export a zip when you need a backup.
@@ -22,9 +22,9 @@ bun install
 bun run dev
 ```
 
-- `/` — marketing
-- `/app` — tracker
-- `/app?demo=1` — filled demo (asks before replacing local data)
+- `/`: marketing
+- `/app`: tracker
+- `/app?demo=1`: filled demo (asks before replacing local data)
 
 ## Docs
 

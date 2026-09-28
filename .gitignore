@@ -31,3 +31,8 @@ metrics-uuid
 .flox/xdg-data/
 .flox/xdg-state/
 .flox/xdg-cache/
+
+# Global ignores may hide *.zip; keep committed sample budgets.
+!public/samples/
+!public/samples/**/*.zip
+

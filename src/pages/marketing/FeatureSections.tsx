@@ -61,7 +61,7 @@ export function InsideSection() {
 
 export function HowSection() {
   return (
-    <section className="bg-[var(--paper)] page-pad py-24">
+    <section id="how" className="scroll-mt-8 bg-[var(--paper)] page-pad py-24">
       <div className="page-shell">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
           How it works

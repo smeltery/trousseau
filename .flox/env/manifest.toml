@@ -18,7 +18,7 @@ on-activate = '''
 
 [profile]
 common = '''
-  echo "trousseau dev env (bun $(bun --version)) — bun run dev / bun run check" >&2
+  echo "trousseau dev env (bun $(bun --version)): bun run dev / bun run check" >&2
 '''
 
 [options]

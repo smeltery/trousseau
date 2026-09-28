@@ -29,7 +29,7 @@ export const tracks = [
 ] as const
 
 export const steps = [
-  { n: '01', title: 'Start blank or try the demo', body: 'Open the tracker and put your names on the hero.' },
+  { n: '01', title: 'Start blank or try the demo', body: 'Open a new tracker and put your names on the hero.' },
   { n: '02', title: 'Add gifts and expenses', body: 'Build categories that match how you actually spend.' },
   { n: '03', title: 'Export when you need to', body: 'Download a zip backup before you switch devices.' },
 ] as const
@@ -60,25 +60,41 @@ export const faqs = [
   },
   {
     q: 'Can we start from a sample?',
-    a: 'Yes. Try the filled demo to see the shape, then start blank when you are ready for your own numbers.',
+    a: 'Yes. Try the filled demo for a generic layout, or open Import to drop a Trousseau .zip, including the sample wedding download.',
   },
 ] as const
 
-export const footerColumns = [
+export type FooterLink =
+  | { label: string; to: string }
+  | { label: string; href: string; download?: string }
+
+export const footerColumns: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Start tracker', to: '/app' },
+      { label: 'Start blank', to: '/app?new=1' },
       { label: 'Try demo', to: '/app?demo=1' },
-      { label: 'Export backup', to: '/app' },
+      { label: 'Import backup', to: '/app?import=1' },
+      { label: 'Open tracker', to: '/app' },
     ],
   },
   {
-    title: 'Promise',
-    items: ['Local-first', 'No account', 'Your device'],
+    title: 'Learn',
+    links: [
+      { label: 'How it works', to: '/#how' },
+      { label: 'Privacy', to: '/#privacy' },
+      { label: 'Backup', to: '/#backup' },
+      { label: 'Questions', to: '/#questions' },
+    ],
   },
   {
-    title: 'Notes',
-    items: ['Attach receipts', 'Vendor notes', 'Rename anything'],
+    title: 'Samples',
+    links: [
+      {
+        label: 'Sample wedding budget',
+        href: '/samples/sample-wedding.zip',
+        download: 'sample-wedding.zip',
+      },
+    ],
   },
-] as const
+]

@@ -1,21 +1,22 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { downloadBlob, exportBackup, importBackup } from '../lib/export-import'
+import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
+import { ImportBackupDialog } from './ImportBackupDialog'
 
-/** Tracker backup — styled to match Paper Backup marketing section. */
+const SAMPLE_URL = '/samples/sample-wedding.zip'
+
+/** Tracker backup: export, import modal, and sample download. */
 export function BackupBar() {
-  const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   async function onExport() {
     setBusy(true)
     setMessage(null)
     try {
-      const blob = await exportBackup()
-      const stamp = new Date().toISOString().slice(0, 10)
-      downloadBlob(blob, `trousseau-backup-${stamp}.zip`)
+      await downloadBackupZip()
       setMessage('Backup downloaded.')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Export failed')
@@ -24,22 +25,8 @@ export function BackupBar() {
     }
   }
 
-  async function onImport(file: File) {
-    if (!confirm('Import will replace all local data. Continue?')) return
-    setBusy(true)
-    setMessage(null)
-    try {
-      await importBackup(file)
-      setMessage('Backup restored.')
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Import failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
-    <section className="bg-[var(--paper)] page-pad py-24">
+    <section id="backup" className="scroll-mt-8 bg-[var(--paper)] page-pad py-24">
       <div className="page-shell">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
           Backup
@@ -49,52 +36,49 @@ export function BackupBar() {
         </h2>
         <p className="mt-4 max-w-lg text-base leading-[26px] text-[var(--ink-muted)]">
           Download a zip of your budget and attachments whenever you switch machines or want a durable
-          copy. Import brings everything back.
+          copy. Import opens a dialog where you can drop or choose a Trousseau .zip.
         </p>
 
-        <div className="mt-14 flex flex-col gap-8 border-t border-[var(--line-soft)] pt-10 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
-          <p className="max-w-sm font-[family-name:var(--font-display)] text-2xl leading-snug tracking-tight">
-            Export before you clear history. Import when you land somewhere new.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void onExport()}
-              className="btn-primary disabled:opacity-50"
-            >
-              Export backup
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-              className="btn-ghost disabled:opacity-50"
-            >
-              Import backup
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-wrap gap-6 text-sm text-[var(--ink-faint)]">
+        <div className="mt-14 flex flex-wrap items-center gap-3 border-t border-[var(--line-soft)] pt-10">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void onExport()}
+            className="btn-primary disabled:opacity-50"
+          >
+            Export backup
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setImportOpen(true)}
+            className="btn-ghost disabled:opacity-50"
+          >
+            Import backup
+          </button>
           <button
             type="button"
             disabled={busy}
             onClick={async () => {
-              if (!confirm('Reset to a blank starter? This clears attachments and custom labels.')) {
+              if (
+                !confirm(
+                  'Start a new blank budget? This replaces any budget data already in this browser.',
+                )
+              ) {
                 return
               }
               setBusy(true)
+              setMessage(null)
               try {
                 await resetToBlank()
-                setMessage('Reset to blank starter.')
+                setMessage('Blank budget ready.')
               } finally {
                 setBusy(false)
               }
             }}
-            className="hover:text-[var(--danger)] disabled:opacity-50"
+            className="btn-ghost disabled:opacity-50"
           >
-            Reset blank
+            New blank
           </button>
           <button
             type="button"
@@ -104,6 +88,7 @@ export function BackupBar() {
                 return
               }
               setBusy(true)
+              setMessage(null)
               try {
                 await loadDemoSample()
                 setMessage('Demo sample loaded.')
@@ -111,31 +96,36 @@ export function BackupBar() {
                 setBusy(false)
               }
             }}
-            className="hover:text-[var(--ink)] disabled:opacity-50"
+            className="btn-ghost disabled:opacity-50"
           >
             Load demo
           </button>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-6 text-sm text-[var(--ink-faint)]">
+          <a
+            href={SAMPLE_URL}
+            download="sample-wedding.zip"
+            className="text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)]"
+          >
+            Download sample wedding
+          </a>
           <Link to="/" className="text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)]">
             About Trousseau
           </Link>
         </div>
 
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".zip,application/zip"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void onImport(file)
-            e.target.value = ''
-          }}
-        />
-
         {message ? (
           <p className="mt-5 text-sm font-medium text-[var(--accent-deep)]">{message}</p>
         ) : null}
       </div>
+
+      {importOpen ? (
+        <ImportBackupDialog
+          onClose={() => setImportOpen(false)}
+          onImported={() => setMessage('Backup imported.')}
+        />
+      ) : null}
     </section>
   )
 }

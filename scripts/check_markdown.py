@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lint tracked Markdown for formatting hygiene (pure stdlib).
 
-Catches the class of bug that mangled the README command table — a table
+Catches the class of bug that mangled the README command table: a table
 whose data rows had a different column count than the header/separator
 because unescaped ``|`` characters in inline code split cells. Also flags
 trailing whitespace, missing final newlines, and hard tabs so Markdown

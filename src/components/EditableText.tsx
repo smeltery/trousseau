@@ -10,7 +10,7 @@ interface EditableTextProps {
   'aria-label'?: string
 }
 
-/** Inline text that saves on blur — matches the fund-row editing pattern. */
+/** Inline text that saves on blur; matches the fund-row editing pattern. */
 export function EditableText({
   value,
   onSave,

@@ -7,7 +7,7 @@ import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
-import { ensureSeeded, db, loadDemoSample } from '../db/dexie'
+import { ensureSeeded, db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { sum } from '../lib/money'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 
@@ -21,18 +21,30 @@ export function TrackerApp() {
     let cancelled = false
     async function boot() {
       const wantDemo = searchParams.get('demo') === '1'
-      if (wantDemo) {
+      const wantNew = searchParams.get('new') === '1'
+
+      if (wantDemo || wantNew) {
         // Clear immediately so React Strict Mode remounts don't double-prompt.
         setSearchParams({}, { replace: true })
-        const ok = confirm(
-          'Load the filled demo sample? This replaces any budget data already in this browser.',
-        )
-        if (cancelled) return
-        if (ok) await loadDemoSample()
-        else await ensureSeeded()
+        if (wantNew) {
+          const ok = confirm(
+            'Start a new blank budget? This replaces any budget data already in this browser.',
+          )
+          if (cancelled) return
+          if (ok) await resetToBlank()
+          else await ensureSeeded()
+        } else {
+          const ok = confirm(
+            'Load the filled demo sample? This replaces any budget data already in this browser.',
+          )
+          if (cancelled) return
+          if (ok) await loadDemoSample()
+          else await ensureSeeded()
+        }
         if (!cancelled) setReady(true)
         return
       }
+
       await ensureSeeded()
       if (!cancelled) setReady(true)
     }
@@ -40,9 +52,15 @@ export function TrackerApp() {
     return () => {
       cancelled = true
     }
-    // Only on first mount — demo query is read once.
+    // Only on first mount; query flags are read once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    if (window.location.hash !== '#backup') return
+    document.getElementById('backup')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [ready])
 
   const funds = useLiveQuery(() => db.funds.toArray(), [ready]) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), [ready]) ?? []
