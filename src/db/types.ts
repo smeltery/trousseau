@@ -54,6 +54,6 @@ export interface BackupPayload {
   categories: Category[]
   lineItems: LineItem[]
   attachments: Array<Omit<Attachment, 'blob'> & { filePath?: string }>
-  /** Optional page copy / labels — older backups may omit this. */
+  /** Optional page copy / labels; older backups may omit this. */
   site?: string
 }

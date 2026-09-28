@@ -10,9 +10,11 @@
     "lint": "oxlint .",
     "typecheck": "tsc -b --pretty false",
     "budget": "bun run scripts/check-loc-budgets.ts",
+    "sample:wedding": "bun run scripts/build-sample-wedding.ts",
+    "sample:nick-lauren": "bun run sample:wedding",
     "markdown": "python3 scripts/check_markdown.py",
     "preview": "vite preview",
-    "check": "bun run typecheck && bun run lint && bun run budget && bun run markdown && bun run build",
+    "check": "bun run sample:wedding && bun run typecheck && bun run lint && bun run budget && bun run markdown && bun run build",
     "ci": "bun run check",
     "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true"
   },

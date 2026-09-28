@@ -1,31 +1,35 @@
 :root {
-  /* Whitewoods dusk — cool forest, not cream stationery */
+  /* Alpine grove: Paper tokens */
   --ink: #0f1f1a;
   --ink-muted: #4a5c55;
   --ink-faint: #7a8c84;
   --paper: #dce4df;
   --paper-deep: #cfd9d3;
   --wash: #eef3f0;
+  --mist: #eef3f0;
   --grove: #0b1c17;
   --grove-mid: #143028;
-  --mist: #e8f0ec;
   --accent: #b8956a;
   --accent-deep: #8f6e45;
   --accent-soft: color-mix(in srgb, var(--accent) 22%, transparent);
   --lichen: #6f8f7c;
-  --line: color-mix(in srgb, var(--ink) 14%, transparent);
-  --line-soft: color-mix(in srgb, var(--ink) 8%, transparent);
+  --line: #0f1f1a24;
+  --line-soft: #0f1f1a14;
   --danger: #a3483c;
   --ok: #6f8f7c;
   --on-dark: #eef3f0;
-  --on-dark-muted: color-mix(in srgb, var(--on-dark) 68%, transparent);
+  --on-dark-muted: #eef3f0ad;
+  --on-dark-faint: #eef3f08c;
 
   --font-display: 'Instrument Serif', 'Times New Roman', serif;
   --font-body: 'Figtree', system-ui, sans-serif;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --sheet-shadow: 0 28px 70px color-mix(in srgb, var(--grove) 35%, transparent);
-  --max: 68rem;
+  /* Paper desktop content: 1440 - 160 = 1280 */
+  --max: 80rem;
+  --page-pad: 1.5rem;
+  --page-pad-lg: 5rem;
 }
 
 @keyframes rise-in {
@@ -43,6 +47,17 @@
   from {
     opacity: 0;
     transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
   }
   to {
     opacity: 1;

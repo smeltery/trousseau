@@ -3,10 +3,10 @@ import { faqs } from './content'
 
 export function PrivacySection() {
   return (
-    <section className="bg-[var(--grove)] px-6 py-24 text-[var(--on-dark)] sm:px-10 lg:px-16">
-      <div className="mx-auto flex w-full max-w-[var(--max)] flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
+    <section id="privacy" className="scroll-mt-8 bg-[var(--grove)] page-pad py-24 text-[var(--on-dark)]">
+      <div className="page-shell flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
         <div className="max-w-xl">
-          <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
+          <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--accent)] uppercase">
             Private by design
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3rem)] leading-[1.08] tracking-[-0.02em]">
@@ -32,9 +32,9 @@ export function PrivacySection() {
 
 export function BackupSection() {
   return (
-    <section className="bg-[var(--paper)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section id="backup" className="scroll-mt-8 bg-[var(--paper)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
           Backup
         </p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -42,18 +42,27 @@ export function BackupSection() {
         </h2>
         <p className="mt-4 max-w-lg text-[var(--ink-muted)]">
           Download a zip of your budget and attachments whenever you switch machines or want a durable
-          copy. Import brings everything back.
+          copy. In the tracker, use Import to open the backup dialog, or start from a sample wedding file.
         </p>
         <div className="mt-14 flex flex-col gap-8 border-t border-[var(--line-soft)] pt-10 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
           <p className="max-w-sm font-[family-name:var(--font-display)] text-2xl leading-snug tracking-tight text-[var(--ink)]">
             Export before you clear history. Import when you land somewhere new.
           </p>
-          <Link
-            to="/app"
-            className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
-          >
-            Open tracker to export
-          </Link>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <Link
+              to="/app"
+              className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
+            >
+              Open tracker to export
+            </Link>
+            <a
+              href="/samples/sample-wedding.zip"
+              download="sample-wedding.zip"
+              className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
+            >
+              Download sample wedding
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -62,9 +71,9 @@ export function BackupSection() {
 
 export function QuestionsSection() {
   return (
-    <section className="bg-[var(--wash)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
-        <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+    <section id="questions" className="scroll-mt-8 bg-[var(--mist)] page-pad py-24">
+      <div className="page-shell">
+        <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
           Questions
         </p>
         <h2 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
@@ -92,20 +101,20 @@ export function QuestionsSection() {
 
 export function BeginSection() {
   return (
-    <section className="bg-[var(--paper-deep)] px-6 py-24 sm:px-10 lg:px-16">
-      <div className="mx-auto w-full max-w-[var(--max)]">
+    <section className="bg-[var(--paper-deep)] page-pad py-24">
+      <div className="page-shell">
         <div className="max-w-2xl">
-          <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
+          <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--lichen)] uppercase">
             Begin
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em]">
             Put your names on the page
           </h2>
           <p className="mt-4 text-[var(--ink-muted)]">
-            Start empty and shape the budget as you go, or peek at a filled demo first.
+            Start a blank tracker and put your names on the page, or peek at a filled demo first.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-6">
-            <Link to="/app" className="btn-primary">
+            <Link to="/app?new=1" className="btn-primary">
               Start your tracker
             </Link>
             <Link

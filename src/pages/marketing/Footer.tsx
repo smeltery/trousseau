@@ -1,11 +1,30 @@
 import { Link } from 'react-router-dom'
 import { TrousseauLogo } from '../../components/TrousseauLogo'
-import { footerColumns } from './content'
+import { footerColumns, type FooterLink } from './content'
+
+function FooterNavLink({ link }: { link: FooterLink }) {
+  const className =
+    'text-[0.95rem] font-medium text-[var(--on-dark)] transition-colors hover:text-[var(--accent)]'
+
+  if ('href' in link) {
+    return (
+      <a href={link.href} download={link.download} className={className}>
+        {link.label}
+      </a>
+    )
+  }
+
+  return (
+    <Link to={link.to} className={className}>
+      {link.label}
+    </Link>
+  )
+}
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-[#071410] text-[var(--on-dark)]">
-      <div className="mx-auto w-full max-w-[var(--max)] px-6 pt-20 pb-12 sm:px-10 lg:px-16">
+    <footer className="bg-[#071410] page-pad text-[var(--on-dark)]">
+      <div className="page-shell pt-20 pb-12">
         <div className="flex flex-col gap-16 lg:flex-row lg:justify-between lg:gap-20">
           <div className="max-w-md">
             <TrousseauLogo
@@ -25,22 +44,11 @@ export function MarketingFooter() {
                   {col.title}
                 </p>
                 <ul className="mt-3.5 space-y-3">
-                  {'links' in col
-                    ? col.links.map((link) => (
-                        <li key={link.label}>
-                          <Link
-                            to={link.to}
-                            className="text-[0.95rem] font-medium text-[var(--on-dark)] transition-colors hover:text-[var(--accent)]"
-                          >
-                            {link.label}
-                          </Link>
-                        </li>
-                      ))
-                    : col.items.map((item) => (
-                        <li key={item} className="text-[0.95rem] font-medium text-[var(--on-dark)]">
-                          {item}
-                        </li>
-                      ))}
+                  {col.links.map((link) => (
+                    <li key={link.label}>
+                      <FooterNavLink link={link} />
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
