@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
 import { BackupBar } from '../components/BackupBar'
+import { DueCalendar } from '../components/DueCalendar'
 import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
@@ -73,8 +74,9 @@ export function TrackerApp() {
 
   useEffect(() => {
     if (!ready) return
-    if (window.location.hash !== '#backup') return
-    document.getElementById('backup')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const hash = window.location.hash
+    if (hash !== '#backup' && hash !== '#calendar') return
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [ready])
 
   useEffect(() => {
@@ -147,6 +149,13 @@ export function TrackerApp() {
           allocated={allocated}
           onOpenItem={setOpenItemId}
           onAddExpense={() => setAdding(true)}
+        />
+      </Reveal>
+      <Reveal>
+        <DueCalendar
+          categories={categories}
+          lineItems={lineItems}
+          onOpenItem={setOpenItemId}
         />
       </Reveal>
       <Reveal>

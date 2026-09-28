@@ -97,6 +97,9 @@ export function SiteNav({ variant }: SiteNavProps) {
               <Link to="/" className={navQuiet}>
                 About
               </Link>
+              <a href="#calendar" className={navQuiet}>
+                Calendar
+              </a>
               <a href="#backup" className={navQuiet}>
                 Backup
               </a>
@@ -181,8 +184,15 @@ export function SiteNav({ variant }: SiteNavProps) {
                     Import backup
                   </button>
                   <a
-                    href="#backup"
+                    href="#calendar"
                     className="btn-nav-demo w-full text-center"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Calendar
+                  </a>
+                  <a
+                    href="#backup"
+                    className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
                     onClick={() => setMenuOpen(false)}
                   >
                     Backup

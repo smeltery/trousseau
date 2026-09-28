@@ -29,10 +29,26 @@ export const blankLineItems: LineItem[] = [
   },
 ]
 
+function offsetDate(days: number): string {
+  const d = new Date()
+  d.setHours(12, 0, 0, 0)
+  d.setDate(d.getDate() + days)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function paymentPlan(
   categoryId: string,
   startSort: number,
-  lines: Array<{ label: string; amount?: number; paidAmount?: number; status?: LineItem['status'] }>,
+  lines: Array<{
+    label: string
+    amount?: number
+    paidAmount?: number
+    status?: LineItem['status']
+    dueDate?: string
+  }>,
 ): LineItem[] {
   return lines.map((line, i) => ({
     id: id('line', startSort + i),
@@ -41,6 +57,7 @@ function paymentPlan(
     amount: line.amount ?? 0,
     paidAmount: line.paidAmount ?? 0,
     status: line.status ?? 'planned',
+    dueDate: line.dueDate,
     sort: i,
   }))
 }
@@ -68,27 +85,25 @@ export const demoCategories: Category[] = [
 
 export const demoLineItems: LineItem[] = [
   ...paymentPlan('cat-1', 1, [
-    { label: 'Deposit', amount: 2000, paidAmount: 2000, status: 'paid' },
-    { label: 'Balance', amount: 6000 },
+    { label: 'Deposit', amount: 2000, paidAmount: 2000, status: 'paid', dueDate: offsetDate(-40) },
+    { label: 'Balance', amount: 6000, dueDate: offsetDate(45) },
   ]),
   ...paymentPlan('cat-2', 10, [
     { label: 'Budget', amount: 9000 },
-    { label: 'Deposit', amount: 900, paidAmount: 900, status: 'paid' },
-    { label: 'Remaining', amount: 8100 },
+    { label: 'Deposit', amount: 900, paidAmount: 900, status: 'paid', dueDate: offsetDate(-20) },
+    { label: 'Remaining', amount: 8100, dueDate: offsetDate(18) },
   ]),
   ...paymentPlan('cat-3', 20, [
     { label: 'Budget', amount: 2200 },
     { label: 'Deposit', amount: 440, paidAmount: 440, status: 'paid' },
-    { label: 'Remaining', amount: 1760 },
+    { label: 'Remaining', amount: 1760, dueDate: offsetDate(7) },
   ]),
   ...paymentPlan('cat-4', 30, [
     { label: 'Budget', amount: 3500 },
     { label: 'Deposit', amount: 700, paidAmount: 700, status: 'paid' },
-    { label: 'Remaining', amount: 2800 },
+    { label: 'Remaining', amount: 2800, dueDate: offsetDate(90) },
   ]),
-  ...paymentPlan('cat-5', 40, [
-    { label: 'Budget', amount: 1800 },
-  ]),
+  ...paymentPlan('cat-5', 40, [{ label: 'Budget', amount: 1800, dueDate: offsetDate(28) }]),
   ...paymentPlan('cat-6', 50, [
     { label: 'Budget', amount: 2400 },
     { label: 'Deposit', amount: 400, paidAmount: 400, status: 'paid' },
@@ -97,7 +112,7 @@ export const demoLineItems: LineItem[] = [
     { label: 'Budget', amount: 2800 },
     { label: 'Paid in full', amount: 2800, paidAmount: 2800, status: 'paid' },
   ]),
-  ...paymentPlan('cat-8', 70, [{ label: 'Refundable deposit', amount: 500 }]),
+  ...paymentPlan('cat-8', 70, [{ label: 'Refundable deposit', amount: 500, dueDate: offsetDate(-3) }]),
 ]
 
 /** @deprecated Prefer blank* / demo* exports */
