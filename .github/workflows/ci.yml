@@ -74,7 +74,7 @@ jobs:
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
           retry npm install --global markdownlint-cli@0.45.0
 
-      - run: actionlint
+      - run: actionlint -config-file .github/actionlint.yaml
       - run: markdownlint --disable MD013 MD014 MD033 MD040 MD041 MD051 -- README.md CONTRIBUTING.md docs/**/*.md
       - run: python3 scripts/check_markdown.py
       - run: git diff --check
