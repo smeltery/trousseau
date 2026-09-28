@@ -18,7 +18,7 @@ env:
 
 jobs:
   app:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -49,7 +49,7 @@ jobs:
         run: flox activate -- bun run check
 
   hygiene:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Harden the runner (Audit all outbound calls)
