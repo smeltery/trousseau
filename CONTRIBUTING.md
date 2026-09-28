@@ -14,6 +14,7 @@ bun run check
 
 `bun run check` mirrors the main CI app job:
 
+- Rebuild sample wedding zip
 - Typecheck
 - Oxlint
 - LOC file and flat-directory budgets

@@ -25,8 +25,12 @@ flowchart LR
 | Overview hero | Couple names, allocated / spent / remaining |
 | Gift summary | Money coming in |
 | Expenses | Venue and vendors with running totals |
-| Backup bar | Export, import, reset, load demo |
+| Backup | Export, import dialog, new blank, load demo, sample download |
 
-## Demo vs blank
+## Blank, demo, and import
 
-`/app?demo=1` asks before replacing local data. Decline to keep what you have and seed a blank tracker instead.
+- `/app?new=1` asks before replacing local data with a blank starter.
+- `/app?demo=1` asks before loading the filled generic demo.
+- `/app?import=1` (or **Import** in the nav) opens the import dialog: drop or choose a Trousseau `.zip`, or download the sample wedding file first.
+
+Decline a replace prompt to keep what you have (and seed blank only if this browser has never been seeded).

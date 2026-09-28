@@ -26,7 +26,7 @@ flowchart TB
 | --- | --- | --- |
 | Routes | `src/main.tsx` | `/` marketing, `/app` tracker |
 | UI | `src/pages/`, `src/components/` | Marketing split under `pages/marketing/` |
-| Domain helpers | `src/lib/` | Money, site settings, export/import |
-| Persistence | `src/db/` | Dexie schema, seed, lifecycle |
+| Domain helpers | `src/lib/` | Money, site settings, backup actions, export/import |
+| Persistence | `src/db/` | Dexie schema, blank/demo seed, sample archive, lifecycle |
 
-Dev tooling: Bun for install/scripts, Flox for a reproducible shell, pre-commit and CI for lint, typecheck, budgets, and Markdown/mermaid hygiene.
+Dev tooling: Bun for install/scripts (including `sample:wedding`), Flox for a reproducible shell, pre-commit and CI for lint, typecheck, budgets, sample zip, and Markdown/mermaid hygiene.
