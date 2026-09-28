@@ -4,6 +4,7 @@ import { db } from '../db/dexie'
 import type { LineItem, LineStatus } from '../db/types'
 import { STATUS_LABELS } from '../lib/budget'
 import { parseMoneyInput } from '../lib/money'
+import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 import { AttachmentList } from './AttachmentList'
 
@@ -68,6 +69,7 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
               await db.attachments.where('lineItemId').equals(item.id).delete()
               await db.lineItems.delete(item.id)
             })
+            showToast('Expense deleted')
             onClose()
           }}
         >

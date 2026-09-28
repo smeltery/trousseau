@@ -31,7 +31,7 @@ export function ExpenseGroups({
   return (
     <section
       id="expenses"
-      className="relative border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24"
+      className="relative scroll-mt-24 border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24"
     >
       <div className="page-shell">
         <div className="mb-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">

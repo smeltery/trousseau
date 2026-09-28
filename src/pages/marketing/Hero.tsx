@@ -24,10 +24,13 @@ export function MarketingHero() {
           Track gifts, savings, and every vendor line. Private in your browser, editable to your liking.
         </p>
         <div className="flex flex-wrap items-center gap-7 pt-5">
-          <Link to="/app?new=1" className="btn-primary">
+          <Link to="/app?new=1" className="btn-primary animate-[rise-in_1.05s_var(--ease-out)_both]">
             Start your tracker
           </Link>
-          <Link to="/app?demo=1" className="link-quiet">
+          <Link
+            to="/app?demo=1"
+            className="btn-nav-demo animate-[rise-in_1.15s_var(--ease-out)_both]"
+          >
             Try a filled demo
           </Link>
         </div>

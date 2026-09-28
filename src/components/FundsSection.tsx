@@ -3,6 +3,7 @@ import { db, newId } from '../db/dexie'
 import type { Fund, FundType } from '../db/types'
 import { parseMoneyInput, sum } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
+import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
 
@@ -17,7 +18,7 @@ export function FundsSection({ site, funds }: FundsSectionProps) {
   const allocated = sum(funds.map((f) => f.amount))
 
   return (
-    <section id="gift-summary" className="bg-[var(--mist)] page-pad py-24">
+    <section id="gift-summary" className="scroll-mt-24 bg-[var(--mist)] page-pad py-24">
       <div className="page-shell">
         <div className="max-w-[560px]">
           <EditableText
@@ -95,7 +96,7 @@ function FundGroup({
         />
         <button
           type="button"
-          className="shrink-0 text-sm font-semibold text-[var(--accent-deep)]"
+          className="shrink-0 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-4 hover:text-[var(--ink)]"
           onClick={async () => {
             const sort = funds.length ? Math.max(...funds.map((f) => f.sort)) + 1 : 0
             await db.funds.add({
@@ -105,6 +106,7 @@ function FundGroup({
               type,
               sort,
             })
+            showToast(type === 'gift' ? 'Gift added' : 'Savings added')
           }}
         >
           Add
@@ -127,9 +129,19 @@ function FundGroup({
 function FundRow({ fund }: { fund: Fund }) {
   const [label, setLabel] = useState(fund.label)
   const [amountText, setAmountText] = useState(String(fund.amount))
+  const [saved, setSaved] = useState(false)
+
+  function flashSaved() {
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 550)
+  }
 
   return (
-    <li className="group flex items-center justify-between gap-4 border-b border-[var(--line-soft)] py-5">
+    <li
+      className={`group flex items-center justify-between gap-4 border-b border-[var(--line-soft)] py-5 transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] ${
+        saved ? 'editable-saved' : ''
+      }`}
+    >
       <input
         aria-label="Fund name"
         value={label}
@@ -137,7 +149,10 @@ function FundRow({ fund }: { fund: Fund }) {
         onBlur={async () => {
           const next = label.trim() || fund.label
           setLabel(next)
-          if (next !== fund.label) await db.funds.update(fund.id, { label: next })
+          if (next !== fund.label) {
+            await db.funds.update(fund.id, { label: next })
+            flashSaved()
+          }
         }}
         className="min-w-0 flex-1 bg-transparent text-xl leading-6 outline-none transition-colors focus:text-[var(--accent-deep)]"
       />
@@ -149,7 +164,10 @@ function FundRow({ fund }: { fund: Fund }) {
         onBlur={async () => {
           const amount = parseMoneyInput(amountText)
           setAmountText(String(amount))
-          if (amount !== fund.amount) await db.funds.update(fund.id, { amount })
+          if (amount !== fund.amount) {
+            await db.funds.update(fund.id, { amount })
+            flashSaved()
+          }
         }}
         onFocus={(e) => e.target.select()}
         className="w-[140px] shrink-0 bg-transparent text-right font-[family-name:var(--font-display)] text-[28px] leading-[34px] tracking-[-0.02em] outline-none focus:text-[var(--accent-deep)]"
@@ -159,7 +177,9 @@ function FundRow({ fund }: { fund: Fund }) {
         aria-label={`Remove ${fund.label}`}
         className="sr-only text-sm text-[var(--ink-faint)] group-focus-within:not-sr-only group-hover:not-sr-only hover:text-[var(--danger)]"
         onClick={async () => {
-          if (confirm(`Remove “${fund.label}”?`)) await db.funds.delete(fund.id)
+          if (!confirm(`Remove “${fund.label}”?`)) return
+          await db.funds.delete(fund.id)
+          showToast('Removed')
         }}
       >
         Remove

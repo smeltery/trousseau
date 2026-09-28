@@ -25,7 +25,7 @@ export function BackupBar() {
   }
 
   return (
-    <section id="backup" className="scroll-mt-8 bg-[var(--paper)] page-pad py-24">
+    <section id="backup" className="scroll-mt-24 bg-[var(--paper)] page-pad py-24">
       <div className="page-shell">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
           Backup

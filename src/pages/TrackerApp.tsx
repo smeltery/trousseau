@@ -7,8 +7,10 @@ import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
+import { Reveal } from '../components/Reveal'
 import { ensureSeeded, db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { sum } from '../lib/money'
+import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 
 export function TrackerApp() {
@@ -31,15 +33,19 @@ export function TrackerApp() {
             'Start a new blank budget? This replaces any budget data already in this browser.',
           )
           if (cancelled) return
-          if (ok) await resetToBlank()
-          else await ensureSeeded()
+          if (ok) {
+            await resetToBlank()
+            showToast('Blank budget ready')
+          } else await ensureSeeded()
         } else {
           const ok = confirm(
             'Load the filled demo sample? This replaces any budget data already in this browser.',
           )
           if (cancelled) return
-          if (ok) await loadDemoSample()
-          else await ensureSeeded()
+          if (ok) {
+            await loadDemoSample()
+            showToast('Demo sample loaded')
+          } else await ensureSeeded()
         }
         if (!cancelled) setReady(true)
         return
@@ -75,8 +81,13 @@ export function TrackerApp() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-[var(--ink-muted)]">
-        Loading…
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-[var(--grove)] page-pad">
+        <p className="font-[family-name:var(--font-display)] text-3xl tracking-[-0.03em] text-[var(--on-dark)] animate-[fade-in_0.5s_ease]">
+          Trousseau
+        </p>
+        <p className="text-sm tracking-[0.08em] text-[var(--on-dark-muted)] animate-[fade-in_0.7s_ease]">
+          Opening your budget…
+        </p>
       </div>
     )
   }
@@ -90,17 +101,23 @@ export function TrackerApp() {
         remaining={remaining}
         onAddExpense={() => setAdding(true)}
       />
-      <FundsSection site={site} funds={funds} />
-      <ExpenseGroups
-        site={site}
-        categories={categories}
-        lineItems={lineItems}
-        attachments={attachments}
-        allocated={allocated}
-        onOpenItem={setOpenItemId}
-        onAddExpense={() => setAdding(true)}
-      />
-      <BackupBar />
+      <Reveal>
+        <FundsSection site={site} funds={funds} />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <ExpenseGroups
+          site={site}
+          categories={categories}
+          lineItems={lineItems}
+          attachments={attachments}
+          allocated={allocated}
+          onOpenItem={setOpenItemId}
+          onAddExpense={() => setAdding(true)}
+        />
+      </Reveal>
+      <Reveal>
+        <BackupBar />
+      </Reveal>
 
       {openItemId ? (
         <LineItemSheet lineItemId={openItemId} onClose={() => setOpenItemId(null)} />
