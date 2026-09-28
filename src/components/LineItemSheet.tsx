@@ -1,9 +1,10 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/dexie'
 import type { LineItem, LineStatus } from '../db/types'
 import { STATUS_LABELS } from '../lib/budget'
 import { parseMoneyInput } from '../lib/money'
+import { useDialogFocus } from '../lib/use-dialog-focus'
 import { AttachmentList } from './AttachmentList'
 
 interface LineItemSheetProps {
@@ -97,6 +98,9 @@ function SheetShell({
   onClose: () => void
   children: ReactNode
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useDialogFocus(dialogRef)
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
       <button
@@ -106,6 +110,7 @@ function SheetShell({
         onClick={onClose}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

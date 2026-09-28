@@ -11,11 +11,13 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [dragging, setDragging] = useState(false)
+  const [justAdded, setJustAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function addFiles(files: FileList | File[]) {
     setError(null)
     const list = Array.from(files)
+    let added = 0
     for (const file of list) {
       if (file.size > 25 * 1024 * 1024) {
         setError(`${file.name} is larger than 25 MB`)
@@ -31,6 +33,11 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
         blob: file,
         createdAt: new Date().toISOString(),
       })
+      added += 1
+    }
+    if (added > 0) {
+      setJustAdded(true)
+      window.setTimeout(() => setJustAdded(false), 900)
     }
   }
 
@@ -81,11 +88,15 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
         }}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed px-4 py-10 text-center transition-colors ${
           dragging
-            ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-            : 'border-[var(--line)] bg-[color-mix(in_srgb,var(--wash)_60%,transparent)] hover:border-[var(--accent)]'
+            ? 'border-[var(--accent)] bg-[var(--accent-soft)] scale-[1.01]'
+            : justAdded
+              ? 'border-[var(--lichen)] bg-[color-mix(in_srgb,var(--lichen)_12%,transparent)]'
+              : 'border-[var(--line)] bg-[color-mix(in_srgb,var(--wash)_60%,transparent)] hover:border-[var(--accent)]'
         }`}
       >
-        <span className="font-medium text-[var(--ink)]">Drop files here</span>
+        <span className="font-medium text-[var(--ink)]">
+          {justAdded ? 'Added' : dragging ? 'Drop to attach' : 'Drop files here'}
+        </span>
         <span className="mt-1 text-sm text-[var(--ink-faint)]">or click to browse · max 25 MB</span>
         <input
           type="file"

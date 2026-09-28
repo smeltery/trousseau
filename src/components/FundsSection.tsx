@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { db, newId } from '../db/dexie'
 import type { Fund, FundType } from '../db/types'
-import { formatMoney, parseMoneyInput, sum } from '../lib/money'
+import { parseMoneyInput, sum } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
+import { SettlingMoney } from './SettlingMoney'
 
 interface FundsSectionProps {
   site: SiteSettings
@@ -62,7 +63,7 @@ export function FundsSection({ site, funds }: FundsSectionProps) {
             Total allocated
           </p>
           <p className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,4vw,2.25rem)] tracking-[-0.02em]">
-            {formatMoney(allocated)}
+            <SettlingMoney value={allocated} />
           </p>
         </div>
       </div>

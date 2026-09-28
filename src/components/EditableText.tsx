@@ -21,6 +21,7 @@ export function EditableText({
   'aria-label': ariaLabel,
 }: EditableTextProps) {
   const [draft, setDraft] = useState(value)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setDraft(value)
@@ -29,21 +30,23 @@ export function EditableText({
   async function commit() {
     const next = draft.trim() || value
     setDraft(next)
-    if (next !== value) await onSave(next)
+    if (next === value) return
+    await onSave(next)
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 550)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    if (!multiline && e.key === 'Enter') {
-      e.currentTarget.blur()
-    }
+    if (!multiline && e.key === 'Enter') e.currentTarget.blur()
     if (e.key === 'Escape') {
       setDraft(value)
       e.currentTarget.blur()
     }
   }
 
-  const shared =
-    'editable-text min-w-0 bg-transparent outline-none placeholder:text-[var(--ink-faint)]'
+  const shared = `editable-text min-w-0 bg-transparent outline-none placeholder:text-[var(--ink-faint)]${
+    saved ? ' editable-saved' : ''
+  }`
 
   if (multiline) {
     return (

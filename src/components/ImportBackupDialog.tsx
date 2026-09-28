@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from 'react'
 import { restoreBackupZip } from '../lib/backup-actions'
+import { useDialogFocus } from '../lib/use-dialog-focus'
 
 const SAMPLE_URL = '/samples/sample-wedding.zip'
 
@@ -10,11 +11,14 @@ interface ImportBackupDialogProps {
 
 export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogProps) {
   const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useDialogFocus(dialogRef)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -81,6 +85,7 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
         }}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

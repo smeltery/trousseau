@@ -12,19 +12,36 @@ import {
   QuestionsSection,
 } from './marketing/TrustSections'
 import { MarketingFooter } from './marketing/Footer'
+import { Reveal } from '../components/Reveal'
 
 export function MarketingPage() {
   return (
     <div>
       <MarketingHero />
-      <WhySection />
-      <InsideSection />
-      <HowSection />
-      <YoursSection />
-      <PrivacySection />
-      <BackupSection />
-      <QuestionsSection />
-      <BeginSection />
+      <Reveal>
+        <WhySection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <InsideSection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <HowSection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <YoursSection />
+      </Reveal>
+      <Reveal>
+        <PrivacySection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <BackupSection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <QuestionsSection />
+      </Reveal>
+      <Reveal>
+        <BeginSection />
+      </Reveal>
       <MarketingFooter />
     </div>
   )

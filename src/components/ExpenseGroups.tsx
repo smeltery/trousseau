@@ -4,6 +4,7 @@ import { GROUP_ORDER, groupCategories } from '../lib/budget'
 import { formatMoney, sum } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
+import { SettlingMoney } from './SettlingMoney'
 
 interface ExpenseGroupsProps {
   site: SiteSettings
@@ -89,7 +90,7 @@ export function ExpenseGroups({
               Running total
             </p>
             <p className="mt-2 font-[family-name:var(--font-display)] text-[40px] leading-12 tracking-[-0.02em]">
-              {formatMoney(runningTotal)}
+              <SettlingMoney value={runningTotal} />
             </p>
           </div>
           <div className="sm:text-right">
@@ -97,7 +98,7 @@ export function ExpenseGroups({
               Money left
             </p>
             <p className="mt-2 font-[family-name:var(--font-display)] text-[40px] leading-12 tracking-[-0.02em]">
-              {formatMoney(moneyLeft)}
+              <SettlingMoney value={moneyLeft} />
             </p>
           </div>
         </div>
@@ -225,7 +226,7 @@ function ExpenseGroupBlock({
                           <button
                             type="button"
                             onClick={() => onOpenItem(item.id)}
-                            className="group flex w-full items-center gap-4 border-b border-[var(--line-soft)] py-[14px] text-left transition-colors duration-200 hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+                            className="expense-row group flex w-full items-center gap-4 border-b border-[var(--line-soft)] py-[14px] text-left hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
                           >
                             <span className="min-w-0 flex-1 grow basis-0">
                               <span className="block text-base leading-5 transition-colors group-hover:text-[var(--accent-deep)]">
@@ -267,9 +268,10 @@ function ExpenseGroupBlock({
 /** Prefer Budget line for category budget; avoid double-counting deposit + remaining. */
 function categoryDisplayTotals(items: LineItem[]) {
   const budgetLine = items.find((i) => /^budget$/i.test(i.label.trim()))
-  const amount = budgetLine ? budgetLine.amount : sum(items.map((i) => i.amount))
-  const paid = sum(items.map((i) => i.paidAmount))
-  return { amount, paid }
+  return {
+    amount: budgetLine ? budgetLine.amount : sum(items.map((i) => i.amount)),
+    paid: sum(items.map((i) => i.paidAmount)),
+  }
 }
 
 /** Match Paper: exclude reimbursements; use Budget when present, else sum lines. */
@@ -277,10 +279,7 @@ function expensesRunningTotal(categories: Category[], lineItems: LineItem[]) {
   return sum(
     categories
       .filter((c) => c.group !== 'reimbursement')
-      .map((cat) => {
-        const items = lineItems.filter((i) => i.categoryId === cat.id)
-        return categoryDisplayTotals(items).amount
-      }),
+      .map((cat) => categoryDisplayTotals(lineItems.filter((i) => i.categoryId === cat.id)).amount),
   )
 }
 
@@ -290,7 +289,6 @@ function formatDue(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-/** Paper overview status column: Paid / Due / - */
 function paperLineStatus(item: LineItem): { label: string; tone: string } {
   if (item.status === 'paid') return { label: 'Paid', tone: 'text-[var(--lichen)]' }
   if (/^budget$/i.test(item.label.trim())) return { label: '-', tone: 'text-[var(--ink-faint)]' }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
+import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
 const SAMPLE_URL = '/samples/sample-wedding.zip'
@@ -9,17 +10,15 @@ const SAMPLE_URL = '/samples/sample-wedding.zip'
 /** Tracker backup: export, import modal, and sample download. */
 export function BackupBar() {
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
 
   async function onExport() {
     setBusy(true)
-    setMessage(null)
     try {
       await downloadBackupZip()
-      setMessage('Backup downloaded.')
+      showToast('Backup downloaded')
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Export failed')
+      showToast(err instanceof Error ? err.message : 'Export failed')
     } finally {
       setBusy(false)
     }
@@ -68,10 +67,9 @@ export function BackupBar() {
                 return
               }
               setBusy(true)
-              setMessage(null)
               try {
                 await resetToBlank()
-                setMessage('Blank budget ready.')
+                showToast('Blank budget ready')
               } finally {
                 setBusy(false)
               }
@@ -88,10 +86,9 @@ export function BackupBar() {
                 return
               }
               setBusy(true)
-              setMessage(null)
               try {
                 await loadDemoSample()
-                setMessage('Demo sample loaded.')
+                showToast('Demo sample loaded')
               } finally {
                 setBusy(false)
               }
@@ -114,16 +111,12 @@ export function BackupBar() {
             About Trousseau
           </Link>
         </div>
-
-        {message ? (
-          <p className="mt-5 text-sm font-medium text-[var(--accent-deep)]">{message}</p>
-        ) : null}
       </div>
 
       {importOpen ? (
         <ImportBackupDialog
           onClose={() => setImportOpen(false)}
-          onImported={() => setMessage('Backup imported.')}
+          onImported={() => showToast('Backup imported')}
         />
       ) : null}
     </section>

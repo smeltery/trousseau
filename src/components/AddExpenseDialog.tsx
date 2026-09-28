@@ -1,8 +1,10 @@
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db/dexie'
 import type { CategoryGroup } from '../db/types'
 import { GROUP_LABELS } from '../lib/budget'
+import { showToast } from '../lib/toast'
+import { useDialogFocus } from '../lib/use-dialog-focus'
 
 interface AddExpenseDialogProps {
   onClose: () => void
@@ -11,6 +13,7 @@ interface AddExpenseDialogProps {
 
 export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) {
   const titleId = useId()
+  const formRef = useRef<HTMLFormElement>(null)
   const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray()) ?? []
   const [mode, setMode] = useState<'existing' | 'new'>('existing')
   const [categoryId, setCategoryId] = useState('')
@@ -18,6 +21,8 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
   const [newGroup, setNewGroup] = useState<CategoryGroup>('vendor')
   const [label, setLabel] = useState('Deposit')
   const selectedCategoryId = categoryId || categories[0]?.id || ''
+
+  useDialogFocus(formRef)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -54,6 +59,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
       status: 'planned',
       sort,
     })
+    showToast('Expense added')
     onCreated(id)
   }
 
@@ -66,6 +72,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
         onClick={onClose}
       />
       <form
+        ref={formRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
