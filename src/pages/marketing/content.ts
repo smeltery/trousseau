@@ -1,0 +1,84 @@
+export const features = [
+  {
+    title: 'Yours to rename',
+    body: 'Names, section titles, categories, and every dollar. Edit in place until it feels like your wedding.',
+  },
+  {
+    title: 'Stays on your device',
+    body: 'No account, no cloud ledger. Your gifts, invoices, and notes live in this browser until you export a backup.',
+  },
+  {
+    title: 'Receipts and notes',
+    body: 'Open any expense to attach PDFs, photos, or Drive links, and keep vendor notes next to the amount.',
+  },
+] as const
+
+export const tracks = [
+  {
+    label: 'Gifts and savings',
+    body: 'Log what came in, what you set aside, and watch the pool grow before the first vendor invoice.',
+  },
+  {
+    label: 'Vendor lines',
+    body: 'Venue, florals, travel, or your own categories. Paid and due sit next to each other so nothing drifts.',
+  },
+  {
+    label: 'Paper trails',
+    body: 'Attach receipts and keep short notes on the same line as the dollar amount.',
+  },
+] as const
+
+export const steps = [
+  { n: '01', title: 'Start blank or try the demo', body: 'Open the tracker and put your names on the hero.' },
+  { n: '02', title: 'Add gifts and expenses', body: 'Build categories that match how you actually spend.' },
+  { n: '03', title: 'Export when you need to', body: 'Download a zip backup before you switch devices.' },
+] as const
+
+export const customs = [
+  {
+    title: 'Your names on the hero',
+    body: 'Click any title and type. The page becomes yours without a settings maze.',
+  },
+  {
+    title: 'Categories that match the day',
+    body: 'Rename groups, add lines, and drop what you do not need. No fixed template.',
+  },
+  {
+    title: 'Copy that fits your tone',
+    body: 'Eyebrows, section labels, and empty states stay editable so the app reads like your wedding.',
+  },
+] as const
+
+export const faqs = [
+  {
+    q: 'Do we need accounts?',
+    a: 'No. Trousseau runs in your browser. Share a device or export a backup when you need a second copy.',
+  },
+  {
+    q: 'What happens if we clear the browser?',
+    a: 'Local data can go with it. Export a zip whenever you want a durable backup, then import it later.',
+  },
+  {
+    q: 'Can we start from a sample?',
+    a: 'Yes. Try the filled demo to see the shape, then start blank when you are ready for your own numbers.',
+  },
+] as const
+
+export const footerColumns = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Start tracker', to: '/app' },
+      { label: 'Try demo', to: '/app?demo=1' },
+      { label: 'Export backup', to: '/app' },
+    ],
+  },
+  {
+    title: 'Promise',
+    items: ['Local-first', 'No account', 'Your device'],
+  },
+  {
+    title: 'Notes',
+    items: ['Attach receipts', 'Vendor notes', 'Rename anything'],
+  },
+] as const

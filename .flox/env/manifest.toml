@@ -1,0 +1,30 @@
+schema-version = "1.12.0"
+
+[install]
+bun.pkg-path = "bun"
+bun.version = "1.3.13"
+python3.pkg-path = "python3"
+
+[hook]
+on-activate = '''
+  if [ ! -d "$FLOX_ENV_PROJECT/node_modules" ]; then
+    echo "trousseau: installing dependencies (first activation)…" >&2
+    (cd "$FLOX_ENV_PROJECT" && bun install --frozen-lockfile)
+  fi
+  if [ -f "$FLOX_ENV_PROJECT/.pre-commit-config.yaml" ]; then
+    (cd "$FLOX_ENV_PROJECT" && command -v pre-commit >/dev/null && pre-commit install --install-hooks >/dev/null 2>&1 || true)
+  fi
+'''
+
+[profile]
+common = '''
+  echo "trousseau dev env (bun $(bun --version)) — bun run dev / bun run check" >&2
+'''
+
+[options]
+systems = [
+  "aarch64-darwin",
+  "aarch64-linux",
+  "x86_64-darwin",
+  "x86_64-linux",
+]

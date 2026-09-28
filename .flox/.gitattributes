@@ -1,0 +1,7 @@
+# !! Keep this file as it is !!
+# This file is used by flox to track files associated with this environment.
+# Modifying it may break flox features.
+.flox/cache/
+.flox/lib/
+.flox/log/
+.flox/run/

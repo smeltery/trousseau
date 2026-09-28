@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Mirrors the GitHub app CI gate.
+set -e
+LOG_FILE="${TMPDIR:-/tmp}/trousseau-pre-push-$(date +%Y%m%dT%H%M%S).log"
+echo "→ bun run ci (exact GitHub app gate)"
+echo "  full output: $LOG_FILE"
+set +e
+bun run ci 2>&1 | tee "$LOG_FILE"
+status=${PIPESTATUS[0]}
+set -e
+if [[ $status -ne 0 ]]; then
+  echo "✗ bun run ci failed (exit $status). Full output: $LOG_FILE"
+fi
+exit "$status"

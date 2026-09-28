@@ -1,0 +1,39 @@
+{
+  "name": "trousseau",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "bun@1.3.13",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint .",
+    "typecheck": "tsc -b --pretty false",
+    "budget": "bun run scripts/check-loc-budgets.ts",
+    "markdown": "python3 scripts/check_markdown.py",
+    "preview": "vite preview",
+    "check": "bun run typecheck && bun run lint && bun run budget && bun run markdown && bun run build",
+    "ci": "bun run check",
+    "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true"
+  },
+  "dependencies": {
+    "dexie": "^4.4.6",
+    "dexie-react-hooks": "^4.4.0",
+    "jszip": "^3.10.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "latest",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "default_files": 25,
+  "directories": {
+    "src/components": {
+      "limit": 20,
+      "reason": "Tracker UI surfaces stay flat beside each other for discoverability."
+    },
+    "src/pages/marketing": {
+      "limit": 12,
+      "reason": "Marketing page modules split by section responsibility."
+    }
+  }
+}
