@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { ConfirmHost } from './components/ConfirmHost'
 import { ToastHost } from './components/ToastHost'
 import { MarketingPage } from './pages/MarketingPage'
 import { TrackerApp } from './pages/TrackerApp'
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastHost />
+      <ConfirmHost />
     </BrowserRouter>
   </StrictMode>,
 )

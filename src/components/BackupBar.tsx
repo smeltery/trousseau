@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
@@ -59,16 +61,16 @@ export function BackupBar() {
             type="button"
             disabled={busy}
             onClick={async () => {
-              if (
-                !confirm(
-                  'Start a new blank budget? This replaces any budget data already in this browser.',
-                )
-              ) {
-                return
-              }
+              const ok = await askConfirm({
+                title: 'Start a blank budget?',
+                body: 'This replaces any budget data already in this browser.',
+                confirmLabel: 'Start blank',
+                danger: true,
+              })
+              if (!ok) return
               setBusy(true)
               try {
-                await resetToBlank()
+                await dbWrite(() => resetToBlank())
                 showToast('Blank budget ready')
               } finally {
                 setBusy(false)
@@ -82,12 +84,16 @@ export function BackupBar() {
             type="button"
             disabled={busy}
             onClick={async () => {
-              if (!confirm('Load the filled demo sample? This replaces your current budget.')) {
-                return
-              }
+              const ok = await askConfirm({
+                title: 'Load the filled demo?',
+                body: 'This replaces your current budget.',
+                confirmLabel: 'Load demo',
+                danger: true,
+              })
+              if (!ok) return
               setBusy(true)
               try {
-                await loadDemoSample()
+                await dbWrite(() => loadDemoSample())
                 showToast('Demo sample loaded')
               } finally {
                 setBusy(false)

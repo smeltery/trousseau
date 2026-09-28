@@ -3,6 +3,8 @@ import { db, newId } from '../db/dexie'
 import type { Fund, FundType } from '../db/types'
 import { parseMoneyInput, sum } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
 import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
@@ -99,13 +101,15 @@ function FundGroup({
           className="shrink-0 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-4 hover:text-[var(--ink)]"
           onClick={async () => {
             const sort = funds.length ? Math.max(...funds.map((f) => f.sort)) + 1 : 0
-            await db.funds.add({
-              id: newId('fund'),
-              label: type === 'gift' ? 'New gift' : 'New savings',
-              amount: 0,
-              type,
-              sort,
-            })
+            await dbWrite(() =>
+              db.funds.add({
+                id: newId('fund'),
+                label: type === 'gift' ? 'New gift' : 'New savings',
+                amount: 0,
+                type,
+                sort,
+              }),
+            )
             showToast(type === 'gift' ? 'Gift added' : 'Savings added')
           }}
         >
@@ -150,7 +154,7 @@ function FundRow({ fund }: { fund: Fund }) {
           const next = label.trim() || fund.label
           setLabel(next)
           if (next !== fund.label) {
-            await db.funds.update(fund.id, { label: next })
+            await dbWrite(() => db.funds.update(fund.id, { label: next }))
             flashSaved()
           }
         }}
@@ -165,7 +169,7 @@ function FundRow({ fund }: { fund: Fund }) {
           const amount = parseMoneyInput(amountText)
           setAmountText(String(amount))
           if (amount !== fund.amount) {
-            await db.funds.update(fund.id, { amount })
+            await dbWrite(() => db.funds.update(fund.id, { amount }))
             flashSaved()
           }
         }}
@@ -177,8 +181,13 @@ function FundRow({ fund }: { fund: Fund }) {
         aria-label={`Remove ${fund.label}`}
         className="sr-only text-sm text-[var(--ink-faint)] group-focus-within:not-sr-only group-hover:not-sr-only hover:text-[var(--danger)]"
         onClick={async () => {
-          if (!confirm(`Remove “${fund.label}”?`)) return
-          await db.funds.delete(fund.id)
+          const ok = await askConfirm({
+            title: `Remove “${fund.label}”?`,
+            confirmLabel: 'Remove',
+            danger: true,
+          })
+          if (!ok) return
+          await dbWrite(() => db.funds.delete(fund.id))
           showToast('Removed')
         }}
       >

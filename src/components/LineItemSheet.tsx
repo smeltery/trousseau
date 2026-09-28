@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/dexie'
 import type { LineItem, LineStatus } from '../db/types'
 import { STATUS_LABELS } from '../lib/budget'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
 import { parseMoneyInput } from '../lib/money'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
@@ -64,11 +66,19 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
           type="button"
           className="text-sm text-[var(--danger)] hover:underline"
           onClick={async () => {
-            if (!confirm(`Delete “${item.label}”? Attachments will be removed too.`)) return
-            await db.transaction('rw', db.lineItems, db.attachments, async () => {
-              await db.attachments.where('lineItemId').equals(item.id).delete()
-              await db.lineItems.delete(item.id)
+            const ok = await askConfirm({
+              title: `Delete “${item.label}”?`,
+              body: 'Attachments on this line will be removed too.',
+              confirmLabel: 'Delete',
+              danger: true,
             })
+            if (!ok) return
+            await dbWrite(() =>
+              db.transaction('rw', db.lineItems, db.attachments, async () => {
+                await db.attachments.where('lineItemId').equals(item.id).delete()
+                await db.lineItems.delete(item.id)
+              }),
+            )
             showToast('Expense deleted')
             onClose()
           }}
@@ -155,7 +165,7 @@ function LineItemForm({ item }: { item: LineItem }) {
   const [notes, setNotes] = useState(item.notes ?? '')
 
   async function persist(patch: Partial<LineItem>) {
-    await db.lineItems.update(item.id, patch)
+    await dbWrite(() => db.lineItems.update(item.id, patch))
   }
 
   return (

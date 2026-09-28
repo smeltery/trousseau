@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { MarketingRings } from './MarketingRings'
+import { dismissNamesHint, isNamesHintDismissed } from '../lib/names-hint'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
@@ -21,6 +23,13 @@ export function OverviewHero({
 }: OverviewHeroProps) {
   const over = remaining < 0
   const blankNames = site.brandLeft === 'Groom' && site.brandRight === 'Bride'
+  const [hintDismissed, setHintDismissed] = useState(() => isNamesHintDismissed())
+  const showHint = blankNames && !hintDismissed
+
+  function hideHint() {
+    dismissNamesHint()
+    setHintDismissed(true)
+  }
 
   return (
     <header className="hero-surface page-pad">
@@ -41,7 +50,10 @@ export function OverviewHero({
             <EditableText
               aria-label="First name"
               value={site.brandLeft}
-              onSave={(brandLeft) => patchSiteSettings({ brandLeft })}
+              onSave={async (brandLeft) => {
+                await patchSiteSettings({ brandLeft })
+                if (brandLeft !== 'Groom') hideHint()
+              }}
               className="inline-block align-baseline font-[family-name:var(--font-display)] text-[clamp(3.25rem,10vw,7.5rem)] leading-[0.9] tracking-[-0.03em] text-[var(--on-dark)]"
             />
             <span className="mx-[0.12em]" aria-hidden>
@@ -50,15 +62,22 @@ export function OverviewHero({
             <EditableText
               aria-label="Second name"
               value={site.brandRight}
-              onSave={(brandRight) => patchSiteSettings({ brandRight })}
+              onSave={async (brandRight) => {
+                await patchSiteSettings({ brandRight })
+                if (brandRight !== 'Bride') hideHint()
+              }}
               className="inline-block align-baseline font-[family-name:var(--font-display)] text-[clamp(3.25rem,10vw,7.5rem)] leading-[0.9] tracking-[-0.03em] text-[var(--on-dark)]"
             />
           </h1>
 
-          {blankNames ? (
-            <p className="animate-[fade-in_0.6s_var(--ease-out)_both] text-sm text-[var(--on-dark-faint)]">
+          {showHint ? (
+            <button
+              type="button"
+              onClick={hideHint}
+              className="animate-[fade-in_0.6s_var(--ease-out)_both] text-left text-sm text-[var(--on-dark-faint)] underline decoration-1 underline-offset-4 hover:text-[var(--on-dark-muted)]"
+            >
               Click the names to make them yours
-            </p>
+            </button>
           ) : null}
 
           <div className="flex max-w-[420px] flex-col gap-2">
@@ -71,13 +90,18 @@ export function OverviewHero({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-7 pt-4">
-            <button type="button" onClick={onAddExpense} className="btn-primary">
-              Add expense
-            </button>
-            <a href="#gift-summary" className="link-quiet">
-              See gifts &amp; savings
-            </a>
+          <div className="flex flex-col items-start gap-3 pt-4">
+            <div className="flex flex-wrap items-center gap-7">
+              <button type="button" onClick={onAddExpense} className="btn-primary">
+                Add expense
+              </button>
+              <a href="#gift-summary" className="link-quiet">
+                See gifts &amp; savings
+              </a>
+            </div>
+            <p className="text-xs tracking-[0.04em] text-[var(--on-dark-faint)]">
+              Press <kbd className="font-[family-name:var(--font-body)]">N</kbd> to add an expense
+            </p>
           </div>
         </div>
       </div>

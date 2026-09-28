@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, newId } from '../db/dexie'
 import type { Attachment } from '../db/types'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
 
 interface AttachmentListProps {
   lineItemId: string
@@ -23,16 +25,18 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
         setError(`${file.name} is larger than 25 MB`)
         continue
       }
-      await db.attachments.add({
-        id: newId('att'),
-        lineItemId,
-        kind: 'file',
-        name: file.name,
-        mime: file.type || 'application/octet-stream',
-        size: file.size,
-        blob: file,
-        createdAt: new Date().toISOString(),
-      })
+      await dbWrite(() =>
+        db.attachments.add({
+          id: newId('att'),
+          lineItemId,
+          kind: 'file',
+          name: file.name,
+          mime: file.type || 'application/octet-stream',
+          size: file.size,
+          blob: file,
+          createdAt: new Date().toISOString(),
+        }),
+      )
       added += 1
     }
     if (added > 0) {
@@ -222,9 +226,13 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
             type="button"
             className="text-[var(--ink-faint)] hover:text-[var(--danger)]"
             onClick={async () => {
-              if (confirm(`Remove “${attachment.name}”?`)) {
-                await db.attachments.delete(attachment.id)
-              }
+              const ok = await askConfirm({
+                title: `Remove “${attachment.name}”?`,
+                confirmLabel: 'Remove',
+                danger: true,
+              })
+              if (!ok) return
+              await dbWrite(() => db.attachments.delete(attachment.id))
             }}
           >
             Remove

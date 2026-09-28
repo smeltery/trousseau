@@ -126,6 +126,17 @@
   }
 }
 
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);
@@ -162,6 +173,10 @@
 .expense-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.expense-row-enter {
+  animation: row-enter 0.4s var(--ease-out) both;
 }
 
 .editable-saved {

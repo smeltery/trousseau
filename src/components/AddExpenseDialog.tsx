@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db/dexie'
 import type { CategoryGroup } from '../db/types'
 import { GROUP_LABELS } from '../lib/budget'
+import { dbWrite } from '../lib/db-write'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 
@@ -42,7 +43,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
       const sort =
         categories.length === 0 ? 0 : Math.max(...categories.map((c) => c.sort)) + 1
       catId = newId('cat')
-      await db.categories.add({ id: catId, name, group: newGroup, sort })
+      await dbWrite(() => db.categories.add({ id: catId, name, group: newGroup, sort }))
     }
 
     if (!catId) return
@@ -50,15 +51,18 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
     const siblings = await db.lineItems.where('categoryId').equals(catId).toArray()
     const sort = siblings.length ? Math.max(...siblings.map((s) => s.sort)) + 1 : 0
     const id = newId('line')
-    await db.lineItems.add({
-      id,
-      categoryId: catId,
-      label: label.trim() || 'Expense',
-      amount: 0,
-      paidAmount: 0,
-      status: 'planned',
-      sort,
-    })
+    const saved = await dbWrite(() =>
+      db.lineItems.add({
+        id,
+        categoryId: catId,
+        label: label.trim() || 'Expense',
+        amount: 0,
+        paidAmount: 0,
+        status: 'planned',
+        sort,
+      }),
+    )
+    if (saved === undefined) return
     showToast('Expense added')
     onCreated(id)
   }

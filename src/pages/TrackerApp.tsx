@@ -9,6 +9,8 @@ import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
 import { Reveal } from '../components/Reveal'
 import { ensureSeeded, db, loadDemoSample, resetToBlank } from '../db/dexie'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
 import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
@@ -26,24 +28,29 @@ export function TrackerApp() {
       const wantNew = searchParams.get('new') === '1'
 
       if (wantDemo || wantNew) {
-        // Clear immediately so React Strict Mode remounts don't double-prompt.
         setSearchParams({}, { replace: true })
         if (wantNew) {
-          const ok = confirm(
-            'Start a new blank budget? This replaces any budget data already in this browser.',
-          )
+          const ok = await askConfirm({
+            title: 'Start a blank budget?',
+            body: 'This replaces any budget data already in this browser.',
+            confirmLabel: 'Start blank',
+            danger: true,
+          })
           if (cancelled) return
           if (ok) {
-            await resetToBlank()
+            await dbWrite(() => resetToBlank())
             showToast('Blank budget ready')
           } else await ensureSeeded()
         } else {
-          const ok = confirm(
-            'Load the filled demo sample? This replaces any budget data already in this browser.',
-          )
+          const ok = await askConfirm({
+            title: 'Load the filled demo?',
+            body: 'This replaces any budget data already in this browser.',
+            confirmLabel: 'Load demo',
+            danger: true,
+          })
           if (cancelled) return
           if (ok) {
-            await loadDemoSample()
+            await dbWrite(() => loadDemoSample())
             showToast('Demo sample loaded')
           } else await ensureSeeded()
         }
@@ -58,7 +65,6 @@ export function TrackerApp() {
     return () => {
       cancelled = true
     }
-    // Only on first mount; query flags are read once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -66,6 +72,21 @@ export function TrackerApp() {
     if (!ready) return
     if (window.location.hash !== '#backup') return
     document.getElementById('backup')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [ready])
+
+  useEffect(() => {
+    if (!ready) return
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault()
+        setAdding(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [ready])
 
   const funds = useLiveQuery(() => db.funds.toArray(), [ready]) ?? []

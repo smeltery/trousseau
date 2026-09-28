@@ -1,8 +1,18 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Attachment, Category, CategoryGroup, LineItem } from '../db/types'
 import { db, newId } from '../db/dexie'
 import { GROUP_ORDER, groupCategories } from '../lib/budget'
-import { formatMoney, sum } from '../lib/money'
+import { askConfirm } from '../lib/confirm'
+import { dbWrite } from '../lib/db-write'
+import {
+  categoryDisplayTotals,
+  expensesRunningTotal,
+  formatDue,
+  paperLineStatus,
+} from '../lib/expense-display'
+import { formatMoney } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
+import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
 
@@ -27,6 +37,22 @@ export function ExpenseGroups({
 }: ExpenseGroupsProps) {
   const runningTotal = expensesRunningTotal(categories, lineItems)
   const moneyLeft = allocated - runningTotal
+  const seenIds = useRef(new Set(lineItems.map((i) => i.id)))
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    const fresh = new Set<string>()
+    for (const item of lineItems) {
+      if (!seenIds.current.has(item.id)) {
+        fresh.add(item.id)
+        seenIds.current.add(item.id)
+      }
+    }
+    if (!fresh.size) return
+    setEnteringIds(fresh)
+    const t = window.setTimeout(() => setEnteringIds(new Set()), 450)
+    return () => window.clearTimeout(t)
+  }, [lineItems])
 
   return (
     <section
@@ -79,6 +105,7 @@ export function ExpenseGroups({
               cats={groupCategories(categories, group)}
               lineItems={lineItems}
               attachments={attachments}
+              enteringIds={enteringIds}
               onOpenItem={onOpenItem}
             />
           ))}
@@ -114,6 +141,7 @@ function ExpenseGroupBlock({
   cats,
   lineItems,
   attachments,
+  enteringIds,
   onOpenItem,
 }: {
   group: CategoryGroup
@@ -122,6 +150,7 @@ function ExpenseGroupBlock({
   cats: Category[]
   lineItems: LineItem[]
   attachments: Attachment[]
+  enteringIds: Set<string>
   onOpenItem: (id: string) => void
 }) {
   return (
@@ -177,26 +206,23 @@ function ExpenseGroupBlock({
                       aria-label={`Remove ${cat.name}`}
                       className="shrink-0 text-sm text-[var(--ink-faint)] opacity-0 transition-opacity group-hover/cat:opacity-100 hover:text-[var(--danger)] focus:opacity-100"
                       onClick={async () => {
-                        if (
-                          !confirm(
-                            `Remove “${cat.name}” and its ${items.length} expense line${items.length === 1 ? '' : 's'}?`,
-                          )
-                        ) {
-                          return
-                        }
-                        await db.transaction(
-                          'rw',
-                          db.categories,
-                          db.lineItems,
-                          db.attachments,
-                          async () => {
+                        const ok = await askConfirm({
+                          title: `Remove “${cat.name}”?`,
+                          body: `Also deletes its ${items.length} expense line${items.length === 1 ? '' : 's'}.`,
+                          confirmLabel: 'Remove',
+                          danger: true,
+                        })
+                        if (!ok) return
+                        await dbWrite(() =>
+                          db.transaction('rw', db.categories, db.lineItems, db.attachments, async () => {
                             for (const item of items) {
                               await db.attachments.where('lineItemId').equals(item.id).delete()
                             }
                             await db.lineItems.where('categoryId').equals(cat.id).delete()
                             await db.categories.delete(cat.id)
-                          },
+                          }),
                         )
+                        showToast('Category removed')
                       }}
                     >
                       Remove
@@ -226,7 +252,9 @@ function ExpenseGroupBlock({
                           <button
                             type="button"
                             onClick={() => onOpenItem(item.id)}
-                            className="expense-row group flex w-full items-center gap-4 border-b border-[var(--line-soft)] py-[14px] text-left hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+                            className={`expense-row group flex w-full items-center gap-4 border-b border-[var(--line-soft)] py-[14px] text-left hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]${
+                              enteringIds.has(item.id) ? ' expense-row-enter' : ''
+                            }`}
                           >
                             <span className="min-w-0 flex-1 grow basis-0">
                               <span className="block text-base leading-5 transition-colors group-hover:text-[var(--accent-deep)]">
@@ -263,34 +291,4 @@ function ExpenseGroupBlock({
       )}
     </div>
   )
-}
-
-/** Prefer Budget line for category budget; avoid double-counting deposit + remaining. */
-function categoryDisplayTotals(items: LineItem[]) {
-  const budgetLine = items.find((i) => /^budget$/i.test(i.label.trim()))
-  return {
-    amount: budgetLine ? budgetLine.amount : sum(items.map((i) => i.amount)),
-    paid: sum(items.map((i) => i.paidAmount)),
-  }
-}
-
-/** Match Paper: exclude reimbursements; use Budget when present, else sum lines. */
-function expensesRunningTotal(categories: Category[], lineItems: LineItem[]) {
-  return sum(
-    categories
-      .filter((c) => c.group !== 'reimbursement')
-      .map((cat) => categoryDisplayTotals(lineItems.filter((i) => i.categoryId === cat.id)).amount),
-  )
-}
-
-function formatDue(iso: string): string {
-  const d = new Date(`${iso}T12:00:00`)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function paperLineStatus(item: LineItem): { label: string; tone: string } {
-  if (item.status === 'paid') return { label: 'Paid', tone: 'text-[var(--lichen)]' }
-  if (/^budget$/i.test(item.label.trim())) return { label: '-', tone: 'text-[var(--ink-faint)]' }
-  return { label: 'Due', tone: 'text-[var(--ink-faint)]' }
 }

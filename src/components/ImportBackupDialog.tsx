@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from 'react'
 import { restoreBackupZip } from '../lib/backup-actions'
+import { dbWrite } from '../lib/db-write'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 
 const SAMPLE_URL = '/samples/sample-wedding.zip'
@@ -44,7 +45,8 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
     setBusy(true)
     setError(null)
     try {
-      await restoreBackupZip(file)
+      const ok = await dbWrite(() => restoreBackupZip(file))
+      if (ok === undefined) return
       onImported?.()
       onClose()
     } catch (err) {
