@@ -137,6 +137,19 @@
   }
 }
 
+@keyframes over-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-2px);
+  }
+  70% {
+    transform: translateY(1px);
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);
@@ -177,6 +190,12 @@
 
 .expense-row-enter {
   animation: row-enter 0.4s var(--ease-out) both;
+}
+
+.over-nudge {
+  display: inline-block;
+  animation: over-nudge 0.7s var(--ease-out) 2;
+  color: #f0a090;
 }
 
 .editable-saved {

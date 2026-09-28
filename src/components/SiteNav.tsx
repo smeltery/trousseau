@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { celebrate } from '../lib/celebrate'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 import { TrousseauLogo } from './TrousseauLogo'
@@ -203,7 +204,10 @@ export function SiteNav({ variant }: SiteNavProps) {
       {importOpen ? (
         <ImportBackupDialog
           onClose={closeImport}
-          onImported={() => showToast('Backup imported')}
+          onImported={() => {
+            showToast('Backup imported')
+            celebrate()
+          }}
         />
       ) : null}
     </>

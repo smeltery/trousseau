@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
+import { celebrate } from '../lib/celebrate'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { showToast } from '../lib/toast'
@@ -19,6 +20,7 @@ export function BackupBar() {
     try {
       await downloadBackupZip()
       showToast('Backup downloaded')
+      celebrate()
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Export failed')
     } finally {
@@ -72,6 +74,7 @@ export function BackupBar() {
               try {
                 await dbWrite(() => resetToBlank())
                 showToast('Blank budget ready')
+                celebrate()
               } finally {
                 setBusy(false)
               }
@@ -95,6 +98,7 @@ export function BackupBar() {
               try {
                 await dbWrite(() => loadDemoSample())
                 showToast('Demo sample loaded')
+                celebrate()
               } finally {
                 setBusy(false)
               }
@@ -122,7 +126,10 @@ export function BackupBar() {
       {importOpen ? (
         <ImportBackupDialog
           onClose={() => setImportOpen(false)}
-          onImported={() => showToast('Backup imported')}
+          onImported={() => {
+            showToast('Backup imported')
+            celebrate()
+          }}
         />
       ) : null}
     </section>

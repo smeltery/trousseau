@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
@@ -9,6 +9,7 @@ import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
 import { Reveal } from '../components/Reveal'
 import { ensureSeeded, db, loadDemoSample, resetToBlank } from '../db/dexie'
+import { celebrate } from '../lib/celebrate'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
@@ -40,6 +41,7 @@ export function TrackerApp() {
           if (ok) {
             await dbWrite(() => resetToBlank())
             showToast('Blank budget ready')
+            celebrate()
           } else await ensureSeeded()
         } else {
           const ok = await askConfirm({
@@ -52,6 +54,7 @@ export function TrackerApp() {
           if (ok) {
             await dbWrite(() => loadDemoSample())
             showToast('Demo sample loaded')
+            celebrate()
           } else await ensureSeeded()
         }
         if (!cancelled) setReady(true)
@@ -99,6 +102,16 @@ export function TrackerApp() {
   const allocated = sum(funds.map((f) => f.amount))
   const spent = sum(lineItems.map((i) => i.paidAmount))
   const remaining = allocated - spent
+  const prevRemaining = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!ready) return
+    const prev = prevRemaining.current
+    if (prev !== null && prev >= 0 && remaining < 0) {
+      showToast('Over budget — add funds or trim expenses')
+    }
+    prevRemaining.current = remaining
+  }, [ready, remaining])
 
   if (!ready) {
     return (

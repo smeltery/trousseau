@@ -81,27 +81,55 @@ export function OverviewHero({
           ) : null}
 
           <div className="flex max-w-[420px] flex-col gap-2">
-            <p className={`text-lg leading-7 text-[var(--on-dark-muted)] ${over ? 'text-[#f0a090]' : ''}`}>
+            <p className={`text-lg leading-7 ${over ? 'text-[#f0a090]' : 'text-[var(--on-dark-muted)]'}`}>
               {over ? 'Over budget by' : 'Left to spend'}{' '}
-              <SettlingMoney value={Math.abs(remaining)} />
+              <SettlingMoney value={Math.abs(remaining)} className={over ? 'over-nudge' : ''} />
             </p>
             <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
               <SettlingMoney value={spent} /> paid · <SettlingMoney value={allocated} /> allocated
             </p>
+            {over ? (
+              <p className="pt-1 text-sm leading-5 text-[var(--on-dark-muted)]">
+                Add gifts or savings, or trim an expense to get back on track.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col items-start gap-3 pt-4">
             <div className="flex flex-wrap items-center gap-7">
-              <button type="button" onClick={onAddExpense} className="btn-primary">
-                Add expense
-              </button>
-              <a href="#gift-summary" className="link-quiet">
-                See gifts &amp; savings
-              </a>
+              {over ? (
+                <>
+                  <a href="#gift-summary" className="btn-primary">
+                    Add funds
+                  </a>
+                  <a href="#expenses" className="link-quiet">
+                    Review expenses
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={onAddExpense} className="btn-primary">
+                    Add expense
+                  </button>
+                  <a href="#gift-summary" className="link-quiet">
+                    See gifts &amp; savings
+                  </a>
+                </>
+              )}
             </div>
-            <p className="text-xs tracking-[0.04em] text-[var(--on-dark-faint)]">
-              Press <kbd className="font-[family-name:var(--font-body)]">N</kbd> to add an expense
-            </p>
+            {over ? (
+              <button
+                type="button"
+                onClick={onAddExpense}
+                className="text-xs tracking-[0.04em] text-[var(--on-dark-faint)] underline decoration-1 underline-offset-4 hover:text-[var(--on-dark-muted)]"
+              >
+                Or add an expense
+              </button>
+            ) : (
+              <p className="text-xs tracking-[0.04em] text-[var(--on-dark-faint)]">
+                Press <kbd className="font-[family-name:var(--font-body)]">N</kbd> to add an expense
+              </p>
+            )}
           </div>
         </div>
       </div>
