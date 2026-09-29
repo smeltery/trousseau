@@ -7,22 +7,22 @@ export function PrivacySection() {
       <div className="page-shell flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between sm:gap-16">
         <div className="max-w-xl">
           <p className="text-[11px] font-semibold leading-[14px] tracking-[0.22em] text-[var(--accent)] uppercase">
-            Private by design
+            Shared by design
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3rem)] leading-[1.08] tracking-[-0.02em]">
-            Your budget never leaves this browser
+            One secret link for both of you
           </h2>
           <p className="mt-4 text-[var(--on-dark-muted)]">
-            Trousseau stores gifts, receipts, and notes on your device. Export a zip when you want a
-            backup. There is no account to create.
+            Trousseau syncs gifts, receipts, and notes through a private share URL — no account to
+            create. Treat the link like a password, and export a zip when you want an offline copy.
           </p>
         </div>
         <div className="shrink-0 text-right">
           <p className="font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.5rem)] tracking-tight">
-            Local-first
+            Link is the key
           </p>
           <p className="mt-2 text-sm tracking-wide text-[var(--on-dark-muted)]">
-            No cloud ledger · No signup
+            No signup · Cloud sync
           </p>
         </div>
       </div>
@@ -41,19 +41,19 @@ export function BackupSection() {
           Take it with you
         </h2>
         <p className="mt-4 max-w-lg text-[var(--ink-muted)]">
-          Download a zip of your budget and attachments whenever you switch machines or want a durable
-          copy. In the tracker, use Import to open the backup dialog, or start from a sample wedding file.
+          Your live budget stays on the share link. Download a zip whenever you want a durable archive,
+          or import a zip to start a new shared budget from a backup or sample.
         </p>
         <div className="mt-14 flex flex-col gap-8 border-t border-[var(--line-soft)] pt-10 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
           <p className="max-w-sm font-[family-name:var(--font-display)] text-2xl leading-snug tracking-tight text-[var(--ink)]">
-            Export before you clear history. Import when you land somewhere new.
+            Copy the share link for your partner. Export a zip for yourself.
           </p>
           <div className="flex flex-col items-start gap-3 sm:items-end">
             <Link
               to="/app"
               className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
             >
-              Open tracker to export
+              Open tracker
             </Link>
             <a
               href="/samples/sample-wedding.zip"
@@ -111,7 +111,7 @@ export function BeginSection() {
             Put your names on the page
           </h2>
           <p className="mt-4 text-[var(--ink-muted)]">
-            Start a blank tracker and put your names on the page, or peek at a filled demo first.
+            Start a blank tracker and get a share link for both of you, or peek at a filled demo first.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-6">
             <Link to="/app?new=1" className="btn-primary">

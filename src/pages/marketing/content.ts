@@ -4,8 +4,8 @@ export const features = [
     body: 'Names, section titles, categories, and every dollar. Edit in place until it feels like your wedding.',
   },
   {
-    title: 'Stays on your device',
-    body: 'No account, no cloud ledger. Your gifts, invoices, and notes live in this browser until you export a backup.',
+    title: 'One link, both of you',
+    body: 'No accounts. A secret share URL keeps the same budget in sync on phone and laptop — treat it like a password.',
   },
   {
     title: 'Receipts and notes',
@@ -29,9 +29,21 @@ export const tracks = [
 ] as const
 
 export const steps = [
-  { n: '01', title: 'Start blank or try the demo', body: 'Open a new tracker and put your names on the hero.' },
-  { n: '02', title: 'Add gifts and expenses', body: 'Build categories that match how you actually spend.' },
-  { n: '03', title: 'Export when you need to', body: 'Download a zip backup before you switch devices.' },
+  {
+    n: '01',
+    title: 'Start blank or try the demo',
+    body: 'Open a tracker — Trousseau creates a share link you can send to your partner.',
+  },
+  {
+    n: '02',
+    title: 'Add gifts and expenses',
+    body: 'Build categories that match how you actually spend. Edits sync on the share link.',
+  },
+  {
+    n: '03',
+    title: 'Export when you want a zip',
+    body: 'Download a backup anytime, or import a zip to start a fresh shared budget.',
+  },
 ] as const
 
 export const customs = [
@@ -52,15 +64,15 @@ export const customs = [
 export const faqs = [
   {
     q: 'Do we need accounts?',
-    a: 'No. Trousseau runs in your browser. Share a device or export a backup when you need a second copy.',
+    a: 'No. Trousseau uses a secret share link instead of logins. Anyone with the URL can edit — don’t post it publicly.',
   },
   {
     q: 'What happens if we clear the browser?',
-    a: 'Local data can go with it. Export a zip whenever you want a durable backup, then import it later.',
+    a: 'The share link still opens your budget from the cloud. Export a zip if you also want an offline archive.',
   },
   {
     q: 'Can we start from a sample?',
-    a: 'Yes. Try the filled demo for a generic layout, or open Import to drop a Trousseau .zip, including the sample wedding download.',
+    a: 'Yes. Try the filled demo, or open Import to drop a Trousseau .zip (including the sample wedding download). Import creates a new share link.',
   },
 ] as const
 

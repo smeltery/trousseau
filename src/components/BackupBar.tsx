@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
 import { celebrate } from '../lib/celebrate'
+import { clearRememberedShareToken } from '../lib/cloud/session'
 import { publishShareLink } from '../lib/cloud/sync'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
@@ -11,14 +12,8 @@ import { ImportBackupDialog } from './ImportBackupDialog'
 
 const SAMPLE_URL = '/samples/sample-wedding.zip'
 
-/** Tracker backup: export, import modal, share link, and sample download. */
-export function BackupBar({
-  cloudMode = false,
-  shareUrl,
-}: {
-  cloudMode?: boolean
-  shareUrl?: string
-}) {
+/** Tracker backup: export, import, share link, blank/demo. */
+export function BackupBar({ shareUrl }: { shareUrl?: string }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -36,31 +31,6 @@ export function BackupBar({
     }
   }
 
-  async function onCreateShare() {
-    const ok = await askConfirm({
-      title: 'Create a share link?',
-      body: 'Anyone with the link can view and edit this budget. Treat it like a password — don’t post it publicly.',
-      confirmLabel: 'Create link',
-    })
-    if (!ok) return
-    setBusy(true)
-    try {
-      const { url, token } = await publishShareLink()
-      try {
-        await navigator.clipboard.writeText(url)
-        showToast('Share link copied')
-      } catch {
-        showToast('Share link ready')
-      }
-      celebrate()
-      void navigate(`/b/${token}`)
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Could not create share link')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function onCopyShare() {
     if (!shareUrl) return
     try {
@@ -68,6 +38,34 @@ export function BackupBar({
       showToast('Share link copied')
     } catch {
       showToast(shareUrl)
+    }
+  }
+
+  async function replaceAndShare(kind: 'blank' | 'demo') {
+    const ok = await askConfirm({
+      title: kind === 'blank' ? 'Start a blank budget?' : 'Load the filled demo?',
+      body: 'This replaces your current budget and opens a new share link.',
+      confirmLabel: kind === 'blank' ? 'Start blank' : 'Load demo',
+      danger: true,
+    })
+    if (!ok) return
+    setBusy(true)
+    try {
+      clearRememberedShareToken()
+      await dbWrite(() => (kind === 'blank' ? resetToBlank() : loadDemoSample()))
+      const share = await publishShareLink()
+      try {
+        await navigator.clipboard.writeText(share.url)
+      } catch {
+        // Navigation still lands on the new link.
+      }
+      showToast(kind === 'blank' ? 'Blank budget ready' : 'Demo sample loaded')
+      celebrate()
+      void navigate(`/b/${share.token}`)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not create share link')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -81,9 +79,8 @@ export function BackupBar({
           Take it with you
         </h2>
         <p className="mt-4 max-w-lg text-base leading-[26px] text-[var(--ink-muted)]">
-          {cloudMode
-            ? 'This budget syncs through your share link. Export a zip anytime for an offline copy.'
-            : 'Download a zip for a durable copy, or create a secret share link so you and your partner can edit on any device.'}
+          This budget syncs through your share link. Export a zip anytime for an offline archive, or
+          import a zip to start a new shared budget.
         </p>
 
         <div className="mt-14 flex flex-wrap items-center gap-3 border-t border-[var(--line-soft)] pt-10">
@@ -95,25 +92,14 @@ export function BackupBar({
           >
             Export backup
           </button>
-          {cloudMode ? (
-            <button
-              type="button"
-              disabled={busy || !shareUrl}
-              onClick={() => void onCopyShare()}
-              className="btn-ghost disabled:opacity-50"
-            >
-              Copy share link
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void onCreateShare()}
-              className="btn-ghost disabled:opacity-50"
-            >
-              Create share link
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={busy || !shareUrl}
+            onClick={() => void onCopyShare()}
+            className="btn-ghost disabled:opacity-50"
+          >
+            Copy share link
+          </button>
           <button
             type="button"
             disabled={busy}
@@ -122,62 +108,22 @@ export function BackupBar({
           >
             Import backup
           </button>
-          {!cloudMode ? (
-            <>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={async () => {
-                  const ok = await askConfirm({
-                    title: 'Start a blank budget?',
-                    body: 'This replaces any budget data already in this browser.',
-                    confirmLabel: 'Start blank',
-                    danger: true,
-                  })
-                  if (!ok) return
-                  setBusy(true)
-                  try {
-                    await dbWrite(() => resetToBlank())
-                    showToast('Blank budget ready')
-                    celebrate()
-                  } finally {
-                    setBusy(false)
-                  }
-                }}
-                className="btn-ghost disabled:opacity-50"
-              >
-                New blank
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={async () => {
-                  const ok = await askConfirm({
-                    title: 'Load the filled demo?',
-                    body: 'This replaces your current budget.',
-                    confirmLabel: 'Load demo',
-                    danger: true,
-                  })
-                  if (!ok) return
-                  setBusy(true)
-                  try {
-                    await dbWrite(() => loadDemoSample())
-                    showToast('Demo sample loaded')
-                    celebrate()
-                  } finally {
-                    setBusy(false)
-                  }
-                }}
-                className="btn-ghost disabled:opacity-50"
-              >
-                Load demo
-              </button>
-            </>
-          ) : (
-            <Link to="/app" className="btn-ghost">
-              Open local copy
-            </Link>
-          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void replaceAndShare('blank')}
+            className="btn-ghost disabled:opacity-50"
+          >
+            New blank
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void replaceAndShare('demo')}
+            className="btn-ghost disabled:opacity-50"
+          >
+            Load demo
+          </button>
         </div>
 
         <div className="mt-8 flex flex-wrap gap-6 text-sm text-[var(--ink-faint)]">
@@ -203,8 +149,7 @@ export function BackupBar({
               celebrate()
               void navigate(`/b/${share.token}`)
             } else {
-              showToast('Backup imported (share link unavailable)')
-              celebrate()
+              showToast('Import needs a share link — try again')
             }
           }}
         />

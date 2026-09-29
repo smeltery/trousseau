@@ -12,7 +12,7 @@ export function MarketingHero() {
       <div className="page-shell relative z-[1] animate-[rise-in_1s_var(--ease-out)_both]">
         <div className="flex max-w-[820px] flex-col items-start gap-5">
         <p className="text-[11px] font-semibold leading-[14px] tracking-[0.28em] text-[var(--accent)] uppercase">
-          Local-first wedding budget
+          Shared wedding budget
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-[clamp(4.5rem,12vw,8.75rem)] leading-[0.86] tracking-[-0.045em]">
           Trousseau
@@ -21,7 +21,8 @@ export function MarketingHero() {
           A wedding budget that lives with you
         </p>
         <p className="max-w-[400px] text-[17px] leading-7 text-[var(--on-dark-muted)]">
-          Track gifts, savings, and every vendor line. Private in your browser, editable to your liking.
+          Track gifts, savings, and every vendor line. Synced by a secret link you can open on any
+          device — treat it like a password.
         </p>
         <div className="flex flex-wrap items-center gap-7 pt-5">
           <Link to="/app?new=1" className="btn-primary animate-[rise-in_1.05s_var(--ease-out)_both]">

@@ -1,11 +1,12 @@
 # Getting started
 
-Trousseau is a local-first wedding budget. Numbers live in your browser until you export a zip.
+Trousseau is a shared wedding budget. Opening the tracker creates or resumes a secret sync link.
 
 ## Prerequisites
 
 - [Flox](https://flox.dev) (recommended) or [Bun](https://bun.sh) 1.x
 - A recent Chromium, Safari, or Firefox browser
+- For full sync: a Vercel deploy with Postgres + Blob (see below)
 
 ## Install and run
 
@@ -24,22 +25,20 @@ bun install
 bun run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints (usually `http://localhost:5173`). Cloud APIs need `vercel dev` or a deployed backend.
 
 | Path | What you get |
 | --- | --- |
 | `/` | Marketing site |
-| `/app` | Tracker (keeps existing local data, or seeds blank on first visit) |
-| `/app?new=1` | Start a blank budget (asks before replacing local data) |
-| `/app?demo=1` | Load the filled generic demo (asks before replacing) |
-| `/app?import=1` | Open the import dialog |
+| `/app` | Opens your synced budget (resumes or creates a share link → `/b/…`) |
+| `/app?new=1` | Start a blank budget (asks before replacing; new share link) |
+| `/app?demo=1` | Load the filled generic demo (asks before replacing; new share link) |
+| `/app?import=1` | Open the import dialog (import creates a share link) |
 | `/b/<token>` | Shared budget (secret link; anyone with the URL can edit) |
 
-## Cloud share (optional)
+## Cloud setup
 
-Local mode needs no backend. Share links use Vercel Postgres (Neon) + Blob.
-
-Using the Vercel CLI (preferred):
+Using the Vercel CLI:
 
 ```sh
 vercel link
@@ -47,14 +46,12 @@ vercel integration add neon --name trousseau-postgres --plan free_v3 -m region=i
 vercel storage create trousseau-blob --type blob --access public --region iad1
 vercel storage connect trousseau-blob --auth token --add-rw-token --yes
 vercel env pull .env.local
-bun run db:migrate   # applies scripts/migrate-cloud.sql
+bun run db:migrate
 vercel deploy --prod
 ```
 
-Or manually: copy [`.env.example`](../.env.example), set `POSTGRES_URL` and `BLOB_READ_WRITE_TOKEN`, run `bun run db:migrate`, then `vercel dev` / deploy.
-
-Without those env vars, **Create share link** will fail; zip export/import still works.
+Or copy [`.env.example`](../.env.example), set `POSTGRES_URL` and `BLOB_READ_WRITE_TOKEN`, run `bun run db:migrate`, then `bun run dev:vercel`.
 
 ## First load
 
-A new tracker starts blank with starter categories and **Groom & Bride** on the hero. Click any label to rename it. Use **Try demo** / **Load demo** for sample numbers, or download [`sample-wedding.zip`](../public/samples/sample-wedding.zip) and import it.
+A new tracker starts blank with starter categories and **Groom & Bride** on the hero, then lands on a share URL. Click any label to rename it. Use **Try demo** / **Load demo** for sample numbers, or download [`sample-wedding.zip`](../public/samples/sample-wedding.zip) and import it.

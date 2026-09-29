@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
 import { BackupBar } from '../components/BackupBar'
@@ -12,7 +12,8 @@ import { Reveal } from '../components/Reveal'
 import { db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { cloudBudgetStore, localBudgetStore } from '../lib/budget-store'
 import { celebrate } from '../lib/celebrate'
-import { pullCloudBudgetIfStale } from '../lib/cloud/sync'
+import { clearRememberedShareToken } from '../lib/cloud/session'
+import { ensureCloudBudget, pullCloudBudgetIfStale } from '../lib/cloud/sync'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
@@ -20,6 +21,7 @@ import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 
 export function TrackerApp() {
+  const navigate = useNavigate()
   const { token: shareToken } = useParams<{ token?: string }>()
   const cloudMode = Boolean(shareToken)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -40,44 +42,60 @@ export function TrackerApp() {
           return
         }
 
+        const wantImport = searchParams.get('import') === '1'
         const wantDemo = searchParams.get('demo') === '1'
         const wantNew = searchParams.get('new') === '1'
+
+        if (wantImport) {
+          await localBudgetStore.boot()
+          if (!cancelled) setReady(true)
+          return
+        }
 
         if (wantDemo || wantNew) {
           setSearchParams({}, { replace: true })
           if (wantNew) {
             const ok = await askConfirm({
               title: 'Start a blank budget?',
-              body: 'This replaces any budget data already in this browser.',
+              body: 'This replaces your current budget and opens a new share link.',
               confirmLabel: 'Start blank',
               danger: true,
             })
             if (cancelled) return
-            if (ok) {
+            if (!ok) {
+              // Resume existing share below.
+            } else {
+              clearRememberedShareToken()
               await dbWrite(() => resetToBlank())
               showToast('Blank budget ready')
               celebrate()
-            } else await localBudgetStore.boot()
+            }
           } else {
             const ok = await askConfirm({
               title: 'Load the filled demo?',
-              body: 'This replaces any budget data already in this browser.',
+              body: 'This replaces your current budget and opens a new share link.',
               confirmLabel: 'Load demo',
               danger: true,
             })
             if (cancelled) return
-            if (ok) {
+            if (!ok) {
+              // Resume existing share below.
+            } else {
+              clearRememberedShareToken()
               await dbWrite(() => loadDemoSample())
               showToast('Demo sample loaded')
               celebrate()
-            } else await localBudgetStore.boot()
+            }
           }
-          if (!cancelled) setReady(true)
-          return
+        } else {
+          await localBudgetStore.boot()
         }
 
-        await localBudgetStore.boot()
-        if (!cancelled) setReady(true)
+        if (cancelled) return
+
+        const share = await ensureCloudBudget()
+        if (cancelled) return
+        void navigate(`/b/${share.token}${window.location.hash}`, { replace: true })
       } catch (err) {
         if (!cancelled) {
           setBootError(err instanceof Error ? err.message : 'Could not open budget')
@@ -159,12 +177,12 @@ export function TrackerApp() {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--grove)] page-pad text-center">
         <p className="font-[family-name:var(--font-display)] text-3xl tracking-[-0.03em] text-[var(--on-dark)]">
-          Shared budget unavailable
+          Couldn’t reach your budget
         </p>
         <p className="max-w-md text-sm text-[var(--on-dark-muted)]">{bootError}</p>
-        <a href="/app" className="btn-nav">
-          Open local tracker
-        </a>
+        <button type="button" className="btn-nav" onClick={() => window.location.reload()}>
+          Try again
+        </button>
       </div>
     )
   }
@@ -176,7 +194,7 @@ export function TrackerApp() {
           Trousseau
         </p>
         <p className="text-sm tracking-[0.08em] text-[var(--on-dark-muted)] animate-[fade-in_0.7s_ease]">
-          {cloudMode ? 'Opening shared budget…' : 'Opening your budget…'}
+          Opening your budget…
         </p>
       </div>
     )
@@ -187,7 +205,7 @@ export function TrackerApp() {
       {cloudMode ? (
         <div className="sticky top-0 z-20 border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
           <p className="text-sm text-[var(--on-dark-muted)]">
-            Shared budget · anyone with this link can edit. Treat the URL like a password.
+            Synced budget · anyone with this link can edit. Treat the URL like a password.
           </p>
         </div>
       ) : null}
@@ -220,7 +238,7 @@ export function TrackerApp() {
         />
       </Reveal>
       <Reveal>
-        <BackupBar cloudMode={cloudMode} shareUrl={cloudMode ? window.location.href : undefined} />
+        <BackupBar shareUrl={cloudMode ? window.location.href : undefined} />
       </Reveal>
 
       {openItemId ? (

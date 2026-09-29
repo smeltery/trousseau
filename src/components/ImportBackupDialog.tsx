@@ -60,10 +60,14 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
           // Clipboard may be blocked; navigation still carries the token.
         }
         onImported?.(share)
-      } catch {
-        onImported?.()
+        onClose()
+      } catch (shareErr) {
+        setError(
+          shareErr instanceof Error
+            ? shareErr.message
+            : 'Imported locally, but share link failed. Try Import again.',
+        )
       }
-      onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {

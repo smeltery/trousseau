@@ -8,7 +8,15 @@ import {
   apiUploadFile,
   type CloudSnapshot,
 } from './api-client'
-import { CLOUD_TOKEN_META, CLOUD_UPDATED_META, getActiveCloudToken, setActiveCloudToken } from './session'
+import {
+  CLOUD_TOKEN_META,
+  CLOUD_UPDATED_META,
+  clearRememberedShareToken,
+  getActiveCloudToken,
+  readRememberedShareToken,
+  rememberShareToken,
+  setActiveCloudToken,
+} from './session'
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 let pushing = false
@@ -36,16 +44,18 @@ export async function enterCloudBudget(token: string): Promise<void> {
     await db.meta.put({ key: CLOUD_TOKEN_META, value: token })
     await db.meta.put({ key: CLOUD_UPDATED_META, value: snapshot.updatedAt })
     setActiveCloudToken(token)
+    rememberShareToken(token)
   } finally {
     pullPaused = false
   }
 }
 
 /** Leave cloud push mode (local /app). Keeps current IndexedDB data. */
-export async function leaveCloudBudget(): Promise<void> {
+export async function leaveCloudBudget(opts?: { forget?: boolean }): Promise<void> {
   setActiveCloudToken(null)
   await db.meta.delete(CLOUD_TOKEN_META)
   await db.meta.delete(CLOUD_UPDATED_META)
+  if (opts?.forget) clearRememberedShareToken()
   if (pushTimer) clearTimeout(pushTimer)
 }
 
@@ -61,7 +71,32 @@ export async function publishShareLink(): Promise<{ token: string; url: string }
       size: uploaded.size,
     })
   }
+  rememberShareToken(created.token)
   return created
+}
+
+/**
+ * Resume the last share token or publish the current IndexedDB budget.
+ * Every /app boot (except import dialog) ends here.
+ */
+export async function ensureCloudBudget(): Promise<{ token: string; url: string }> {
+  const candidates = [readRememberedShareToken()]
+  const meta = await db.meta.get(CLOUD_TOKEN_META)
+  if (meta?.value && meta.value !== candidates[0]) candidates.push(meta.value)
+
+  for (const token of candidates) {
+    if (!token) continue
+    try {
+      await apiGetBudget(token)
+      rememberShareToken(token)
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      return { token, url: origin ? `${origin}/b/${token}` : `/b/${token}` }
+    } catch {
+      if (token === readRememberedShareToken()) clearRememberedShareToken()
+    }
+  }
+
+  return publishShareLink()
 }
 
 export function scheduleCloudPush(): void {

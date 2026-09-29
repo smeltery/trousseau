@@ -221,8 +221,7 @@ export function SiteNav({ variant }: SiteNavProps) {
               celebrate()
               void navigate(`/b/${share.token}`)
             } else {
-              showToast('Backup imported (share link unavailable)')
-              celebrate()
+              showToast('Import needs a share link — try again')
             }
           }}
         />
