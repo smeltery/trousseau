@@ -12,6 +12,7 @@ interface OverviewHeroProps {
   spent: number
   remaining: number
   onAddExpense: () => void
+  syncBanner?: boolean
 }
 
 export function OverviewHero({
@@ -20,6 +21,7 @@ export function OverviewHero({
   spent,
   remaining,
   onAddExpense,
+  syncBanner = false,
 }: OverviewHeroProps) {
   const over = remaining < 0
   const blankNames = site.brandLeft === 'Groom' && site.brandRight === 'Bride'
@@ -32,8 +34,10 @@ export function OverviewHero({
   }
 
   return (
-    <header className="hero-surface page-pad">
-      <SiteNav variant="app" />
+    <header
+      className={`hero-surface page-pad${syncBanner ? ' pt-[7.75rem] lg:pt-[8.75rem]' : ''}`}
+    >
+      <SiteNav variant="app" syncBanner={syncBanner} />
       <div aria-hidden className="hero-glow animate-[drift-light_14s_ease-in-out_infinite]" />
       <MarketingRings className="hero-rings select-none" />
 

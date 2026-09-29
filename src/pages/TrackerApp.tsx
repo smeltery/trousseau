@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
 import { BackupBar } from '../components/BackupBar'
@@ -13,7 +13,8 @@ import { db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { cloudBudgetStore, localBudgetStore } from '../lib/budget-store'
 import { celebrate } from '../lib/celebrate'
 import { clearRememberedShareToken } from '../lib/cloud/session'
-import { ensureCloudBudget, pullCloudBudgetIfStale } from '../lib/cloud/sync'
+import { goToSharedBudget } from '../lib/cloud/navigate'
+import { ensureCloudBudget, leaveCloudBudget, pullCloudBudgetIfStale } from '../lib/cloud/sync'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
@@ -21,7 +22,6 @@ import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 
 export function TrackerApp() {
-  const navigate = useNavigate()
   const { token: shareToken } = useParams<{ token?: string }>()
   const cloudMode = Boolean(shareToken)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -65,6 +65,7 @@ export function TrackerApp() {
             if (!ok) {
               // Resume existing share below.
             } else {
+              await leaveCloudBudget()
               clearRememberedShareToken()
               await dbWrite(() => resetToBlank())
               showToast('Blank budget ready')
@@ -81,6 +82,7 @@ export function TrackerApp() {
             if (!ok) {
               // Resume existing share below.
             } else {
+              await leaveCloudBudget()
               clearRememberedShareToken()
               await dbWrite(() => loadDemoSample())
               showToast('Demo sample loaded')
@@ -95,7 +97,7 @@ export function TrackerApp() {
 
         const share = await ensureCloudBudget()
         if (cancelled) return
-        void navigate(`/b/${share.token}${window.location.hash}`, { replace: true })
+        goToSharedBudget(share.token)
       } catch (err) {
         if (!cancelled) {
           setBootError(err instanceof Error ? err.message : 'Could not open budget')
@@ -202,19 +204,13 @@ export function TrackerApp() {
 
   return (
     <div className="relative">
-      {cloudMode ? (
-        <div className="sticky top-0 z-20 border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
-          <p className="text-sm text-[var(--on-dark-muted)]">
-            Synced budget · anyone with this link can edit. Treat the URL like a password.
-          </p>
-        </div>
-      ) : null}
       <OverviewHero
         site={site}
         allocated={allocated}
         spent={spent}
         remaining={remaining}
         onAddExpense={() => setAdding(true)}
+        syncBanner={cloudMode}
       />
       <Reveal>
         <FundsSection site={site} funds={funds} />

@@ -1,19 +1,21 @@
 import { useEffect, useId, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { celebrate } from '../lib/celebrate'
+import { goToSharedBudget } from '../lib/cloud/navigate'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 import { TrousseauLogo } from './TrousseauLogo'
 
 type SiteNavProps = {
   variant: 'marketing' | 'app'
+  /** Show the share/sync notice under the bar (app only). */
+  syncBanner?: boolean
 }
 
 const navQuiet =
   'text-sm font-medium text-[var(--on-dark-muted)] transition-colors hover:text-[var(--on-dark)]'
 
-export function SiteNav({ variant }: SiteNavProps) {
-  const navigate = useNavigate()
+export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [importRequested, setImportRequested] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -60,14 +62,15 @@ export function SiteNav({ variant }: SiteNavProps) {
 
   return (
     <>
-      <nav
-        aria-label="Primary"
-        className={`fixed inset-x-0 top-0 z-30 page-pad transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
-          scrolled
-            ? 'border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--on-dark)_20%,transparent),0_10px_30px_color-mix(in_srgb,var(--grove)_30%,transparent)] backdrop-blur-xl backdrop-saturate-150'
-            : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-none'
-        }`}
-      >
+      <div className="fixed inset-x-0 top-0 z-30">
+        <nav
+          aria-label="Primary"
+          className={`page-pad transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
+            scrolled || syncBanner
+              ? 'border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--on-dark)_20%,transparent),0_10px_30px_color-mix(in_srgb,var(--grove)_30%,transparent)] backdrop-blur-xl backdrop-saturate-150'
+              : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-none'
+          }`}
+        >
         <div className="page-shell flex items-center justify-between gap-4 py-4">
           <Link
             to="/"
@@ -125,6 +128,14 @@ export function SiteNav({ variant }: SiteNavProps) {
           </button>
         </div>
       </nav>
+        {syncBanner ? (
+          <div className="border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
+            <p className="text-sm text-[var(--on-dark-muted)]">
+              Synced budget · anyone with this link can edit. Treat the URL like a password.
+            </p>
+          </div>
+        ) : null}
+      </div>
 
       {menuOpen ? (
         <div className="fixed inset-0 z-40 md:hidden">
@@ -219,7 +230,7 @@ export function SiteNav({ variant }: SiteNavProps) {
             if (share) {
               showToast('Imported — share link copied')
               celebrate()
-              void navigate(`/b/${share.token}`)
+              goToSharedBudget(share.token)
             } else {
               showToast('Import needs a share link — try again')
             }
