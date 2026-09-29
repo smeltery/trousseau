@@ -14,7 +14,7 @@
   <img src="public/og.png" alt="Trousseau: a wedding budget that lives with you" width="800" />
 </p>
 
-Local-first wedding budget tracker. Gifts, vendor lines, and receipts stay in your browser. Rename anything. Export a zip when you need a backup; import restores one through the Import dialog.
+Local-first wedding budget tracker. Gifts, vendor lines, and receipts stay in your browser. Rename anything. Export a zip when you need a backup; optionally create a secret share link so you and your partner can edit on any device.
 
 ```sh
 flox activate   # optional, recommended
@@ -29,8 +29,11 @@ bun run dev
 | `/app?new=1` | Start a blank budget (asks before replacing local data) |
 | `/app?demo=1` | Load the filled generic demo (asks before replacing) |
 | `/app?import=1` | Open the import dialog |
+| `/b/<token>` | Shared budget via secret link |
 
 A downloadable sample wedding zip lives at [`public/samples/sample-wedding.zip`](public/samples/sample-wedding.zip) (`bun run sample:wedding` rebuilds it).
+
+Cloud share needs Vercel Postgres + Blob — see [`docs/getting-started.md`](docs/getting-started.md).
 
 ## Docs
 

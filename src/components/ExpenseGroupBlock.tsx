@@ -40,7 +40,9 @@ export function ExpenseGroupBlock({
           className="text-sm font-semibold text-[var(--accent-deep)] hover:underline"
           onClick={async () => {
             const sort = cats.length === 0 ? 0 : Math.max(...cats.map((c) => c.sort), 0) + 1
-            await db.categories.add({ id: newId('cat'), name: 'New category', group, sort })
+            await dbWrite(() =>
+              db.categories.add({ id: newId('cat'), name: 'New category', group, sort }),
+            )
           }}
         >
           Add category
@@ -64,7 +66,7 @@ export function ExpenseGroupBlock({
                       aria-label="Category name"
                       value={cat.name}
                       onSave={async (name) => {
-                        await db.categories.update(cat.id, { name })
+                        await dbWrite(() => db.categories.update(cat.id, { name }))
                       }}
                       className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-[28px] leading-[34px] tracking-[-0.02em]"
                     />

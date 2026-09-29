@@ -1,5 +1,6 @@
 import { db } from '../db/dexie'
 import type { CategoryGroup } from '../db/types'
+import { scheduleCloudPush } from './cloud/sync'
 
 export const SITE_META_KEY = 'site'
 
@@ -64,6 +65,7 @@ export function parseSiteSettings(raw: string | undefined): SiteSettings {
 
 export async function saveSiteSettings(next: SiteSettings): Promise<void> {
   await db.meta.put({ key: SITE_META_KEY, value: JSON.stringify(next) })
+  scheduleCloudPush()
 }
 
 export async function patchSiteSettings(patch: Partial<SiteSettings>): Promise<void> {

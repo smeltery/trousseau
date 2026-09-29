@@ -10,6 +10,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
 package-lock.json
 .flox/.run
 .flox/cache
@@ -36,3 +39,4 @@ metrics-uuid
 !public/samples/
 !public/samples/**/*.zip
 
+.vercel

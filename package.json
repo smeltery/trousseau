@@ -12,13 +12,18 @@
     "budget": "bun run scripts/check-loc-budgets.ts",
     "sample:wedding": "bun run scripts/build-sample-wedding.ts",
     "sample:nick-lauren": "bun run sample:wedding",
+    "db:migrate": "bun run scripts/migrate-cloud.ts",
     "markdown": "python3 scripts/check_markdown.py",
     "preview": "vite preview",
+    "dev:vercel": "vercel dev",
     "check": "bun run sample:wedding && bun run typecheck && bun run lint && bun run budget && bun run markdown && bun run build",
     "ci": "bun run check",
     "postinstall": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
+    "@vercel/node": "^16.0.2",
+    "@vercel/postgres": "^0.10.0",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "jszip": "^3.10.2",
@@ -29,7 +34,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/bun": "latest",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

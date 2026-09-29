@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { celebrate } from '../lib/celebrate'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
@@ -13,6 +13,7 @@ const navQuiet =
   'text-sm font-medium text-[var(--on-dark-muted)] transition-colors hover:text-[var(--on-dark)]'
 
 export function SiteNav({ variant }: SiteNavProps) {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [importRequested, setImportRequested] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -214,9 +215,15 @@ export function SiteNav({ variant }: SiteNavProps) {
       {importOpen ? (
         <ImportBackupDialog
           onClose={closeImport}
-          onImported={() => {
-            showToast('Backup imported')
-            celebrate()
+          onImported={(share) => {
+            if (share) {
+              showToast('Imported — share link copied')
+              celebrate()
+              void navigate(`/b/${share.token}`)
+            } else {
+              showToast('Backup imported (share link unavailable)')
+              celebrate()
+            }
           }}
         />
       ) : null}

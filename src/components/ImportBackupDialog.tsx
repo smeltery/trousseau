@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from 'react'
 import { restoreBackupZip } from '../lib/backup-actions'
+import { publishShareLink } from '../lib/cloud/sync'
 import { dbWrite } from '../lib/db-write'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 
@@ -7,7 +8,7 @@ const SAMPLE_URL = '/samples/sample-wedding.zip'
 
 interface ImportBackupDialogProps {
   onClose: () => void
-  onImported?: () => void
+  onImported?: (share?: { token: string; url: string }) => void
 }
 
 export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogProps) {
@@ -17,6 +18,7 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState('Importing…')
   const [error, setError] = useState<string | null>(null)
 
   useDialogFocus(dialogRef)
@@ -43,11 +45,24 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
   async function runImport() {
     if (!file) return
     setBusy(true)
+    setBusyLabel('Importing…')
     setError(null)
     try {
       const ok = await dbWrite(() => restoreBackupZip(file))
       if (ok === undefined) return
-      onImported?.()
+
+      setBusyLabel('Creating share link…')
+      try {
+        const share = await publishShareLink()
+        try {
+          await navigator.clipboard.writeText(share.url)
+        } catch {
+          // Clipboard may be blocked; navigation still carries the token.
+        }
+        onImported?.(share)
+      } catch {
+        onImported?.()
+      }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
@@ -100,8 +115,8 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
           Import backup
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">
-          This replaces all local budget data in this browser. Export a backup first if you want to
-          keep what you have.
+          This replaces all local budget data in this browser, then creates a secret share link so you
+          can keep editing from any device. Treat that link like a password.
         </p>
 
         <div
@@ -146,7 +161,7 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
             onClick={() => void runImport()}
             className="btn-primary disabled:opacity-50"
           >
-            {busy ? 'Importing…' : 'Import'}
+            {busy ? busyLabel : 'Import & share'}
           </button>
           <button
             type="button"

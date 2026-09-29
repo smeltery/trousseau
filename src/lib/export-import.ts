@@ -3,6 +3,98 @@ import { db } from '../db/dexie'
 import type { Attachment, BackupPayload } from '../db/types'
 import { DEFAULT_SITE, SITE_META_KEY } from './site-settings'
 
+/** Build a BackupPayload from IndexedDB (no zip). File blobs omitted — urls kept. */
+export async function buildBackupPayload(): Promise<{
+  payload: BackupPayload
+  files: Array<{ id: string; lineItemId: string; name: string; mime?: string; blob: Blob }>
+}> {
+  const [funds, categories, lineItems, attachments, siteMeta] = await Promise.all([
+    db.funds.toArray(),
+    db.categories.toArray(),
+    db.lineItems.toArray(),
+    db.attachments.toArray(),
+    db.meta.get(SITE_META_KEY),
+  ])
+
+  const files: Array<{
+    id: string
+    lineItemId: string
+    name: string
+    mime?: string
+    blob: Blob
+  }> = []
+  const payloadAttachments: BackupPayload['attachments'] = []
+
+  for (const att of attachments) {
+    const entry: BackupPayload['attachments'][number] = {
+      id: att.id,
+      lineItemId: att.lineItemId,
+      kind: att.kind,
+      name: att.name,
+      url: att.url,
+      mime: att.mime,
+      size: att.size,
+      createdAt: att.createdAt,
+    }
+    if (att.kind === 'file' && att.blob && !att.url) {
+      files.push({
+        id: att.id,
+        lineItemId: att.lineItemId,
+        name: att.name,
+        mime: att.mime,
+        blob: att.blob,
+      })
+    } else {
+      payloadAttachments.push(entry)
+    }
+  }
+
+  return {
+    payload: {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      funds,
+      categories,
+      lineItems,
+      attachments: payloadAttachments,
+      site: siteMeta?.value ?? JSON.stringify(DEFAULT_SITE),
+    },
+    files,
+  }
+}
+
+export async function applyBackupPayload(
+  payload: BackupPayload,
+  restored: Attachment[],
+): Promise<void> {
+  if (payload.version !== 1) throw new Error('Unsupported backup version')
+  await db.transaction(
+    'rw',
+    db.funds,
+    db.categories,
+    db.lineItems,
+    db.attachments,
+    db.meta,
+    async () => {
+      await Promise.all([
+        db.funds.clear(),
+        db.categories.clear(),
+        db.lineItems.clear(),
+        db.attachments.clear(),
+      ])
+      if (payload.funds.length) await db.funds.bulkAdd(payload.funds)
+      if (payload.categories.length) await db.categories.bulkAdd(payload.categories)
+      if (payload.lineItems.length) await db.lineItems.bulkAdd(payload.lineItems)
+      if (restored.length) await db.attachments.bulkAdd(restored)
+      await db.meta.put({
+        key: SITE_META_KEY,
+        value: payload.site ?? JSON.stringify(DEFAULT_SITE),
+      })
+      await db.meta.put({ key: 'seeded', value: new Date().toISOString() })
+    },
+  )
+}
+
 export async function exportBackup(): Promise<Blob> {
   const [funds, categories, lineItems, attachments, siteMeta] = await Promise.all([
     db.funds.toArray(),
@@ -82,31 +174,7 @@ export async function importBackup(file: Blob): Promise<void> {
     restored.push(next)
   }
 
-  await db.transaction(
-    'rw',
-    db.funds,
-    db.categories,
-    db.lineItems,
-    db.attachments,
-    db.meta,
-    async () => {
-      await Promise.all([
-        db.funds.clear(),
-        db.categories.clear(),
-        db.lineItems.clear(),
-        db.attachments.clear(),
-      ])
-      await db.funds.bulkAdd(payload.funds)
-      await db.categories.bulkAdd(payload.categories)
-      await db.lineItems.bulkAdd(payload.lineItems)
-      if (restored.length) await db.attachments.bulkAdd(restored)
-      await db.meta.put({
-        key: SITE_META_KEY,
-        value: payload.site ?? JSON.stringify(DEFAULT_SITE),
-      })
-      await db.meta.put({ key: 'seeded', value: new Date().toISOString() })
-    },
-  )
+  await applyBackupPayload(payload, restored)
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

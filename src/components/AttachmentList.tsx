@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { db, newId } from '../db/dexie'
 import type { Attachment } from '../db/types'
 import { askConfirm } from '../lib/confirm'
+import { apiDeleteAttachment, apiUploadFile, apiAddLinkAttachment } from '../lib/cloud/api-client'
+import { getActiveCloudToken } from '../lib/cloud/session'
 import { dbWrite } from '../lib/db-write'
 
 interface AttachmentListProps {
@@ -20,23 +22,41 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
     setError(null)
     const list = Array.from(files)
     let added = 0
+    const token = getActiveCloudToken()
     for (const file of list) {
       if (file.size > 25 * 1024 * 1024) {
         setError(`${file.name} is larger than 25 MB`)
         continue
       }
-      await dbWrite(() =>
-        db.attachments.add({
-          id: newId('att'),
-          lineItemId,
-          kind: 'file',
-          name: file.name,
-          mime: file.type || 'application/octet-stream',
-          size: file.size,
-          blob: file,
-          createdAt: new Date().toISOString(),
-        }),
-      )
+      const id = newId('att')
+      if (token) {
+        try {
+          const uploaded = await apiUploadFile(token, {
+            id,
+            lineItemId,
+            name: file.name,
+            mime: file.type || 'application/octet-stream',
+            blob: file,
+          })
+          await dbWrite(() => db.attachments.add(uploaded))
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Upload failed')
+          continue
+        }
+      } else {
+        await dbWrite(() =>
+          db.attachments.add({
+            id,
+            lineItemId,
+            kind: 'file',
+            name: file.name,
+            mime: file.type || 'application/octet-stream',
+            size: file.size,
+            blob: file,
+            createdAt: new Date().toISOString(),
+          }),
+        )
+      }
       added += 1
     }
     if (added > 0) {
@@ -55,14 +75,24 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
       setError('Enter a valid URL (include https://)')
       return
     }
-    await db.attachments.add({
+    const att: Attachment = {
       id: newId('att'),
       lineItemId,
       kind: 'link',
       name: linkName.trim() || url,
       url,
       createdAt: new Date().toISOString(),
-    })
+    }
+    const token = getActiveCloudToken()
+    if (token) {
+      try {
+        await apiAddLinkAttachment(token, att)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not save link')
+        return
+      }
+    }
+    await dbWrite(() => db.attachments.add(att))
     setLinkName('')
     setLinkUrl('')
   }
@@ -168,15 +198,16 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
     }
   }, [objectUrl])
 
+  const fileHref = objectUrl ?? (attachment.kind === 'file' ? attachment.url : undefined)
   const isImage = Boolean(attachment.mime?.startsWith('image/'))
   const isPdf = attachment.mime === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf')
 
   return (
     <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
-      {attachment.kind === 'file' && objectUrl && isImage ? (
-        <a href={objectUrl} target="_blank" rel="noreferrer" className="shrink-0">
+      {attachment.kind === 'file' && fileHref && isImage ? (
+        <a href={fileHref} target="_blank" rel="noreferrer" className="shrink-0">
           <img
-            src={objectUrl}
+            src={fileHref}
             alt=""
             className="h-16 w-16 rounded-sm object-cover ring-1 ring-[var(--line)]"
           />
@@ -203,9 +234,9 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
               Open link
             </a>
           ) : null}
-          {attachment.kind === 'file' && objectUrl ? (
+          {attachment.kind === 'file' && fileHref ? (
             <a
-              href={objectUrl}
+              href={fileHref}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--accent)] hover:underline"
@@ -213,9 +244,9 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
               {isPdf || isImage ? 'Preview' : 'Open'}
             </a>
           ) : null}
-          {attachment.kind === 'file' && objectUrl ? (
+          {attachment.kind === 'file' && fileHref ? (
             <a
-              href={objectUrl}
+              href={fileHref}
               download={attachment.name}
               className="font-medium text-[var(--accent)] hover:underline"
             >
@@ -232,6 +263,14 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
                 danger: true,
               })
               if (!ok) return
+              const token = getActiveCloudToken()
+              if (token) {
+                try {
+                  await apiDeleteAttachment(token, attachment.id)
+                } catch {
+                  // Still remove locally if remote is gone.
+                }
+              }
               await dbWrite(() => db.attachments.delete(attachment.id))
             }}
           >

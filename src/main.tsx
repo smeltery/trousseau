@@ -13,6 +13,7 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<MarketingPage />} />
         <Route path="/app" element={<TrackerApp />} />
+        <Route path="/b/:token" element={<TrackerApp />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastHost />
