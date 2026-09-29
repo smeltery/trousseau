@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { put } from '@vercel/blob'
+import { putBlob } from '../../_lib/blob-store.js'
 import { applyCors } from '../../_lib/cors.js'
 import { deleteAttachment, insertAttachment, resolveBudgetId } from '../../_lib/budget-repo.js'
 import { clientIp, rateLimit, tooMany } from '../../_lib/rate-limit.js'
@@ -93,10 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const safe = body.name.replace(/[^\w.-]+/g, '_')
     const pathname = `budgets/${budgetId}/${body.id}-${safe}`
-    const blob = await put(pathname, buffer, {
-      access: 'public',
+    const blob = await putBlob(pathname, buffer, {
       contentType: body.mime || 'application/octet-stream',
-      addRandomSuffix: false,
     })
     const att: AttachmentMeta = {
       id: body.id,

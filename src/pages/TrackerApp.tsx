@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
 import { BackupBar } from '../components/BackupBar'
@@ -12,39 +12,71 @@ import { Reveal } from '../components/Reveal'
 import { db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { cloudBudgetStore, localBudgetStore } from '../lib/budget-store'
 import { celebrate } from '../lib/celebrate'
-import { clearRememberedShareToken } from '../lib/cloud/session'
+import { clearRememberedShareToken, getActiveCloudToken, readRememberedShareToken } from '../lib/cloud/session'
 import { goToSharedBudget } from '../lib/cloud/navigate'
-import { ensureCloudBudget, leaveCloudBudget, pullCloudBudgetIfStale } from '../lib/cloud/sync'
+import {
+  ensureCloudBudget,
+  enterCloudBudget,
+  leaveCloudBudget,
+  pullCloudBudgetIfStale,
+} from '../lib/cloud/sync'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
+import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
 import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
+import { BootError, BootLoading } from './BootScreen'
 
 export function TrackerApp() {
   const { token: shareToken } = useParams<{ token?: string }>()
+  const navigate = useNavigate()
   const cloudMode = Boolean(shareToken)
   const [searchParams, setSearchParams] = useSearchParams()
   const [ready, setReady] = useState(false)
   const [bootError, setBootError] = useState<string | null>(null)
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const hydratedTokenRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function boot() {
+      // Soft handoff — already activated for this token (publish or prior boot).
+      if (
+        shareToken &&
+        (hydratedTokenRef.current === shareToken || getActiveCloudToken() === shareToken)
+      ) {
+        hydratedTokenRef.current = shareToken
+        setReady(true)
+        return
+      }
+
       setBootError(null)
       setReady(false)
+      setAwaitingConfirm(false)
       try {
         if (shareToken) {
           await cloudBudgetStore.boot(shareToken)
-          if (!cancelled) setReady(true)
+          if (cancelled) return
+          hydratedTokenRef.current = shareToken
+          setReady(true)
           return
         }
 
         const wantImport = searchParams.get('import') === '1'
         const wantDemo = searchParams.get('demo') === '1'
         const wantNew = searchParams.get('new') === '1'
+
+        // Resume: jump straight to the share URL instead of waiting on /app.
+        if (!wantImport && !wantDemo && !wantNew) {
+          const remembered = readRememberedShareToken()
+          if (remembered) {
+            goToSharedBudget(remembered, navigate)
+            return
+          }
+        }
 
         if (wantImport) {
           await localBudgetStore.boot()
@@ -55,6 +87,7 @@ export function TrackerApp() {
         if (wantDemo || wantNew) {
           setSearchParams({}, { replace: true })
           if (wantNew) {
+            setAwaitingConfirm(true)
             const ok = await askConfirm({
               title: 'Start a blank budget?',
               body: 'This replaces your current budget and opens a new share link.',
@@ -62,31 +95,31 @@ export function TrackerApp() {
               danger: true,
             })
             if (cancelled) return
+            setAwaitingConfirm(false)
             if (!ok) {
               // Resume existing share below.
             } else {
               await leaveCloudBudget()
               clearRememberedShareToken()
               await dbWrite(() => resetToBlank())
-              showToast('Blank budget ready')
-              celebrate()
+              queueCelebrate('Blank budget ready')
             }
           } else {
+            setAwaitingConfirm(true)
             const ok = await askConfirm({
               title: 'Load the filled demo?',
               body: 'This replaces your current budget and opens a new share link.',
               confirmLabel: 'Load demo',
-              danger: true,
             })
             if (cancelled) return
+            setAwaitingConfirm(false)
             if (!ok) {
               // Resume existing share below.
             } else {
               await leaveCloudBudget()
               clearRememberedShareToken()
               await dbWrite(() => loadDemoSample())
-              showToast('Demo sample loaded')
-              celebrate()
+              queueCelebrate('Demo sample loaded')
             }
           }
         } else {
@@ -97,7 +130,12 @@ export function TrackerApp() {
 
         const share = await ensureCloudBudget()
         if (cancelled) return
-        goToSharedBudget(share.token)
+        // Activate on local data, then soft-route so we don't remount into BootShell.
+        await enterCloudBudget(share.token)
+        if (cancelled) return
+        hydratedTokenRef.current = share.token
+        setReady(true)
+        goToSharedBudget(share.token, navigate)
       } catch (err) {
         if (!cancelled) {
           setBootError(err instanceof Error ? err.message : 'Could not open budget')
@@ -110,6 +148,14 @@ export function TrackerApp() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareToken])
+
+  useEffect(() => {
+    if (!ready) return
+    const message = takePendingCelebrate()
+    if (!message) return
+    showToast(message)
+    celebrate()
+  }, [ready])
 
   useEffect(() => {
     if (!ready || !cloudMode) return
@@ -175,32 +221,8 @@ export function TrackerApp() {
     prevRemaining.current = remaining
   }, [ready, remaining])
 
-  if (bootError) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--grove)] page-pad text-center">
-        <p className="font-[family-name:var(--font-display)] text-3xl tracking-[-0.03em] text-[var(--on-dark)]">
-          Couldn’t reach your budget
-        </p>
-        <p className="max-w-md text-sm text-[var(--on-dark-muted)]">{bootError}</p>
-        <button type="button" className="btn-nav" onClick={() => window.location.reload()}>
-          Try again
-        </button>
-      </div>
-    )
-  }
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-[var(--grove)] page-pad">
-        <p className="font-[family-name:var(--font-display)] text-3xl tracking-[-0.03em] text-[var(--on-dark)] animate-[fade-in_0.5s_ease]">
-          Trousseau
-        </p>
-        <p className="text-sm tracking-[0.08em] text-[var(--on-dark-muted)] animate-[fade-in_0.7s_ease]">
-          Opening your budget…
-        </p>
-      </div>
-    )
-  }
+  if (bootError) return <BootError message={bootError} />
+  if (!ready) return <BootLoading awaitingConfirm={awaitingConfirm} />
 
   return (
     <div className="relative">

@@ -20,9 +20,12 @@ Wedding budget tracker with **no accounts** — a secret share URL is the passwo
 ```sh
 flox activate   # optional, recommended
 bun install
-bun run dev          # Vite UI only
-bun run dev:vercel   # UI + cloud API (needs .env.local)
+cp .env.example .env.local   # Docker Postgres + local blob defaults
+bun run dev:local            # Postgres in Docker + vercel dev → http://localhost:3000
+# bun run dev                # Vite UI only — no /api (share create will 404)
 ```
+
+Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full setup, scripts, and production Neon/Blob: [`docs/getting-started.md`](docs/getting-started.md).
 
 | Path | What you get |
 | --- | --- |
@@ -34,8 +37,6 @@ bun run dev:vercel   # UI + cloud API (needs .env.local)
 | `/b/<token>` | Shared budget — treat the URL like a password |
 
 A downloadable sample wedding zip lives at [`public/samples/sample-wedding.zip`](public/samples/sample-wedding.zip) (`bun run sample:wedding` rebuilds it).
-
-Cloud setup (Vercel Postgres + Blob, migrate, deploy): [`docs/getting-started.md`](docs/getting-started.md).
 
 ## Docs
 

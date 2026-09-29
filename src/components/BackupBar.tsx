@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { loadDemoSample, resetToBlank } from '../db/dexie'
 import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { clearRememberedShareToken } from '../lib/cloud/session'
-import { leaveCloudBudget, publishShareLink } from '../lib/cloud/sync'
+import { leaveCloudBudget, enterCloudBudget, publishShareLink } from '../lib/cloud/sync'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
+import { queueCelebrate } from '../lib/pending-celebrate'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
@@ -15,6 +16,7 @@ const SAMPLE_URL = '/samples/sample-wedding.zip'
 
 /** Tracker backup: export, import, share link, blank/demo. */
 export function BackupBar({ shareUrl }: { shareUrl?: string }) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
 
@@ -46,7 +48,7 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
       title: kind === 'blank' ? 'Start a blank budget?' : 'Load the filled demo?',
       body: 'This replaces your current budget and opens a new share link.',
       confirmLabel: kind === 'blank' ? 'Start blank' : 'Load demo',
-      danger: true,
+      danger: kind === 'blank',
     })
     if (!ok) return
     setBusy(true)
@@ -60,9 +62,9 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
       } catch {
         // Navigation still lands on the new link.
       }
-      showToast(kind === 'blank' ? 'Blank budget ready' : 'Demo sample loaded')
-      celebrate()
-      goToSharedBudget(share.token)
+      await enterCloudBudget(share.token)
+      queueCelebrate(kind === 'blank' ? 'Blank budget ready' : 'Demo sample loaded')
+      goToSharedBudget(share.token, navigate)
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Could not create share link')
     } finally {
@@ -148,7 +150,7 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
             if (share) {
               showToast('Imported — share link copied')
               celebrate()
-              goToSharedBudget(share.token)
+              goToSharedBudget(share.token, navigate)
             } else {
               showToast('Import needs a share link — try again')
             }

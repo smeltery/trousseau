@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { showToast } from '../lib/toast'
@@ -16,6 +16,7 @@ const navQuiet =
   'text-sm font-medium text-[var(--on-dark-muted)] transition-colors hover:text-[var(--on-dark)]'
 
 export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [importRequested, setImportRequested] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -230,7 +231,7 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
             if (share) {
               showToast('Imported — share link copied')
               celebrate()
-              goToSharedBudget(share.token)
+              goToSharedBudget(share.token, navigate)
             } else {
               showToast('Import needs a share link — try again')
             }

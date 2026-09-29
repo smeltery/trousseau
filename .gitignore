@@ -40,3 +40,5 @@ metrics-uuid
 !public/samples/**/*.zip
 
 .vercel
+public/.local-blob/
+.data/

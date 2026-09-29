@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16
+    container_name: trousseau-db
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: trousseau
+      POSTGRES_PASSWORD: trousseau
+      POSTGRES_DB: trousseau
+    volumes:
+      - trousseau-pgdata:/var/lib/postgresql/data
+      - ./scripts/migrate-cloud.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U trousseau -d trousseau']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  trousseau-pgdata:

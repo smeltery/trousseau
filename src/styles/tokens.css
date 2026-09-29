@@ -150,6 +150,18 @@
   }
 }
 
+@keyframes boot-bar {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.45);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);

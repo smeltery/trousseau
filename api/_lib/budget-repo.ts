@@ -1,5 +1,5 @@
-import { sql } from '@vercel/postgres'
-import { del } from '@vercel/blob'
+import { sql } from './db.js'
+import { deleteBlob } from './blob-store.js'
 import type { AttachmentMeta, BackupPayload, Category, CloudSnapshot, Fund, LineItem } from './types.js'
 import { hashToken, newShareToken } from './token.js'
 
@@ -54,7 +54,7 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
   for (const row of existing.rows) {
     if (row.blob_pathname && !keepPaths.has(row.blob_pathname)) {
       try {
-        await del(row.blob_pathname)
+        await deleteBlob(row.blob_pathname)
       } catch {
         // Blob may already be gone.
       }
@@ -218,7 +218,7 @@ export async function deleteAttachment(
   if (!rows[0]) return false
   if (rows[0].blob_pathname) {
     try {
-      await del(rows[0].blob_pathname)
+      await deleteBlob(rows[0].blob_pathname)
     } catch {
       // ignore
     }

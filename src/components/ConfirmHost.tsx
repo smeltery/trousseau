@@ -26,7 +26,7 @@ export function ConfirmHost() {
       <button
         type="button"
         aria-label="Cancel"
-        className="absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_40%,transparent)] animate-[fade-in_0.2s_ease]"
+        className="absolute inset-0 bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] animate-[fade-in_0.2s_ease] backdrop-blur-[2px]"
         onClick={() => answerConfirm(false)}
       />
       <div
@@ -34,7 +34,7 @@ export function ConfirmHost() {
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--wash)] p-6 text-[var(--ink)] shadow-[var(--sheet-shadow)] animate-[sheet-in_0.3s_var(--ease-out)] sm:rounded-2xl"
+        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--wash)] p-7 text-[var(--ink)] shadow-[var(--sheet-shadow)] animate-[sheet-in_0.3s_var(--ease-out)] sm:rounded-2xl"
       >
         <h2
           id={titleId}
@@ -43,9 +43,9 @@ export function ConfirmHost() {
           {request.title}
         </h2>
         {request.body ? (
-          <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)]">{request.body}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--ink-muted)]">{request.body}</p>
         ) : null}
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-7 flex flex-wrap gap-3">
           <button
             type="button"
             className={request.danger ? 'btn-primary bg-[var(--danger)] text-[var(--on-dark)]' : 'btn-primary'}
