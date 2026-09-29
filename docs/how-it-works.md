@@ -1,6 +1,6 @@
 # How it works
 
-Trousseau keeps gifts (money in), expenses (money out), and attachments on one page — synced through a secret share link.
+Trousseau keeps gifts (money in), expenses (money out), and attachments on one page, synced through a secret share link.
 
 ## Core loop
 
@@ -32,8 +32,8 @@ flowchart LR
 ## Blank, demo, and import
 
 - `/app?new=1` asks before replacing data, then opens a new share link.
-- `/app?demo=1` asks before loading the filled generic demo, then opens a new share link.
-- `/app?import=1` (or **Import**) restores a Trousseau `.zip` and creates a share link.
+- `/app?demo=1` loads the filled generic demo and opens a new share link.
+- `/?import=1` (or **Import**) opens the import dialog over the home page; restoring a Trousseau `.zip` creates a share link.
 
 ## Share link
 

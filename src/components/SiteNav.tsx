@@ -87,7 +87,7 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
 
           {variant === 'marketing' ? (
             <div className="hidden items-center gap-5 md:flex">
-              <Link to="/app?import=1" className={navQuiet}>
+              <Link to="/?import=1" className={navQuiet}>
                 Import
               </Link>
               <Link to="/app?demo=1" className="btn-nav-demo">
@@ -184,7 +184,7 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
                     Try demo
                   </Link>
                   <Link
-                    to="/app?import=1"
+                    to="/?import=1"
                     onClick={() => setMenuOpen(false)}
                     className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
                   >
@@ -229,11 +229,11 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
           onClose={closeImport}
           onImported={(share) => {
             if (share) {
-              showToast('Imported — share link copied')
+              showToast('Imported: share link copied')
               celebrate()
               goToSharedBudget(share.token, navigate)
             } else {
-              showToast('Import needs a share link — try again')
+              showToast('Import needs a share link. Try again.')
             }
           }}
         />

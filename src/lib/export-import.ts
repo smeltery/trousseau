@@ -3,7 +3,7 @@ import { db } from '../db/dexie'
 import type { Attachment, BackupPayload } from '../db/types'
 import { DEFAULT_SITE, SITE_META_KEY } from './site-settings'
 
-/** Build a BackupPayload from IndexedDB (no zip). File blobs omitted — urls kept. */
+/** Build a BackupPayload from IndexedDB (no zip). File blobs omitted; urls kept. */
 export async function buildBackupPayload(): Promise<{
   payload: BackupPayload
   files: Array<{ id: string; lineItemId: string; name: string; mime?: string; blob: Blob }>

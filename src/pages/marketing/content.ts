@@ -5,7 +5,7 @@ export const features = [
   },
   {
     title: 'One link, both of you',
-    body: 'No accounts. A secret share URL keeps the same budget in sync on phone and laptop — treat it like a password.',
+    body: 'No accounts. A secret share URL keeps the same budget in sync on phone and laptop. Treat it like a password.',
   },
   {
     title: 'Receipts and notes',
@@ -32,7 +32,7 @@ export const steps = [
   {
     n: '01',
     title: 'Start blank or try the demo',
-    body: 'Open a tracker — Trousseau creates a share link you can send to your partner.',
+    body: 'Open a tracker. Trousseau creates a share link you can send to your partner.',
   },
   {
     n: '02',
@@ -64,7 +64,7 @@ export const customs = [
 export const faqs = [
   {
     q: 'Do we need accounts?',
-    a: 'No. Trousseau uses a secret share link instead of logins. Anyone with the URL can edit — don’t post it publicly.',
+    a: 'No. Trousseau uses a secret share link instead of logins. Anyone with the URL can edit; don’t post it publicly.',
   },
   {
     q: 'What happens if we clear the browser?',
@@ -86,7 +86,7 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: 'Start blank', to: '/app?new=1' },
       { label: 'Try demo', to: '/app?demo=1' },
-      { label: 'Import backup', to: '/app?import=1' },
+      { label: 'Import backup', to: '/?import=1' },
       { label: 'Open tracker', to: '/app' },
     ],
   },

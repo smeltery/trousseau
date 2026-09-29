@@ -43,7 +43,7 @@ export function TrackerApp() {
   useEffect(() => {
     let cancelled = false
     async function boot() {
-      // Soft handoff — already activated for this token (publish or prior boot).
+      // Soft handoff: already activated for this token (publish or prior boot).
       if (
         shareToken &&
         (hydratedTokenRef.current === shareToken || getActiveCloudToken() === shareToken)
@@ -69,19 +69,19 @@ export function TrackerApp() {
         const wantDemo = searchParams.get('demo') === '1'
         const wantNew = searchParams.get('new') === '1'
 
+        // Import lives on the marketing home so cancel stays there.
+        if (wantImport) {
+          navigate('/?import=1', { replace: true })
+          return
+        }
+
         // Resume: jump straight to the share URL instead of waiting on /app.
-        if (!wantImport && !wantDemo && !wantNew) {
+        if (!wantDemo && !wantNew) {
           const remembered = readRememberedShareToken()
           if (remembered) {
             goToSharedBudget(remembered, navigate)
             return
           }
-        }
-
-        if (wantImport) {
-          await localBudgetStore.boot()
-          if (!cancelled) setReady(true)
-          return
         }
 
         if (wantDemo || wantNew) {
@@ -105,22 +105,10 @@ export function TrackerApp() {
               queueCelebrate('Blank budget ready')
             }
           } else {
-            setAwaitingConfirm(true)
-            const ok = await askConfirm({
-              title: 'Load the filled demo?',
-              body: 'This replaces your current budget and opens a new share link.',
-              confirmLabel: 'Load demo',
-            })
-            if (cancelled) return
-            setAwaitingConfirm(false)
-            if (!ok) {
-              // Resume existing share below.
-            } else {
-              await leaveCloudBudget()
-              clearRememberedShareToken()
-              await dbWrite(() => loadDemoSample())
-              queueCelebrate('Demo sample loaded')
-            }
+            await leaveCloudBudget()
+            clearRememberedShareToken()
+            await dbWrite(() => loadDemoSample())
+            queueCelebrate('Demo sample loaded')
           }
         } else {
           await localBudgetStore.boot()
@@ -164,7 +152,7 @@ export function TrackerApp() {
         const changed = await pullCloudBudgetIfStale()
         if (changed) showToast('Shared budget updated')
       } catch {
-        // Offline / transient — keep local cache.
+        // Offline / transient: keep local cache.
       }
     }
     function onVis() {
@@ -216,12 +204,13 @@ export function TrackerApp() {
     if (!ready) return
     const prev = prevRemaining.current
     if (prev !== null && prev >= 0 && remaining < 0) {
-      showToast('Over budget — add funds or trim expenses')
+      showToast('Over budget: add funds or trim expenses')
     }
     prevRemaining.current = remaining
   }, [ready, remaining])
 
   if (bootError) return <BootError message={bootError} />
+
   if (!ready) return <BootLoading awaitingConfirm={awaitingConfirm} />
 
   return (

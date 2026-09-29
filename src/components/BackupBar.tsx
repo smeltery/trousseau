@@ -44,13 +44,15 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
   }
 
   async function replaceAndShare(kind: 'blank' | 'demo') {
-    const ok = await askConfirm({
-      title: kind === 'blank' ? 'Start a blank budget?' : 'Load the filled demo?',
-      body: 'This replaces your current budget and opens a new share link.',
-      confirmLabel: kind === 'blank' ? 'Start blank' : 'Load demo',
-      danger: kind === 'blank',
-    })
-    if (!ok) return
+    if (kind === 'blank') {
+      const ok = await askConfirm({
+        title: 'Start a blank budget?',
+        body: 'This replaces your current budget and opens a new share link.',
+        confirmLabel: 'Start blank',
+        danger: true,
+      })
+      if (!ok) return
+    }
     setBusy(true)
     try {
       await leaveCloudBudget()
@@ -148,11 +150,11 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
           onClose={() => setImportOpen(false)}
           onImported={(share) => {
             if (share) {
-              showToast('Imported — share link copied')
+              showToast('Imported: share link copied')
               celebrate()
               goToSharedBudget(share.token, navigate)
             } else {
-              showToast('Import needs a share link — try again')
+              showToast('Import needs a share link. Try again.')
             }
           }}
         />

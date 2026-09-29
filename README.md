@@ -15,14 +15,14 @@
   <img src="public/og.png" alt="Trousseau: a wedding budget that lives with you" width="800" />
 </p>
 
-Wedding budget tracker with **no accounts** — a secret share URL is the password. Opening `/app` resumes or creates a synced budget at `/b/…`; anyone with that link can edit. Export a zip anytime for an offline archive. Each browser keeps an IndexedDB cache for a fast UI; Postgres + Blob hold the live data.
+Wedding budget tracker with **no accounts**: a secret share URL is the password. Opening `/app` resumes or creates a synced budget at `/b/…`; anyone with that link can edit. Export a zip anytime for an offline archive. Each browser keeps an IndexedDB cache for a fast UI; Postgres + Blob hold the live data.
 
 ```sh
 flox activate   # optional, recommended
 bun install
 cp .env.example .env.local   # Docker Postgres + local blob defaults
 bun run dev:local            # Postgres in Docker + vercel dev → http://localhost:3000
-# bun run dev                # Vite UI only — no /api (share create will 404)
+# bun run dev                # Vite UI only: no /api (share create will 404)
 ```
 
 Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full setup, scripts, and production Neon/Blob: [`docs/getting-started.md`](docs/getting-started.md).
@@ -32,11 +32,15 @@ Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full 
 | `/` | Marketing site |
 | `/app` | Resume or create a share link → `/b/…` |
 | `/app?new=1` | Blank budget (asks before replacing; new share link) |
-| `/app?demo=1` | Filled generic demo (asks before replacing; new share link) |
-| `/app?import=1` | Import a zip (creates a new share link) |
-| `/b/<token>` | Shared budget — treat the URL like a password |
+| `/app?demo=1` | Filled generic demo (new share link) |
+| `/?import=1` | Import a zip over the home page (creates a new share link) |
+| `/b/<token>` | Shared budget: treat the URL like a password |
 
 A downloadable sample wedding zip lives at [`public/samples/sample-wedding.zip`](public/samples/sample-wedding.zip) (`bun run sample:wedding` rebuilds it).
+
+## Why Trousseau?
+
+A *trousseau* is the collection of clothes, linens, and keepsakes traditionally gathered for marriage. This app borrows the word for the modern pile: gifts and savings coming in, vendor lines going out, receipts and notes beside the dollars. One shared link holds that collection for both of you until the day arrives.
 
 ## Docs
 

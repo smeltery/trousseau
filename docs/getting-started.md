@@ -10,7 +10,7 @@ Trousseau is a shared wedding budget. Opening the tracker creates or resumes a s
 
 ## Local sync (Docker Postgres)
 
-Day-to-day development runs Postgres in Docker and the app on the host via `vercel dev` (UI + `/api`). File attachments write to `public/.local-blob` when `LOCAL_BLOB_DIR` is set — no Vercel Blob token required.
+Day-to-day development runs Postgres in Docker and the app on the host via `vercel dev` (UI + `/api`). File attachments write to `public/.local-blob` when `LOCAL_BLOB_DIR` is set; no Vercel Blob token required.
 
 ```sh
 flox activate   # optional
@@ -32,7 +32,7 @@ Plain `bun run dev` (Vite on `:5173`) does **not** serve `/api`, so share create
 | `bun run db:migrate` | Re-apply schema (idempotent `CREATE IF NOT EXISTS`) |
 | `bun run dev:local` | DB up → migrate → `vercel dev` (copies `.env.example` → `.env.local` if missing) |
 | `bun run dev:vercel` | UI + API only (assumes env + DB already ready) |
-| `bun run dev` | Vite UI only — no cloud API |
+| `bun run dev` | Vite UI only: no cloud API |
 
 Use `localhost` (not `127.0.0.1`) in `POSTGRES_URL`. Local Docker uses the `pg` driver via [`api/_lib/db.ts`](../api/_lib/db.ts); Neon/production still uses `@vercel/postgres`.
 
@@ -41,8 +41,9 @@ Use `localhost` (not `127.0.0.1`) in `POSTGRES_URL`. Local Docker uses the `pg` 
 | `/` | Marketing site |
 | `/app` | Resume remembered share or create one → soft-navigate to `/b/…` |
 | `/app?new=1` | Start a blank budget (asks before replacing; new share link) |
-| `/app?demo=1` | Load the filled generic demo (asks before replacing; new share link) |
-| `/app?import=1` | Open the import dialog (import creates a share link) |
+| `/app?demo=1` | Load the filled generic demo (new share link) |
+| `/app?import=1` | Redirects to `/?import=1` |
+| `/?import=1` | Open the import dialog on the home page (import creates a share link) |
 | `/b/<token>` | Shared budget (secret link; anyone with the URL can edit) |
 
 ## Production cloud setup

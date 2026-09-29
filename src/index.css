@@ -67,22 +67,22 @@
   .hero-surface {
     position: relative;
     display: flex;
-    min-height: 35rem;
+    min-height: 28rem;
     flex-direction: column;
     justify-content: flex-end;
     overflow: hidden;
     background-color: var(--grove);
     color: var(--on-dark);
     padding-top: 5rem;
-    padding-bottom: 2.5rem;
+    padding-bottom: 2rem;
   }
 
   @media (min-width: 1024px) {
     .hero-surface {
-      min-height: 900px;
-      height: 900px;
-      padding-top: 6rem;
-      padding-bottom: 5rem;
+      min-height: 34rem;
+      height: auto;
+      padding-top: 5.5rem;
+      padding-bottom: 3rem;
     }
   }
 

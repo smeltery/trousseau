@@ -55,7 +55,7 @@ export function DueAgendaList({
                 ? formatMoney(item.amount)
                 : item.paidAmount > 0
                   ? formatMoney(item.paidAmount)
-                  : '—'
+                  : '-'
             const bar = overdue ? 'bg-[var(--danger)]' : paid ? 'bg-[var(--lichen)]' : 'bg-[var(--accent)]'
             const badge = overdue ? 'Overdue' : paid ? 'Paid' : 'Due'
             const badgeTone = overdue

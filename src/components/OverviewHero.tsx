@@ -35,14 +35,14 @@ export function OverviewHero({
 
   return (
     <header
-      className={`hero-surface page-pad${syncBanner ? ' pt-[7.75rem] lg:pt-[8.75rem]' : ''}`}
+      className={`hero-surface page-pad${syncBanner ? ' pt-[6.75rem] lg:pt-[7.25rem]' : ''}`}
     >
       <SiteNav variant="app" syncBanner={syncBanner} />
       <div aria-hidden className="hero-glow animate-[drift-light_14s_ease-in-out_infinite]" />
       <MarketingRings className="hero-rings select-none" />
 
       <div className="page-shell relative z-[1] animate-[rise-in_1s_var(--ease-out)_both]">
-        <div className="flex max-w-[720px] flex-col items-start gap-8">
+        <div className="flex max-w-[720px] flex-col items-start gap-5">
           <EditableText
             aria-label="Hero eyebrow"
             value={site.heroEyebrow}
@@ -99,7 +99,7 @@ export function OverviewHero({
             ) : null}
           </div>
 
-          <div className="flex flex-col items-start gap-3 pt-4">
+          <div className="flex flex-col items-start gap-3 pt-1">
             <div className="flex flex-wrap items-center gap-7">
               {over ? (
                 <>

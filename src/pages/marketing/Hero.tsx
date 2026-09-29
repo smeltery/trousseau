@@ -22,7 +22,7 @@ export function MarketingHero() {
         </p>
         <p className="max-w-[400px] text-[17px] leading-7 text-[var(--on-dark-muted)]">
           Track gifts, savings, and every vendor line. Synced by a secret link you can open on any
-          device — treat it like a password.
+          device. Treat it like a password.
         </p>
         <div className="flex flex-wrap items-center gap-7 pt-5">
           <Link to="/app?new=1" className="btn-primary animate-[rise-in_1.05s_var(--ease-out)_both]">

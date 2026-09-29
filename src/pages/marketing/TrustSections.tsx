@@ -13,7 +13,7 @@ export function PrivacySection() {
             One secret link for both of you
           </h2>
           <p className="mt-4 text-[var(--on-dark-muted)]">
-            Trousseau syncs gifts, receipts, and notes through a private share URL — no account to
+            Trousseau syncs gifts, receipts, and notes through a private share URL, with no account to
             create. Treat the link like a password, and export a zip when you want an offline copy.
           </p>
         </div>
