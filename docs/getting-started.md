@@ -15,17 +15,18 @@ With Flox (preferred):
 ```sh
 flox activate
 bun install
-bun run dev
+bun run dev          # Vite UI only
+bun run dev:vercel   # UI + cloud API (needs .env.local — see Cloud setup)
 ```
 
 With Bun alone:
 
 ```sh
 bun install
-bun run dev
+bun run dev          # or: bun run dev:vercel
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). Cloud APIs need `vercel dev` or a deployed backend.
+Open the URL Vite prints (usually `http://localhost:5173`). The tracker needs Postgres + Blob env (local `vercel dev` or a deployed backend).
 
 | Path | What you get |
 | --- | --- |
