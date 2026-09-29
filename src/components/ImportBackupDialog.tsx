@@ -146,7 +146,7 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
             onClick={() => void runImport()}
             className="btn-primary disabled:opacity-50"
           >
-            {busy ? 'Importing…' : 'Replace & import'}
+            {busy ? 'Importing…' : 'Import'}
           </button>
           <button
             type="button"

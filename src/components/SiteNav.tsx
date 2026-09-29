@@ -18,8 +18,8 @@ export function SiteNav({ variant }: SiteNavProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const menuTitleId = useId()
-  const importFromQuery = searchParams.get('import') === '1'
-  const importOpen = importRequested || importFromQuery
+  const importFromQuery = variant === 'app' && searchParams.get('import') === '1'
+  const importOpen = variant === 'app' && (importRequested || importFromQuery)
 
   function closeImport() {
     setImportRequested(false)
@@ -82,9 +82,9 @@ export function SiteNav({ variant }: SiteNavProps) {
 
           {variant === 'marketing' ? (
             <div className="hidden items-center gap-5 md:flex">
-              <button type="button" onClick={() => setImportRequested(true)} className={navQuiet}>
+              <Link to="/app?import=1" className={navQuiet}>
                 Import
-              </button>
+              </Link>
               <Link to="/app?demo=1" className="btn-nav-demo">
                 Try demo
               </Link>
@@ -170,13 +170,13 @@ export function SiteNav({ variant }: SiteNavProps) {
                   >
                     Try demo
                   </Link>
-                  <button
-                    type="button"
-                    onClick={openImport}
+                  <Link
+                    to="/app?import=1"
+                    onClick={() => setMenuOpen(false)}
                     className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
                   >
                     Import backup
-                  </button>
+                  </Link>
                 </div>
               ) : (
                 <div className="mt-10 flex flex-col gap-4">
