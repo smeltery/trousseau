@@ -68,7 +68,7 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div>
         <h3 className="text-sm font-semibold tracking-[0.14em] text-[var(--ink-muted)] uppercase">
           Documents
@@ -114,12 +114,12 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
         />
       </label>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
         <input
           placeholder="Link name"
           value={linkName}
           onChange={(e) => setLinkName(e.target.value)}
-          className="rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
+          className="min-w-0 rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
         />
         <input
           placeholder="https://…"
@@ -128,12 +128,12 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
           onKeyDown={(e) => {
             if (e.key === 'Enter') void addLink()
           }}
-          className="rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
+          className="min-w-0 rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
         />
         <button
           type="button"
           onClick={() => void addLink()}
-          className="btn-primary"
+          className="btn-primary shrink-0 whitespace-nowrap"
         >
           Add link
         </button>

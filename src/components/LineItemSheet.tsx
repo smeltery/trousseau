@@ -137,7 +137,7 @@ function SheetShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl bg-[var(--wash)] shadow-[var(--sheet-shadow)] animate-[sheet-in_0.35s_var(--ease-out)] sm:rounded-2xl"
+        className="relative z-10 flex max-h-[92dvh] w-full max-w-xl min-w-0 flex-col overflow-hidden rounded-t-2xl bg-[var(--wash)] shadow-[var(--sheet-shadow)] animate-[sheet-in_0.35s_var(--ease-out)] sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5">
           <div className="min-w-0">
@@ -148,7 +148,7 @@ function SheetShell({
             ) : null}
             <h2
               id={titleId}
-              className="font-[family-name:var(--font-display)] text-2xl font-medium tracking-tight"
+              className="truncate font-[family-name:var(--font-display)] text-2xl font-medium tracking-tight"
             >
               {title}
             </h2>
@@ -156,12 +156,12 @@ function SheetShell({
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            className="shrink-0 text-sm text-[var(--ink-muted)] hover:text-[var(--ink)]"
           >
             Close
           </button>
         </div>
-        <div className="overflow-y-auto px-6 py-6">{children}</div>
+        <div className="min-w-0 overflow-x-hidden overflow-y-auto px-6 py-6">{children}</div>
       </div>
     </div>
   )
