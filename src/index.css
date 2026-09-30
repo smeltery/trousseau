@@ -211,4 +211,35 @@
     background-color: color-mix(in srgb, var(--accent) 10%, transparent);
     box-shadow: inset 0 -0.1em 0 var(--accent);
   }
+
+  .print-only {
+    display: none;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #print-summary,
+  #print-summary * {
+    visibility: visible !important;
+  }
+
+  #print-summary {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0.5in;
+  }
 }

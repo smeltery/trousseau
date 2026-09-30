@@ -121,17 +121,29 @@ export function groupByDueDate(items: LineItem[]): Map<string, LineItem[]> {
   return map
 }
 
-/** Unpaid dues on or before today, then upcoming unpaid, then paid in range. */
+/** Unpaid dues on or before today, then upcoming unpaid. */
 export function agendaItems(items: LineItem[], today: string, limit = 24): LineItem[] {
-  const dated = itemsWithDueDates(items)
-  const unpaid = dated.filter((i) => i.status !== 'paid')
-  const overdue = unpaid
-    .filter((i) => i.dueDate! < today)
+  return [...overdueAgendaItems(items, today), ...upcomingAgendaItems(items, today)].slice(0, limit)
+}
+
+export function overdueAgendaItems(items: LineItem[], today: string): LineItem[] {
+  return itemsWithDueDates(items)
+    .filter((i) => i.status !== 'paid' && i.dueDate! < today)
     .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
-  const upcoming = unpaid
-    .filter((i) => i.dueDate! >= today)
+}
+
+export function upcomingAgendaItems(items: LineItem[], today: string, limit = 24): LineItem[] {
+  return itemsWithDueDates(items)
+    .filter((i) => i.status !== 'paid' && i.dueDate! >= today)
     .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
-  return [...overdue, ...upcoming].slice(0, limit)
+    .slice(0, limit)
+}
+
+/** Money owed with no due date set. */
+export function undatedUnpaidItems(items: LineItem[]): LineItem[] {
+  return items
+    .filter((i) => i.status !== 'paid' && !i.dueDate && !/^budget$/i.test(i.label.trim()))
+    .sort((a, b) => a.label.localeCompare(b.label))
 }
 
 export function isOverdue(item: LineItem, today: string): boolean {

@@ -7,10 +7,10 @@ import {
   categoryDisplayTotals,
   formatDue,
   formatLineAmount,
-  markPaidPatch,
   paperLineStatus,
 } from '../lib/expense-display'
 import { formatMoney } from '../lib/money'
+import { markPaidWithUndo } from '../lib/ux/mark-paid'
 import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
@@ -245,10 +245,7 @@ export function ExpenseGroupBlock({
                                 type="button"
                                 aria-label={`Mark ${item.label} paid`}
                                 className="shrink-0 px-1 text-xs font-semibold tracking-[0.04em] text-[var(--accent-deep)] hover:underline sm:px-2"
-                                onClick={async () => {
-                                  await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
-                                  showToast('Marked paid')
-                                }}
+                                onClick={() => void markPaidWithUndo(item)}
                               >
                                 Paid
                               </button>

@@ -9,7 +9,7 @@ import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
 import { SettlingMoney } from './SettlingMoney'
 
-type ExpenseFilter = 'all' | 'unpaid' | 'overdue'
+type ExpenseFilter = 'all' | 'unpaid' | 'overdue' | 'undated'
 
 interface ExpenseGroupsProps {
   site: SiteSettings
@@ -26,6 +26,7 @@ const FILTERS: { id: ExpenseFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'unpaid', label: 'Unpaid' },
   { id: 'overdue', label: 'Overdue' },
+  { id: 'undated', label: 'No due date' },
 ]
 
 export function ExpenseGroups({
@@ -49,6 +50,9 @@ export function ExpenseGroups({
   const visibleItems = lineItems.filter((item) => {
     if (filter === 'unpaid') return item.status !== 'paid'
     if (filter === 'overdue') return isOverdue(item, today)
+    if (filter === 'undated') {
+      return item.status !== 'paid' && !item.dueDate && !/^budget$/i.test(item.label.trim())
+    }
     return true
   })
   const filterEmpty = filter !== 'all' && visibleItems.length === 0

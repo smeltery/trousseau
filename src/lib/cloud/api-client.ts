@@ -53,9 +53,11 @@ export async function apiUploadFile(
     name: string
     mime?: string
     blob: Blob
+    onProgress?: (ratio: number) => void
   },
 ): Promise<Attachment> {
   const buffer = await opts.blob.arrayBuffer()
+  opts.onProgress?.(0.15)
   const dataBase64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -66,20 +68,46 @@ export async function apiUploadFile(
     reader.onerror = () => reject(reader.error ?? new Error('Read failed'))
     reader.readAsDataURL(new Blob([buffer], { type: opts.mime || 'application/octet-stream' }))
   })
-  const res = await fetch(`/api/budgets/${encodeURIComponent(token)}/attachments`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: opts.id,
-      lineItemId: opts.lineItemId,
-      name: opts.name,
-      mime: opts.mime,
-      kind: 'file',
-      dataBase64,
-    }),
+  opts.onProgress?.(0.35)
+
+  const body = JSON.stringify({
+    id: opts.id,
+    lineItemId: opts.lineItemId,
+    name: opts.name,
+    mime: opts.mime,
+    kind: 'file',
+    dataBase64,
   })
-  if (!res.ok) throw new Error(await parseError(res))
-  const att = (await res.json()) as Attachment
+
+  const att = await new Promise<Attachment>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `/api/budgets/${encodeURIComponent(token)}/attachments`)
+    xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return
+      opts.onProgress?.(0.35 + (e.loaded / e.total) * 0.6)
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as Attachment)
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error('Bad upload response'))
+        }
+        return
+      }
+      try {
+        const parsed = JSON.parse(xhr.responseText) as { error?: string }
+        reject(new Error(parsed.error || `Request failed (${xhr.status})`))
+      } catch {
+        reject(new Error(`Request failed (${xhr.status})`))
+      }
+    }
+    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.send(body)
+  })
+
+  opts.onProgress?.(1)
   return {
     id: att.id,
     lineItemId: att.lineItemId,

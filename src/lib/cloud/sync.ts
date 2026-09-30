@@ -1,6 +1,7 @@
 import type { Attachment } from '../../db/types'
 import { db } from '../../db/dexie'
 import { applyBackupPayload, buildBackupPayload } from '../export-import'
+import { askChoice } from '../confirm'
 import {
   apiCreateBudget,
   apiGetBudget,
@@ -17,11 +18,12 @@ import {
   rememberShareToken,
   setActiveCloudToken,
 } from './session'
-import { setSyncStatus } from '../sync-status'
+import { clearPendingEdits, hasUnsyncedEdits, setSyncStatus } from '../sync-status'
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 let pushing = false
 let pullPaused = false
+let conflictOpen = false
 
 function snapshotToAttachments(snapshot: CloudSnapshot): Attachment[] {
   return snapshot.attachments.map((att) => ({
@@ -46,6 +48,7 @@ export async function enterCloudBudget(token: string): Promise<void> {
     await db.meta.put({ key: CLOUD_UPDATED_META, value: snapshot.updatedAt })
     setActiveCloudToken(token)
     rememberShareToken(token)
+    clearPendingEdits()
   } finally {
     pullPaused = false
   }
@@ -58,6 +61,7 @@ export async function leaveCloudBudget(opts?: { forget?: boolean }): Promise<voi
   await db.meta.delete(CLOUD_UPDATED_META)
   if (opts?.forget) clearRememberedShareToken()
   if (pushTimer) clearTimeout(pushTimer)
+  clearPendingEdits()
 }
 
 /** Publish current local budget; returns share URL. Uploads file blobs after create. */
@@ -124,6 +128,7 @@ export async function pushCloudBudget(): Promise<void> {
     // (they should have been uploaded via attachment API).
     const { updatedAt } = await apiPutBudget(token, payload)
     await db.meta.put({ key: CLOUD_UPDATED_META, value: updatedAt })
+    clearPendingEdits()
     setSyncStatus('saved')
   } catch (err) {
     console.error(err)
@@ -133,20 +138,51 @@ export async function pushCloudBudget(): Promise<void> {
   }
 }
 
-/** Pull server snapshot if newer (focus / visibility). */
-export async function pullCloudBudgetIfStale(): Promise<boolean> {
-  const token = getActiveCloudToken()
-  if (!token || pullPaused) return false
-  const remote = await apiGetBudget(token)
-  const local = await db.meta.get(CLOUD_UPDATED_META)
-  if (local?.value && local.value === remote.updatedAt) return false
+async function applyRemote(token: string, remote: CloudSnapshot): Promise<void> {
   pullPaused = true
   try {
     await applyBackupPayload(remote, snapshotToAttachments(remote))
     await db.meta.put({ key: CLOUD_TOKEN_META, value: token })
     await db.meta.put({ key: CLOUD_UPDATED_META, value: remote.updatedAt })
-    return true
+    clearPendingEdits()
   } finally {
     pullPaused = false
   }
+}
+
+/** Pull server snapshot if newer (focus / visibility). Blocks silent overwrite when dirty. */
+export async function pullCloudBudgetIfStale(): Promise<boolean> {
+  const token = getActiveCloudToken()
+  if (!token || pullPaused || conflictOpen) return false
+  const remote = await apiGetBudget(token)
+  const local = await db.meta.get(CLOUD_UPDATED_META)
+  if (local?.value && local.value === remote.updatedAt) return false
+
+  if (hasUnsyncedEdits()) {
+    conflictOpen = true
+    try {
+      const choice = await askChoice({
+        title: 'Partner updated this budget',
+        body: 'You have edits that have not synced yet. Keeping yours pushes your version; taking theirs replaces your local changes.',
+        primaryLabel: 'Keep mine',
+        secondaryLabel: 'Take theirs',
+        cancelLabel: 'Not now',
+        secondaryDanger: true,
+      })
+      if (choice === 'primary') {
+        await pushCloudBudget()
+        return false
+      }
+      if (choice === 'secondary') {
+        await applyRemote(token, remote)
+        return true
+      }
+      return false
+    } finally {
+      conflictOpen = false
+    }
+  }
+
+  await applyRemote(token, remote)
+  return true
 }

@@ -4,7 +4,9 @@ import { formatSyncedAt } from '../../lib/ux/relative-time'
 import { pushCloudBudget } from '../../lib/cloud/sync'
 import {
   getLastSavedAt,
+  getPendingEditCount,
   subscribeLastSavedAt,
+  subscribePendingEdits,
   type SyncStatus,
 } from '../../lib/sync-status'
 
@@ -20,9 +22,11 @@ export function SyncBanner({
   onCopyShare: () => void
 }) {
   const [savedAt, setSavedAt] = useState<number | null>(() => getLastSavedAt())
+  const [pending, setPending] = useState(() => getPendingEditCount())
   const [tick, setTick] = useState(0)
 
   useEffect(() => subscribeLastSavedAt(setSavedAt), [])
+  useEffect(() => subscribePendingEdits(setPending), [])
   useEffect(() => {
     if (!savedAt || syncLabel) return
     const id = window.setInterval(() => setTick((t) => t + 1), 60_000)
@@ -31,10 +35,12 @@ export function SyncBanner({
 
   const fresh = savedAt ? formatSyncedAt(savedAt) : ''
   void tick
+  const live =
+    sync === 'error' || sync === 'offline' ? ('assertive' as const) : ('polite' as const)
 
   return (
     <div className="border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
-      <p className="text-sm text-[var(--on-dark-muted)]">
+      <p className="text-sm text-[var(--on-dark-muted)]" aria-live={live} aria-atomic="true">
         {syncLabel ? (
           <>
             <span
@@ -46,7 +52,7 @@ export function SyncBanner({
             >
               {syncLabel}
             </span>
-            {sync === 'error' ? (
+            {sync === 'error' || (sync === 'offline' && pending > 0) ? (
               <>
                 {' · '}
                 <button

@@ -3,7 +3,6 @@ import type { Category, LineItem } from '../db/types'
 import {
   addDays,
   addMonths,
-  agendaItems,
   buildDueDatesIcs,
   groupByDueDate,
   itemsWithDueDates,
@@ -20,7 +19,7 @@ import { downloadBlob } from '../lib/export-import'
 import { formatDue, weddingCountdown } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
-import { CalendarLegend, DueAgendaList } from './DueAgendaList'
+import { CalendarAgenda, CalendarStatsLegend } from './calendar/CalendarAgenda'
 import { MonthGrid } from './calendar/MonthGrid'
 import { WeekGrid } from './calendar/WeekGrid'
 import { YearGrid } from './calendar/YearGrid'
@@ -50,7 +49,6 @@ export function DueCalendar({
   const today = todayKey()
   const countdown = weddingCountdown(weddingDate, today)
   const [view, setView] = useState<CalendarView>('month')
-  const [agendaLimit, setAgendaLimit] = useState(12)
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
@@ -65,11 +63,6 @@ export function DueCalendar({
     () => yearMonthTones(lineItems, cursor.year, today),
     [lineItems, cursor.year, today],
   )
-  const agenda = useMemo(
-    () => agendaItems(lineItems, today, agendaLimit),
-    [lineItems, today, agendaLimit],
-  )
-  const agendaAll = useMemo(() => agendaItems(lineItems, today, 999), [lineItems, today])
   const stats = useMemo(() => {
     if (view === 'year') {
       return yearMonths.reduce(
@@ -83,13 +76,13 @@ export function DueCalendar({
     }
     return monthDueStats(lineItems, cursor.year, cursor.month, today)
   }, [view, yearMonths, lineItems, cursor, today])
+
+  const selectedItems = selected ? (byDate.get(selected) ?? []) : []
+  const datedCount = itemsWithDueDates(lineItems).length
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, c.name]))
     return (id: string) => map.get(id) ?? 'Expense'
   }, [categories])
-
-  const selectedItems = selected ? (byDate.get(selected) ?? []) : []
-  const datedCount = itemsWithDueDates(lineItems).length
 
   function goToday() {
     const d = new Date()
@@ -175,11 +168,7 @@ export function DueCalendar({
           </button>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--ink-muted)]">
-          <CalendarLegend swatch="bg-[var(--danger)]" label="Overdue" count={stats.overdue} />
-          <CalendarLegend swatch="bg-[var(--accent)]" label="Upcoming" count={stats.upcoming} />
-          <CalendarLegend swatch="bg-[var(--lichen)]" label="Paid" count={stats.paid} />
-        </div>
+        <CalendarStatsLegend overdue={stats.overdue} upcoming={stats.upcoming} paid={stats.paid} />
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16">
           <div>
@@ -284,38 +273,14 @@ export function DueCalendar({
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-10">
-            {view !== 'year' ? (
-              <DueAgendaList
-                title={selected ? formatDue(selected) : 'Pick a day'}
-                empty="Nothing due this day."
-                items={selectedItems}
-                categoryName={categoryName}
-                today={today}
-                onOpenItem={onOpenItem}
-              />
-            ) : null}
-            <div className="flex flex-col gap-3">
-              <DueAgendaList
-                title="Coming up"
-                empty="No unpaid dues on the books."
-                items={agenda}
-                categoryName={categoryName}
-                today={today}
-                showDate
-                onOpenItem={onOpenItem}
-              />
-              {agendaAll.length > agenda.length ? (
-                <button
-                  type="button"
-                  className="link-quiet self-start text-sm"
-                  onClick={() => setAgendaLimit(agendaAll.length)}
-                >
-                  Show all {agendaAll.length}
-                </button>
-              ) : null}
-            </div>
-          </div>
+          <CalendarAgenda
+            categories={categories}
+            lineItems={lineItems}
+            selected={selected}
+            selectedItems={selectedItems}
+            showDayList={view !== 'year'}
+            onOpenItem={onOpenItem}
+          />
         </div>
       </div>
     </section>

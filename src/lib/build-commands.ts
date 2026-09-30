@@ -6,10 +6,11 @@ import { buildDueDatesIcs, todayKey } from './calendar'
 import type { CommandItem } from './command-types'
 import { askConfirm } from './confirm'
 import { dbWrite } from './db-write'
-import { canMarkPaid, markPaidPatch } from './expense-display'
+import { canMarkPaid } from './expense-display'
 import { downloadBlob } from './export-import'
 import { replaceBudgetAndShare } from './replace-budget'
 import { showToast } from './toast'
+import { markPaidWithUndo } from './ux/mark-paid'
 
 export type CommandContext = {
   shareUrl?: string
@@ -195,6 +196,15 @@ export function buildCommands(ctx: CommandContext): CommandItem[] {
       },
     },
     {
+      id: 'print-summary',
+      label: 'Print budget summary',
+      group: 'Share & backup',
+      keywords: 'pdf print one page gifts vendors',
+      run: () => {
+        window.print()
+      },
+    },
+    {
       id: 'export-ics',
       label: 'Export due dates (.ics)',
       group: 'Calendar',
@@ -248,8 +258,7 @@ export function buildCommands(ctx: CommandContext): CommandItem[] {
         group: 'Expenses',
         keywords: `${category} paid settle complete`,
         run: async () => {
-          await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
-          showToast(`Marked “${item.label}” paid`)
+          await markPaidWithUndo(item)
         },
       })
     }
