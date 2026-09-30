@@ -34,6 +34,7 @@ import { dbWrite } from '../lib/db-write'
 import { expensesPaidTotal, expensesRunningTotal, orderedExpenseIds } from '../lib/expense-display'
 import { isOverdue, todayKey, undatedUnpaidItems } from '../lib/calendar'
 import { sum } from '../lib/money'
+import { liquidCash } from '../lib/ux/fund-drawdown'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
 import { showToast } from '../lib/toast'
 import { noteCloudUpdatedAt } from '../lib/sync-status'
@@ -196,6 +197,7 @@ export function TrackerApp() {
   const spent = expensesPaidTotal(lineItems)
   const budgeted = expensesRunningTotal(categories, lineItems)
   const remaining = allocated - budgeted
+  const liquid = liquidCash(funds, lineItems)
   const prevRemaining = useRef<number | null>(null)
 
   useEffect(() => {
@@ -241,6 +243,7 @@ export function TrackerApp() {
         allocated={allocated}
         spent={spent}
         remaining={remaining}
+        liquid={liquid.liquid}
         fundCount={funds.length}
         lineItems={lineItems}
         onAddExpense={() => {
@@ -290,7 +293,7 @@ export function TrackerApp() {
           categories={categories}
           lineItems={lineItems}
           weddingDate={site.weddingDate} coupleNames={`${site.brandLeft} & ${site.brandRight}`}
-          fundsLeft={remaining}
+          fundsLeft={liquid.liquid}
           site={site}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}

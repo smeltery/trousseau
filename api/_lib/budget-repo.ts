@@ -1,5 +1,6 @@
 import { sql } from './db.js'
 import { deleteBlob } from './blob-store.js'
+import { assertBudgetIfMatch } from './budget-conflict.js'
 import {
   mapAttachmentRow,
   mapCategoryRow,
@@ -41,7 +42,12 @@ export async function createBudget(payload: BackupPayload): Promise<{ id: string
   return { id, token }
 }
 
-export async function replaceBudget(budgetId: string, payload: BackupPayload): Promise<string> {
+export async function replaceBudget(
+  budgetId: string,
+  payload: BackupPayload,
+  ifMatch?: string | null,
+): Promise<string> {
+  await assertBudgetIfMatch(budgetId, ifMatch)
   const site = payload.site ?? null
   await sql`
     UPDATE budgets

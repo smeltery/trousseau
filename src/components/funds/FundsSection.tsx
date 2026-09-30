@@ -6,6 +6,7 @@ import { patchSiteSettings, type SiteSettings } from '../../lib/site-settings'
 import { sectionScrollMt } from '../../lib/ux/scroll-mt'
 import { formatMoney, sum } from '../../lib/money'
 import { giftPromiseRollup, isGiftPromised, isGiftReceived } from '../../lib/ux/who-pays-rollup'
+import { liquidCash } from '../../lib/ux/fund-drawdown'
 import { EditableText } from '../EditableText'
 import { SettlingMoney } from '../SettlingMoney'
 import { FundGroup } from './FundGroup'
@@ -74,6 +75,7 @@ export function FundsSection({
     .filter(matchesSearch)
     .sort((a, b) => a.sort - b.sort)
   const allocated = sum(funds.map((f) => f.amount))
+  const liquid = liquidCash(funds, lineItems)
   const filterEmpty =
     (filter !== 'all' || q.length > 0) && gifts.length === 0 && savings.length === 0
 
@@ -236,13 +238,24 @@ export function FundsSection({
 
         <SavingsPlanCard site={site} funds={funds} />
 
-        <div className="mt-14 flex items-baseline justify-between gap-6 pt-2">
-          <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--ink-faint)] uppercase">
-            Total allocated
-          </p>
-          <p className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,4vw,2.25rem)] tracking-[-0.02em]">
-            <SettlingMoney value={allocated} />
-          </p>
+        <div className="mt-14 flex flex-col gap-2 pt-2">
+          <div className="flex items-baseline justify-between gap-6">
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--ink-faint)] uppercase">
+              Total allocated
+            </p>
+            <p className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,4vw,2.25rem)] tracking-[-0.02em]">
+              <SettlingMoney value={allocated} />
+            </p>
+          </div>
+          {liquid.drawn > 0 || liquid.promisedExcluded > 0 ? (
+            <p className="text-sm tabular-nums text-[var(--ink-muted)]">
+              {formatMoney(liquid.liquid)} liquid
+              {liquid.drawn > 0 ? ` · ${formatMoney(liquid.drawn)} drawn` : ''}
+              {liquid.promisedExcluded > 0
+                ? ` · ${formatMoney(liquid.promisedExcluded)} promised excluded`
+                : ''}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

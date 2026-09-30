@@ -32,15 +32,39 @@ export async function apiGetBudget(token: string): Promise<CloudSnapshot> {
   return res.json() as Promise<CloudSnapshot>
 }
 
+export class CloudConflictError extends Error {
+  updatedAt?: string
+  constructor(message: string, updatedAt?: string) {
+    super(message)
+    this.name = 'CloudConflictError'
+    this.updatedAt = updatedAt
+  }
+}
+
 export async function apiPutBudget(
   token: string,
   payload: BackupPayload,
+  opts?: { ifMatch?: string },
 ): Promise<{ updatedAt: string }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (opts?.ifMatch) headers['If-Match'] = opts.ifMatch
   const res = await fetch(`/api/budgets/${encodeURIComponent(token)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
   })
+  if (res.status === 412) {
+    try {
+      const body = (await res.json()) as { updatedAt?: string; error?: string }
+      throw new CloudConflictError(
+        body.error || 'Budget changed since your last sync',
+        body.updatedAt,
+      )
+    } catch (err) {
+      if (err instanceof CloudConflictError) throw err
+      throw new CloudConflictError('Budget changed since your last sync')
+    }
+  }
   if (!res.ok) throw new Error(await parseError(res))
   return res.json() as Promise<{ updatedAt: string }>
 }
