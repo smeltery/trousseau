@@ -1,13 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Category, Fund, LineItem } from '../../db/types'
 import { db } from '../../db/dexie'
-import { dbWrite } from '../../lib/db-write'
 import { todayKey } from '../../lib/calendar'
+import { dbWrite } from '../../lib/db-write'
 import { formatMoney } from '../../lib/money'
 import { buildWrapSummary } from '../../lib/ux/post-wedding-wrap'
 import type { SiteSettings } from '../../lib/site-settings'
 import { showToast } from '../../lib/toast'
-import { dayOfCashTotal, formatSettlementCue, whoPaysSettlement } from '../../lib/ux/who-pays-rollup'
+import { creditRefundToFund } from '../../lib/ux/fund-drawdown'
+import { dayOfCashTotal } from '../../lib/ux/who-pays-rollup'
+import { SettleTransferCue } from '../SettleTransferCue'
 
 export function PostWeddingWrap({
   site,
@@ -25,11 +27,14 @@ export function PostWeddingWrap({
   const today = todayKey()
   const wrap = buildWrapSummary(site, funds, categories, lineItems, today)
   const liveFunds = useLiveQuery(() => db.funds.toArray(), []) ?? funds
-  const settle = whoPaysSettlement(lineItems, site)
   if (!wrap) return null
 
   const dayCash = dayOfCashTotal(site.dayOfCash?.tipCash, site.dayOfCash?.vendorCash)
   const giftHaul = wrap.dayOfGifts.reduce((s, f) => s + f.amount, 0)
+  const defaultFundId =
+    liveFunds.find((f) => f.type === 'savings')?.id ??
+    liveFunds[0]?.id ??
+    '__new_savings__'
 
   return (
     <section
@@ -74,12 +79,11 @@ export function PostWeddingWrap({
           </div>
         </div>
 
-        {settle && settle.some((s) => s.responsible > 0) ? (
-          <p className="mt-6 text-sm tabular-nums text-[var(--ink-muted)]" role="status">
-            <span className="font-semibold text-[var(--accent-deep)]">Settle-up · </span>
-            {formatSettlementCue(settle)}
-          </p>
-        ) : null}
+        <SettleTransferCue
+          site={site}
+          lineItems={lineItems}
+          className="mt-6 text-sm tabular-nums text-[var(--ink-muted)]"
+        />
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2">
           <div>
@@ -120,20 +124,43 @@ export function PostWeddingWrap({
               <p className="mt-2 text-sm text-[var(--ink-faint)]">No open reimbursements.</p>
             ) : (
               <ul className="mt-3 divide-y divide-[var(--line-soft)]">
-                {wrap.openRefunds.map((i) => (
-                  <li key={i.id}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 py-2 text-left text-sm hover:underline"
-                      onClick={() => onOpenItem(i.id)}
-                    >
-                      <span>{i.label}</span>
-                      <span className="tabular-nums text-[var(--ink-muted)]">
-                        {formatMoney(i.amount > 0 ? i.amount : i.paidAmount)}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                {wrap.openRefunds.map((i) => {
+                  const amt = i.amount > 0 ? i.amount : i.paidAmount
+                  return (
+                    <li key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left hover:underline"
+                        onClick={() => onOpenItem(i.id)}
+                      >
+                        {i.label}
+                        <span className="tabular-nums text-[var(--ink-muted)]">
+                          {' '}
+                          · {formatMoney(amt)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="shrink-0 font-semibold text-[var(--accent-deep)] hover:underline"
+                        onClick={async () => {
+                          try {
+                            const msg = await creditRefundToFund({
+                              item: i,
+                              amount: amt,
+                              fundId: defaultFundId,
+                              funds: liveFunds,
+                            })
+                            showToast(msg)
+                          } catch (err) {
+                            showToast(err instanceof Error ? err.message : 'Could not credit')
+                          }
+                        }}
+                      >
+                        Credit
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
@@ -149,7 +176,6 @@ export function PostWeddingWrap({
               the wedding · {formatMoney(giftHaul)}
               {dayCash > 0 ? ` · ${formatMoney(dayCash)} day-of cash float` : ''}
             </p>
-            {liveFunds !== funds ? null : null}
           </div>
         )}
       </div>

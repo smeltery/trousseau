@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../../db/dexie'
+import { db } from '../../db/dexie'
 import type { Category, Fund, LineItem } from '../../db/types'
 import { GROUP_LABELS } from '../../lib/budget'
 import { askConfirm } from '../../lib/confirm'
-import { todayKey } from '../../lib/calendar'
 import { dbWrite } from '../../lib/db-write'
-import { formatDue } from '../../lib/expense-display'
 import { formatMoney, parseMoneyInput } from '../../lib/money'
 import { swapSort } from '../../lib/reorder'
 import { showToast } from '../../lib/toast'
+import { cascadeFundIdOnDelete } from '../../lib/ux/fund-drawdown'
 import { fundDrawdown } from '../../lib/ux/fund-drawdown'
+import { FundContributions } from './FundContributions'
 import { FundGiftMeta } from './FundGiftMeta'
 
 export function FundRow({
@@ -39,11 +39,8 @@ export function FundRow({
   const [label, setLabel] = useState(fund.label)
   const [amountText, setAmountText] = useState(String(fund.amount))
   const [saved, setSaved] = useState(false)
-  const [contribAmount, setContribAmount] = useState('')
-  const [contribDate, setContribDate] = useState(todayKey())
   const showGiftMeta = fund.type === 'gift'
   const draw = fundDrawdown(fund, lineItems)
-  const contribs = fund.contributions ?? []
 
   function flashSaved() {
     setSaved(true)
@@ -137,8 +134,8 @@ export function FundRow({
               danger: true,
             })
             if (!ok) return
-            await dbWrite(() => db.funds.delete(fund.id))
-            showToast('Removed')
+            const cleared = await cascadeFundIdOnDelete(fund.id)
+            showToast(cleared > 0 ? `Removed · cleared ${cleared} payment link${cleared === 1 ? '' : 's'}` : 'Removed')
           }}
         >
           Remove
@@ -164,73 +161,11 @@ export function FundRow({
         />
       ) : null}
       {fund.type === 'savings' ? (
-        <div className="mt-3 grid gap-2">
-          {contribs.length > 0 ? (
-            <ul className="flex flex-wrap gap-2">
-              {contribs.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-sm border border-[var(--line-soft)] bg-[var(--paper)] px-2 py-1 text-xs tabular-nums text-[var(--ink-muted)]"
-                >
-                  {formatDue(c.date)} · {formatMoney(c.amount)}
-                  {c.note ? ` · ${c.note}` : ''}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="min-w-[6rem]">
-              <span className="mb-1 block text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)] uppercase">
-                Add contribution
-              </span>
-              <input
-                inputMode="decimal"
-                value={contribAmount}
-                onChange={(e) => setContribAmount(e.target.value)}
-                placeholder="0"
-                className="field-input py-1.5 text-sm"
-              />
-            </label>
-            <label>
-              <span className="mb-1 block text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)] uppercase">
-                Date
-              </span>
-              <input
-                type="date"
-                value={contribDate}
-                onChange={(e) => setContribDate(e.target.value)}
-                className="field-input py-1.5 text-sm"
-              />
-            </label>
-            <button
-              type="button"
-              className="btn-ghost px-2 py-1.5 text-sm"
-              onClick={async () => {
-                const n = parseMoneyInput(contribAmount)
-                if (!(n > 0) || !contribDate) {
-                  showToast('Enter amount and date')
-                  return
-                }
-                const next = [
-                  ...contribs,
-                  { id: newId('fc'), amount: n, date: contribDate },
-                ]
-                await dbWrite(() =>
-                  db.funds.update(fund.id, {
-                    contributions: next,
-                    amount: Math.round((fund.amount + n) * 100) / 100,
-                  }),
-                )
-                setAmountText(String(Math.round((fund.amount + n) * 100) / 100))
-                setContribAmount('')
-                flashSaved()
-                showToast('Contribution added')
-              }}
-            >
-              Add
-            </button>
-          </div>
-        </div>
+        <FundContributions
+          fund={fund}
+          onSaved={flashSaved}
+          onAmountChange={(n) => setAmountText(String(n))}
+        />
       ) : null}
     </li>
   )

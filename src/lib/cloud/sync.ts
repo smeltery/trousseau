@@ -7,6 +7,7 @@ import {
   apiGetBudget,
   apiPutBudget,
   apiUploadFile,
+  CloudConflictError,
   type CloudSnapshot,
 } from './api-client'
 import {
@@ -21,10 +22,10 @@ import {
 import { clearPendingEdits, hasUnsyncedEdits, setSyncStatus } from '../sync-status'
 import { showToast } from '../toast'
 import {
-  diffPartnerLabels,
+  diffPartnerMoney,
   formatPartnerChangesMessage,
-  labelsFromRows,
-  type LabelSnapshot,
+  moneyFromRows,
+  type MoneySnapshot,
 } from '../ux/partner-changes'
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
@@ -45,14 +46,14 @@ function snapshotToAttachments(snapshot: CloudSnapshot): Attachment[] {
   }))
 }
 
-async function captureLocalLabels(): Promise<LabelSnapshot> {
+async function captureLocalMoney(): Promise<MoneySnapshot> {
   const [expenses, funds] = await Promise.all([db.lineItems.toArray(), db.funds.toArray()])
-  return labelsFromRows(expenses, funds)
+  return moneyFromRows(expenses, funds)
 }
 
-function announcePartnerChanges(before: LabelSnapshot, remote: CloudSnapshot): void {
-  const after = labelsFromRows(remote.lineItems, remote.funds)
-  const msg = formatPartnerChangesMessage(diffPartnerLabels(before, after))
+function announcePartnerChanges(before: MoneySnapshot, remote: CloudSnapshot): void {
+  const after = moneyFromRows(remote.lineItems, remote.funds)
+  const msg = formatPartnerChangesMessage(diffPartnerMoney(before, after))
   showToast(msg ?? 'Shared budget updated')
 }
 
@@ -131,7 +132,7 @@ export function scheduleCloudPush(): void {
   }, 700)
 }
 
-export async function pushCloudBudget(): Promise<void> {
+export async function pushCloudBudget(opts?: { force?: boolean }): Promise<void> {
   const token = getActiveCloudToken()
   if (!token || pushing || pullPaused) return
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -142,13 +143,20 @@ export async function pushCloudBudget(): Promise<void> {
   setSyncStatus('saving')
   try {
     const { payload } = await buildBackupPayload()
-    // Include file metadata that already has cloud urls; local-only blobs stay out of PUT
-    // (they should have been uploaded via attachment API).
-    const { updatedAt } = await apiPutBudget(token, payload)
+    const local = await db.meta.get(CLOUD_UPDATED_META)
+    const { updatedAt } = await apiPutBudget(token, payload, {
+      ifMatch: opts?.force ? undefined : local?.value || undefined,
+    })
     await db.meta.put({ key: CLOUD_UPDATED_META, value: updatedAt })
     clearPendingEdits()
     setSyncStatus('saved')
   } catch (err) {
+    if (err instanceof CloudConflictError) {
+      setSyncStatus('error')
+      showToast('Partner updated first — resolve sync to continue')
+      void pullCloudBudgetIfStale()
+      return
+    }
     console.error(err)
     setSyncStatus(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error')
   } finally {
@@ -157,7 +165,7 @@ export async function pushCloudBudget(): Promise<void> {
 }
 
 async function applyRemote(token: string, remote: CloudSnapshot, announce: boolean): Promise<void> {
-  const before = announce ? await captureLocalLabels() : null
+  const before = announce ? await captureLocalMoney() : null
   pullPaused = true
   try {
     await applyBackupPayload(remote, snapshotToAttachments(remote))
@@ -190,7 +198,7 @@ export async function pullCloudBudgetIfStale(): Promise<boolean> {
         secondaryDanger: true,
       })
       if (choice === 'primary') {
-        await pushCloudBudget()
+        await pushCloudBudget({ force: true })
         return false
       }
       if (choice === 'secondary') {

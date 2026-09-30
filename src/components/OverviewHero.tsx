@@ -7,8 +7,9 @@ import { formatMoney } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { showToast } from '../lib/toast'
 import { recomputeWeddingAnchoredDues } from '../lib/ux/wedding-dues'
-import { whoPaysDisplayLines, formatSettlementCue, whoPaysSettlement } from '../lib/ux/who-pays-rollup'
+import { whoPaysDisplayLines } from '../lib/ux/who-pays-rollup'
 import { EditableText } from './EditableText'
+import { SettleTransferCue } from './SettleTransferCue'
 import { SettlingMoney } from './SettlingMoney'
 import { SiteNav } from './SiteNav'
 
@@ -17,6 +18,7 @@ interface OverviewHeroProps {
   allocated: number
   spent: number
   remaining: number
+  liquid?: number
   fundCount?: number
   lineItems?: LineItem[]
   onAddExpense: () => void
@@ -34,6 +36,7 @@ export function OverviewHero({
   allocated,
   spent,
   remaining,
+  liquid,
   fundCount = 0,
   lineItems = [],
   onAddExpense,
@@ -52,7 +55,6 @@ export function OverviewHero({
   const [dueDismissed, setDueDismissed] = useState(() => isHintDismissed('due'))
   const countdown = weddingCountdown(site.weddingDate)
   const pays = whoPaysDisplayLines(lineItems, site)
-  const settle = whoPaysSettlement(lineItems, site)
 
   const hint: HintKind | null = (() => {
     if (blankNames && !namesDismissed) return 'names'
@@ -184,6 +186,12 @@ export function OverviewHero({
             </p>
             <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
               <SettlingMoney value={spent} /> paid · <SettlingMoney value={allocated} /> allocated
+              {liquid != null ? (
+                <>
+                  {' · '}
+                  <SettlingMoney value={liquid} /> liquid
+                </>
+              ) : null}
             </p>
             {pays.length > 0 ? (
               <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
@@ -196,11 +204,11 @@ export function OverviewHero({
                 ))}
               </p>
             ) : null}
-            {settle && settle.some((s) => s.owes > 0 || s.paid > 0) ? (
-              <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
-                Settle-up · {formatSettlementCue(settle)}
-              </p>
-            ) : null}
+            <SettleTransferCue
+              site={site}
+              lineItems={lineItems}
+              className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]"
+            />
             <label className="flex flex-wrap items-center gap-2 pt-1 text-sm text-[var(--on-dark-muted)]">
               <span className="text-[11px] font-semibold tracking-[0.14em] text-[var(--on-dark-faint)] uppercase">
                 Wedding

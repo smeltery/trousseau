@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../../db/dexie'
+import { db } from '../../db/dexie'
 import type { Fund, LineItem } from '../../db/types'
-import { todayKey } from '../../lib/calendar'
 import { dbWrite } from '../../lib/db-write'
 import { dateAfterWedding } from '../../lib/ux/wedding-dues'
+import { creditRefundToFund } from '../../lib/ux/fund-drawdown'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../../lib/site-settings'
 import { showToast } from '../../lib/toast'
 import { LineItemField } from './line-item-field'
@@ -35,38 +35,18 @@ export function LineItemReimburseSection({
   }
 
   async function creditFund() {
-    if (!(refundAmount > 0)) {
-      showToast('Nothing to credit')
-      return
+    try {
+      const msg = await creditRefundToFund({
+        item,
+        amount: refundAmount,
+        fundId: creditFundId as '__new_savings__' | '__new_gift__' | string,
+        funds,
+      })
+      onBackReceived(true)
+      showToast(msg)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not credit')
     }
-    if (creditFundId === '__new_savings__' || creditFundId === '__new_gift__') {
-      const type = creditFundId === '__new_gift__' ? 'gift' : 'savings'
-      const peers = funds.filter((f) => f.type === type)
-      const sort = peers.length === 0 ? 0 : Math.max(...peers.map((f) => f.sort), 0) + 1
-      await dbWrite(() =>
-        db.funds.add({
-          id: newId('fund'),
-          label: item.label,
-          amount: refundAmount,
-          type,
-          sort,
-          receivedDate: todayKey(),
-        }),
-      )
-      showToast(type === 'gift' ? 'Added as gift fund' : 'Added as savings fund')
-      return
-    }
-    const fund = funds.find((f) => f.id === creditFundId)
-    if (!fund) {
-      showToast('Choose a fund')
-      return
-    }
-    await dbWrite(() =>
-      db.funds.update(fund.id, {
-        amount: Math.round((fund.amount + refundAmount) * 100) / 100,
-      }),
-    )
-    showToast(`Credited ${fund.label}`)
   }
 
   return (

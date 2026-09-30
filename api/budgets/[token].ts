@@ -42,8 +42,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(400).json({ error: 'Invalid backup payload' })
         return
       }
-      const updatedAt = await replaceBudget(budgetId, body)
-      res.status(200).json({ updatedAt })
+      const ifMatchRaw = req.headers['if-match']
+      const ifMatch = Array.isArray(ifMatchRaw) ? ifMatchRaw[0] : ifMatchRaw
+      try {
+        const updatedAt = await replaceBudget(budgetId, body, ifMatch ?? null)
+        res.status(200).json({ updatedAt })
+      } catch (err) {
+        const e = err as Error & { statusCode?: number; updatedAt?: string }
+        if (e.statusCode === 412) {
+          res.status(412).json({
+            error: 'Budget changed since your last sync',
+            updatedAt: e.updatedAt,
+          })
+          return
+        }
+        throw err
+      }
       return
     }
 
