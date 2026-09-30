@@ -118,9 +118,13 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
                   {truncateShareUrl(shareUrl, 48)}
                 </p>
               ) : null}
+              {shareUrl ? (
+                <div className="mt-4">
+                  <ShareQr url={shareUrl} size={144} />
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-col items-start gap-3.5 sm:items-end">
-              {shareUrl ? <ShareQr url={shareUrl} /> : null}
               <button
                 type="button"
                 disabled={busy || !shareUrl}
