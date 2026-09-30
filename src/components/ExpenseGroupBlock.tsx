@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Attachment, Category, CategoryGroup, LineItem } from '../db/types'
 import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
+import { GROUP_LABELS, GROUP_ORDER } from '../lib/budget'
 import { dbWrite } from '../lib/db-write'
 import { categoryDisplayTotals } from '../lib/expense-display'
 import { earmarkShortfall } from '../lib/ux/earmark-gap'
@@ -135,6 +136,29 @@ export function ExpenseGroupBlock({
                         </button>
                       </span>
                     ) : null}
+                    <label className="shrink-0">
+                      <span className="sr-only">Move {cat.name} to group</span>
+                      <select
+                        value={cat.group}
+                        aria-label={`Move ${cat.name} to group`}
+                        className="field-input py-1 text-xs"
+                        onChange={async (e) => {
+                          const nextGroup = e.target.value as CategoryGroup
+                          if (nextGroup === cat.group) return
+                          const peers = await db.categories.where('group').equals(nextGroup).toArray()
+                          const sort =
+                            peers.length === 0 ? 0 : Math.max(...peers.map((c) => c.sort), 0) + 1
+                          await dbWrite(() => db.categories.update(cat.id, { group: nextGroup, sort }))
+                          showToast(`Moved to ${GROUP_LABELS[nextGroup]}`)
+                        }}
+                      >
+                        {GROUP_ORDER.map((g) => (
+                          <option key={g} value={g}>
+                            {GROUP_LABELS[g]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <button
                       type="button"
                       aria-label={`Remove ${cat.name}`}

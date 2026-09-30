@@ -4,6 +4,7 @@ export type FundType = 'gift' | 'savings'
 export type CategoryGroup = 'venue' | 'vendor' | 'reimbursement'
 export type LineStatus = 'planned' | 'deposit' | 'partial' | 'paid'
 export type AttachmentKind = 'file' | 'link'
+export type AttachmentRole = 'contract' | 'invoice' | 'receipt'
 
 export type WhoPays = 'left' | 'right' | 'joint'
 
@@ -13,6 +14,7 @@ export interface PaymentStub {
   date: string
   note?: string
   method?: string
+  fundId?: string
 }
 
 export interface InstallmentStub {
@@ -58,7 +60,12 @@ export interface LineItem {
   backReceived?: boolean
   dueOffsetDays?: number
   balanceOffsetDays?: number
+  expectedBackOffsetDays?: number
   whoPays?: WhoPays
+  whoPaysLeft?: number
+  whoPaysRight?: number
+  quotedAmount?: number
+  perGuestAmount?: number
   sort: number
 }
 
@@ -70,13 +77,14 @@ export interface AttachmentMeta {
   url?: string
   mime?: string
   size?: number
+  role?: AttachmentRole
   createdAt: string
   /** Server-only: Blob pathname for deletion. */
   blobPathname?: string
 }
 
 export interface BackupPayload {
-  version: 1 | 2 | 3 | 4 | 5
+  version: 1 | 2 | 3 | 4 | 5 | 6
   exportedAt: string
   funds: Fund[]
   categories: Category[]

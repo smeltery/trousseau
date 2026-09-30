@@ -4,6 +4,7 @@
     "src/components/LineItemSheet.tsx": 340,
     "src/components/DueCalendar.tsx": 340,
     "src/components/SiteNav.tsx": 340,
-    "src/pages/TrackerApp.tsx": 340
+    "src/components/expenses/LineItemForm.tsx": 320,
+    "src/pages/TrackerApp.tsx": 360
   }
 }

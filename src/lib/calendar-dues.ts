@@ -138,3 +138,23 @@ export function cashRunway(
 export function sortInstallments(list: InstallmentStub[]): InstallmentStub[] {
   return [...list].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 }
+
+/** Sum of scheduled installment amounts. */
+export function installmentScheduleSum(item: LineItem): number {
+  return (item.installments ?? []).reduce((s, i) => s + i.amount, 0)
+}
+
+/**
+ * When installments are scheduled, flag if their sum diverges from remaining due.
+ * Returns the signed delta (schedule − remaining); null when no cue needed.
+ */
+export function installmentMismatch(item: LineItem, tolerance = 0.01): number | null {
+  const stubs = item.installments ?? []
+  if (stubs.length === 0) return null
+  if (/^budget$/i.test(item.label.trim())) return null
+  const scheduled = installmentScheduleSum(item)
+  const rem = remainingDue(item)
+  const delta = Math.round((scheduled - rem) * 100) / 100
+  if (Math.abs(delta) <= tolerance) return null
+  return delta
+}

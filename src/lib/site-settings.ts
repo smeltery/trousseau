@@ -22,6 +22,8 @@ export interface SiteSettings {
   brandRight: string
   /** Optional YYYY-MM-DD wedding day for countdown + calendar context. */
   weddingDate?: string
+  /** Persistent guest headcount for plate / estimate lines. */
+  guestCount?: number
   fundsEyebrow: string
   fundsTitle: string
   fundsSub: string
@@ -74,6 +76,7 @@ export function parseSiteSettings(raw: string | undefined): SiteSettings {
       ...DEFAULT_SITE,
       ...parsed,
       weddingDate: parsed.weddingDate || undefined,
+      guestCount: parseGuestCount(parsed.guestCount),
       dayOfCash,
       savingsPlan,
       groupLabels: {
@@ -93,6 +96,11 @@ function parseDayOfCash(raw: unknown): DayOfCash | undefined {
   const vendorCash = typeof o.vendorCash === 'number' && o.vendorCash > 0 ? o.vendorCash : undefined
   if (tipCash == null && vendorCash == null) return undefined
   return { tipCash, vendorCash }
+}
+
+function parseGuestCount(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !(raw > 0) || !Number.isFinite(raw)) return undefined
+  return Math.round(raw)
 }
 
 function parseSavingsPlan(raw: unknown): SavingsPlan | undefined {
@@ -120,5 +128,6 @@ export async function patchSiteSettings(patch: Partial<SiteSettings>): Promise<v
   }
   if ('dayOfCash' in patch) next.dayOfCash = parseDayOfCash(patch.dayOfCash)
   if ('savingsPlan' in patch) next.savingsPlan = parseSavingsPlan(patch.savingsPlan)
+  if ('guestCount' in patch) next.guestCount = parseGuestCount(patch.guestCount)
   await saveSiteSettings(next)
 }

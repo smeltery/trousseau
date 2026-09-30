@@ -5,8 +5,11 @@ import { isOverdue, todayKey } from '../lib/calendar'
 import { expensesRunningTotal } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { readHidePaid, writeHidePaid } from '../lib/ux/hide-paid'
+import { isDueSoon } from '../lib/ux/reimburse-aging'
 import { isReimbursementAging } from '../lib/ux/reimburse-aging'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
+import { applyGuestCountToPlateLines } from '../lib/ux/guest-plate'
+import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
 import { ExpenseBulkBar } from './expenses/ExpenseBulkBar'
@@ -53,6 +56,7 @@ export function ExpenseGroups({
   const selectMode =
     filter === 'unpaid' ||
     filter === 'overdue' ||
+    filter === 'dueSoon' ||
     filter === 'undated' ||
     filter === 'reimburse' ||
     whoFilter !== 'all'
@@ -65,6 +69,8 @@ export function ExpenseGroups({
       if (item.status === 'paid') return false
     } else if (filter === 'overdue') {
       if (!isOverdue(item, today)) return false
+    } else if (filter === 'dueSoon') {
+      if (!isDueSoon(item, today, 14)) return false
     } else if (filter === 'undated') {
       if (item.status === 'paid' || item.dueDate || /^budget$/i.test(item.label.trim())) return false
     } else if (filter === 'reimburse') {
@@ -139,6 +145,31 @@ export function ExpenseGroups({
               multiline
               className="mt-4 w-full text-base leading-[26px] text-[var(--ink-muted)]"
             />
+            <label className="mt-4 inline-flex flex-wrap items-center gap-2 text-sm text-[var(--ink-muted)]">
+              <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--ink-faint)]">
+                Guests
+              </span>
+              <input
+                inputMode="numeric"
+                aria-label="Guest headcount"
+                defaultValue={site.guestCount ?? ''}
+                key={site.guestCount ?? 'guests'}
+                className="field-input w-20 py-1.5 text-sm"
+                placeholder="0"
+                onBlur={(e) => {
+                  const raw = e.target.value.trim()
+                  const n = raw ? Number.parseInt(raw, 10) : undefined
+                  const guestCount = n != null && n > 0 ? n : undefined
+                  void (async () => {
+                    await patchSiteSettings({ guestCount })
+                    if (guestCount) {
+                      const updated = await applyGuestCountToPlateLines(guestCount)
+                      if (updated > 0) showToast(`Updated ${updated} plate line${updated === 1 ? '' : 's'}`)
+                    }
+                  })()
+                }}
+              />
+            </label>
           </div>
           <button
             type="button"

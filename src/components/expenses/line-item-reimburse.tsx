@@ -2,7 +2,10 @@ import { db, newId } from '../../db/dexie'
 import type { LineItem } from '../../db/types'
 import { todayKey } from '../../lib/calendar'
 import { dbWrite } from '../../lib/db-write'
+import { dateAfterWedding } from '../../lib/ux/wedding-dues'
+import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../../lib/site-settings'
 import { showToast } from '../../lib/toast'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { LineItemField } from './line-item-field'
 
 export function LineItemReimburseSection({
@@ -18,6 +21,11 @@ export function LineItemReimburseSection({
   onExpectedBack: (next: string) => void
   onBackReceived: (next: boolean) => void
 }) {
+  const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [])
+  const weddingDate = (parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE).weddingDate
+  const offset =
+    item.expectedBackOffsetDays != null ? String(item.expectedBackOffsetDays) : ''
+
   async function persist(patch: Partial<LineItem>) {
     await dbWrite(() => db.lineItems.update(item.id, patch))
   }
@@ -34,11 +42,33 @@ export function LineItemReimburseSection({
           onChange={(e) => {
             const next = e.target.value
             onExpectedBack(next)
-            void persist({ expectedBackDate: next || undefined })
+            void persist({ expectedBackDate: next || undefined, expectedBackOffsetDays: undefined })
           }}
           className="field-input"
         />
       </LineItemField>
+      {weddingDate ? (
+        <LineItemField label="Days after wedding">
+          <input
+            inputMode="numeric"
+            value={offset}
+            onChange={(e) => {
+              const raw = e.target.value.trim()
+              if (!raw) {
+                void persist({ expectedBackOffsetDays: undefined })
+                return
+              }
+              const n = Number.parseInt(raw, 10)
+              if (!Number.isFinite(n) || n < 0) return
+              const nextDate = dateAfterWedding(weddingDate, n)
+              onExpectedBack(nextDate)
+              void persist({ expectedBackOffsetDays: n, expectedBackDate: nextDate })
+            }}
+            className="field-input"
+            placeholder="e.g. 30"
+          />
+        </LineItemField>
+      ) : null}
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

@@ -1,4 +1,12 @@
-import type { AttachmentMeta, Category, Fund, InstallmentStub, LineItem, PaymentStub } from './types.js'
+import type {
+  AttachmentMeta,
+  AttachmentRole,
+  Category,
+  Fund,
+  InstallmentStub,
+  LineItem,
+  PaymentStub,
+} from './types.js'
 
 export function parsePayments(raw: string | null): PaymentStub[] | undefined {
   if (!raw) return undefined
@@ -66,7 +74,12 @@ export function mapLineItemRow(i: {
   back_received: boolean | null
   due_offset_days: number | null
   balance_offset_days: number | null
+  expected_back_offset_days: number | null
   who_pays: string | null
+  who_pays_left: number | null
+  who_pays_right: number | null
+  quoted_amount: number | null
+  per_guest_amount: number | null
 }): LineItem {
   return {
     id: i.id,
@@ -86,7 +99,12 @@ export function mapLineItemRow(i: {
     backReceived: i.back_received ?? undefined,
     dueOffsetDays: i.due_offset_days ?? undefined,
     balanceOffsetDays: i.balance_offset_days ?? undefined,
+    expectedBackOffsetDays: i.expected_back_offset_days ?? undefined,
     whoPays: (i.who_pays as LineItem['whoPays']) ?? undefined,
+    whoPaysLeft: i.who_pays_left != null ? Number(i.who_pays_left) : undefined,
+    whoPaysRight: i.who_pays_right != null ? Number(i.who_pays_right) : undefined,
+    quotedAmount: i.quoted_amount != null ? Number(i.quoted_amount) : undefined,
+    perGuestAmount: i.per_guest_amount != null ? Number(i.per_guest_amount) : undefined,
   }
 }
 
@@ -99,6 +117,7 @@ export function mapAttachmentRow(a: {
   mime: string | null
   size: number | null
   blob_pathname: string | null
+  role: string | null
   created_at: string
 }): AttachmentMeta {
   return {
@@ -109,6 +128,7 @@ export function mapAttachmentRow(a: {
     url: a.url ?? undefined,
     mime: a.mime ?? undefined,
     size: a.size != null ? Number(a.size) : undefined,
+    role: (a.role as AttachmentRole | null) ?? undefined,
     createdAt: a.created_at,
     blobPathname: a.blob_pathname ?? undefined,
   }
