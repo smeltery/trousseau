@@ -10,6 +10,7 @@ import {
 import { categoryDisplayTotals, expensesPaidTotal, expensesRunningTotal, formatDue } from '../../lib/expense-display'
 import { formatMoney, sum } from '../../lib/money'
 import type { SiteSettings } from '../../lib/site-settings'
+import { giftPromiseRollup, whoPaysRollup } from '../../lib/ux/who-pays-rollup'
 
 export function PrintBudgetSummary({
   site,
@@ -31,6 +32,8 @@ export function PrintBudgetSummary({
   const today = todayKey()
   const overdue = overdueAgendaItems(lineItems, today)
   const upcoming = upcomingAgendaItems(lineItems, today, 24)
+  const pays = whoPaysRollup(lineItems, site).filter((r) => r.key !== 'unset')
+  const promise = giftPromiseRollup(funds)
 
   return (
     <section id="print-summary" className="print-only page-pad py-8" aria-hidden>
@@ -54,6 +57,22 @@ export function PrintBudgetSummary({
           <Stat label={left < 0 ? 'Over' : 'Left'} value={formatMoney(Math.abs(left))} />
         </div>
         <p className="mt-2 text-sm text-[var(--ink-faint)]">{formatMoney(paid)} paid so far</p>
+        {pays.length > 0 ? (
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">
+            Who pays ·{' '}
+            {pays.map((r, i) => (
+              <span key={r.key}>
+                {i > 0 ? ' · ' : ''}
+                {r.label} {formatMoney(r.amount)}
+              </span>
+            ))}
+          </p>
+        ) : null}
+        {promise.promisedCount > 0 || promise.receivedCount > 0 ? (
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">
+            Gifts · promised {formatMoney(promise.promised)} · received {formatMoney(promise.received)}
+          </p>
+        ) : null}
 
         <div className="mt-8 grid gap-8 sm:grid-cols-2">
           <div>

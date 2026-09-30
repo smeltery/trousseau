@@ -4,6 +4,18 @@ import { scheduleCloudPush } from './cloud/sync'
 
 export const SITE_META_KEY = 'site'
 
+/** Day-of tip / vendor cash to bring for the wedding weekend. */
+export interface DayOfCash {
+  tipCash?: number
+  vendorCash?: number
+}
+
+/** Target wedding-date savings funding with monthly pace. */
+export interface SavingsPlan {
+  /** Goal amount to have saved by the wedding. */
+  targetAmount: number
+}
+
 export interface SiteSettings {
   heroEyebrow: string
   brandLeft: string
@@ -19,6 +31,10 @@ export interface SiteSettings {
   expensesTitle: string
   expensesSub: string
   groupLabels: Record<CategoryGroup, string>
+  /** Optional tip / vendor cash float for wedding weekend. */
+  dayOfCash?: DayOfCash
+  /** Optional savings contribution target toward wedding date. */
+  savingsPlan?: SavingsPlan
 }
 
 export const DEFAULT_SITE: SiteSettings = {
@@ -52,10 +68,14 @@ export function parseSiteSettings(raw: string | undefined): SiteSettings {
   if (!raw) return { ...DEFAULT_SITE, groupLabels: { ...DEFAULT_SITE.groupLabels } }
   try {
     const parsed = JSON.parse(raw) as Partial<SiteSettings>
+    const dayOfCash = parseDayOfCash(parsed.dayOfCash)
+    const savingsPlan = parseSavingsPlan(parsed.savingsPlan)
     return {
       ...DEFAULT_SITE,
       ...parsed,
       weddingDate: parsed.weddingDate || undefined,
+      dayOfCash,
+      savingsPlan,
       groupLabels: {
         ...DEFAULT_SITE.groupLabels,
         ...(parsed.groupLabels ?? {}),
@@ -64,6 +84,22 @@ export function parseSiteSettings(raw: string | undefined): SiteSettings {
   } catch {
     return { ...DEFAULT_SITE, groupLabels: { ...DEFAULT_SITE.groupLabels } }
   }
+}
+
+function parseDayOfCash(raw: unknown): DayOfCash | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const o = raw as DayOfCash
+  const tipCash = typeof o.tipCash === 'number' && o.tipCash > 0 ? o.tipCash : undefined
+  const vendorCash = typeof o.vendorCash === 'number' && o.vendorCash > 0 ? o.vendorCash : undefined
+  if (tipCash == null && vendorCash == null) return undefined
+  return { tipCash, vendorCash }
+}
+
+function parseSavingsPlan(raw: unknown): SavingsPlan | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const o = raw as SavingsPlan
+  if (typeof o.targetAmount !== 'number' || !(o.targetAmount > 0)) return undefined
+  return { targetAmount: o.targetAmount }
 }
 
 export async function saveSiteSettings(next: SiteSettings): Promise<void> {
@@ -82,5 +118,7 @@ export async function patchSiteSettings(patch: Partial<SiteSettings>): Promise<v
       ...(patch.groupLabels ?? {}),
     },
   }
+  if ('dayOfCash' in patch) next.dayOfCash = parseDayOfCash(patch.dayOfCash)
+  if ('savingsPlan' in patch) next.savingsPlan = parseSavingsPlan(patch.savingsPlan)
   await saveSiteSettings(next)
 }

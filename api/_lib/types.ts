@@ -15,6 +15,13 @@ export interface PaymentStub {
   method?: string
 }
 
+export interface InstallmentStub {
+  id: string
+  amount: number
+  date: string
+  note?: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -46,6 +53,7 @@ export interface LineItem {
   vendorUrl?: string
   remainingBalanceDueDate?: string
   payments?: PaymentStub[]
+  installments?: InstallmentStub[]
   expectedBackDate?: string
   backReceived?: boolean
   dueOffsetDays?: number
@@ -68,7 +76,7 @@ export interface AttachmentMeta {
 }
 
 export interface BackupPayload {
-  version: 1 | 2 | 3 | 4
+  version: 1 | 2 | 3 | 4 | 5
   exportedAt: string
   funds: Fund[]
   categories: Category[]

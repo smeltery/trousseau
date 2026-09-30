@@ -83,3 +83,6 @@ ALTER TABLE line_items ADD COLUMN IF NOT EXISTS balance_offset_days INT;
 -- Backup payload v4: gift earmarks + who-pays on lines.
 ALTER TABLE funds ADD COLUMN IF NOT EXISTS earmark_category_id TEXT;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays TEXT;
+
+-- Backup payload v5: multi-installment due schedules on lines.
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS installments TEXT;

@@ -98,17 +98,18 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
   }
   for (const item of payload.lineItems) {
     const paymentsJson = item.payments?.length ? JSON.stringify(item.payments) : null
+    const installmentsJson = item.installments?.length ? JSON.stringify(item.installments) : null
     await sql`
       INSERT INTO line_items (
         id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
-        remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days,
+        remaining_balance_due_date, payments, installments, expected_back_date, back_received, due_offset_days,
         balance_offset_days, who_pays
       )
       VALUES (
         ${item.id}, ${budgetId}, ${item.categoryId}, ${item.label}, ${item.amount},
         ${item.paidAmount}, ${item.status}, ${item.dueDate ?? null}, ${item.notes ?? null},
         ${item.vendorUrl ?? null}, ${item.sort},
-        ${item.remainingBalanceDueDate ?? null}, ${paymentsJson},
+        ${item.remainingBalanceDueDate ?? null}, ${paymentsJson}, ${installmentsJson},
         ${item.expectedBackDate ?? null}, ${item.backReceived ?? null},
         ${item.dueOffsetDays ?? null}, ${item.balanceOffsetDays ?? null},
         ${item.whoPays ?? null}
@@ -166,6 +167,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     sort: number
     remaining_balance_due_date: string | null
     payments: string | null
+    installments: string | null
     expected_back_date: string | null
     back_received: boolean | null
     due_offset_days: number | null
@@ -173,7 +175,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     who_pays: string | null
   }>`
     SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
-      remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days,
+      remaining_balance_due_date, payments, installments, expected_back_date, back_received, due_offset_days,
       balance_offset_days, who_pays
     FROM line_items WHERE budget_id = ${budgetId} ORDER BY sort
   `
@@ -193,7 +195,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   `
 
   return {
-    version: 4,
+    version: 5,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,

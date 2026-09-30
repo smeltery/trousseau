@@ -4,16 +4,20 @@ import { db } from '../../db/dexie'
 import type { Category, Fund } from '../../db/types'
 import { patchSiteSettings, type SiteSettings } from '../../lib/site-settings'
 import { sectionScrollMt } from '../../lib/ux/scroll-mt'
-import { sum } from '../../lib/money'
+import { formatMoney, sum } from '../../lib/money'
+import { giftPromiseRollup, isGiftPromised, isGiftReceived } from '../../lib/ux/who-pays-rollup'
 import { EditableText } from '../EditableText'
 import { SettlingMoney } from '../SettlingMoney'
 import { FundGroup } from './FundGroup'
 import { GiftBulkBar } from './GiftBulkBar'
+import { SavingsPlanCard } from './SavingsPlanCard'
 
-type GiftFilter = 'all' | 'unthanked'
+type GiftFilter = 'all' | 'unthanked' | 'promised' | 'received'
 
 const FILTERS: { id: GiftFilter; label: string }[] = [
   { id: 'all', label: 'All' },
+  { id: 'promised', label: 'Promised' },
+  { id: 'received', label: 'Received' },
   { id: 'unthanked', label: 'Unthanked' },
 ]
 
@@ -34,6 +38,7 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const selectMode = filter === 'unthanked'
   const q = query.trim().toLowerCase()
+  const promise = giftPromiseRollup(funds)
 
   useEffect(() => {
     setSelectedIds(new Set())
@@ -46,7 +51,12 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
 
   const gifts = funds
     .filter((f) => f.type === 'gift')
-    .filter((f) => (filter === 'unthanked' ? !f.thanked : true))
+    .filter((f) => {
+      if (filter === 'unthanked') return !f.thanked
+      if (filter === 'promised') return isGiftPromised(f)
+      if (filter === 'received') return isGiftReceived(f)
+      return true
+    })
     .filter(matchesSearch)
     .sort((a, b) => a.sort - b.sort)
   const savings = funds
@@ -96,11 +106,31 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
           />
         </div>
 
+        {(promise.promisedCount > 0 || promise.receivedCount > 0) && filter === 'all' && !q ? (
+          <p className="mt-6 text-sm tabular-nums text-[var(--ink-muted)]">
+            {promise.promisedCount > 0 ? (
+              <>
+                <span className="font-semibold text-[var(--accent-deep)]">Promised · </span>
+                {formatMoney(promise.promised)}
+              </>
+            ) : null}
+            {promise.promisedCount > 0 && promise.receivedCount > 0 ? (
+              <span className="text-[var(--ink-faint)]"> · </span>
+            ) : null}
+            {promise.receivedCount > 0 ? (
+              <>
+                <span className="font-semibold text-[var(--accent-deep)]">Received · </span>
+                {formatMoney(promise.received)}
+              </>
+            ) : null}
+          </p>
+        ) : null}
+
         <div className="mt-10 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div
             role="tablist"
             aria-label="Gift filter"
-            className="inline-flex border border-[var(--line-soft)] bg-[var(--paper)]"
+            className="inline-flex flex-wrap border border-[var(--line-soft)] bg-[var(--paper)]"
             onKeyDown={(e) => {
               const i = FILTERS.findIndex((f) => f.id === filter)
               if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
@@ -191,6 +221,8 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
             />
           </div>
         )}
+
+        <SavingsPlanCard site={site} funds={funds} />
 
         <div className="mt-14 flex items-baseline justify-between gap-6 pt-2">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--ink-faint)] uppercase">

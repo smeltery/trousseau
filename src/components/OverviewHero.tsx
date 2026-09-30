@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import type { LineItem } from '../db/types'
 import { dismissNamesHint, isNamesHintDismissed } from '../lib/names-hint'
 import { dismissHint, isHintDismissed } from '../lib/ux/onboarding-hints'
 import { formatDue, weddingCountdown } from '../lib/expense-display'
+import { formatMoney } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { showToast } from '../lib/toast'
 import { recomputeWeddingAnchoredDues } from '../lib/ux/wedding-dues'
+import { whoPaysRollup } from '../lib/ux/who-pays-rollup'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
 import { SiteNav } from './SiteNav'
@@ -15,6 +18,7 @@ interface OverviewHeroProps {
   spent: number
   remaining: number
   fundCount?: number
+  lineItems?: LineItem[]
   onAddExpense: () => void
   onOpenCommands?: () => void
   syncBanner?: boolean
@@ -31,6 +35,7 @@ export function OverviewHero({
   spent,
   remaining,
   fundCount = 0,
+  lineItems = [],
   onAddExpense,
   onOpenCommands,
   syncBanner = false,
@@ -46,6 +51,7 @@ export function OverviewHero({
   const [shareDismissed, setShareDismissed] = useState(() => isHintDismissed('share'))
   const [dueDismissed, setDueDismissed] = useState(() => isHintDismissed('due'))
   const countdown = weddingCountdown(site.weddingDate)
+  const pays = whoPaysRollup(lineItems, site).filter((r) => r.key !== 'unset')
 
   const hint: HintKind | null = (() => {
     if (blankNames && !namesDismissed) return 'names'
@@ -178,6 +184,17 @@ export function OverviewHero({
             <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
               <SettlingMoney value={spent} /> paid · <SettlingMoney value={allocated} /> allocated
             </p>
+            {pays.length > 0 ? (
+              <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
+                Who pays ·{' '}
+                {pays.map((r, i) => (
+                  <span key={r.key}>
+                    {i > 0 ? ' · ' : ''}
+                    {r.label} {formatMoney(r.amount)}
+                  </span>
+                ))}
+              </p>
+            ) : null}
             <label className="flex flex-wrap items-center gap-2 pt-1 text-sm text-[var(--on-dark-muted)]">
               <span className="text-[11px] font-semibold tracking-[0.14em] text-[var(--on-dark-faint)] uppercase">
                 Wedding

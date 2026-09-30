@@ -1,12 +1,14 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { db } from '../../db/dexie'
 import type { Attachment } from '../../db/types'
 import { askConfirm } from '../../lib/confirm'
 import { apiDeleteAttachment } from '../../lib/cloud/api-client'
 import { getActiveCloudToken } from '../../lib/cloud/session'
 import { dbWrite } from '../../lib/db-write'
+import { ReceiptLightbox } from './ReceiptLightbox'
 
 export function AttachmentRow({ attachment }: { attachment: Attachment }) {
+  const [lightbox, setLightbox] = useState(false)
   const objectUrl = useMemo(() => {
     if (attachment.kind === 'file' && attachment.blob) {
       return URL.createObjectURL(attachment.blob)
@@ -27,13 +29,18 @@ export function AttachmentRow({ attachment }: { attachment: Attachment }) {
   return (
     <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       {attachment.kind === 'file' && fileHref && isImage ? (
-        <a href={fileHref} target="_blank" rel="noreferrer" className="shrink-0">
+        <button
+          type="button"
+          className="shrink-0"
+          onClick={() => setLightbox(true)}
+          aria-label={`Preview ${attachment.name}`}
+        >
           <img
             src={fileHref}
             alt=""
             className="h-16 w-16 rounded-sm object-cover ring-1 ring-[var(--line)]"
           />
-        </a>
+        </button>
       ) : null}
 
       <div className="min-w-0 flex-1">
@@ -56,14 +63,23 @@ export function AttachmentRow({ attachment }: { attachment: Attachment }) {
               Open link
             </a>
           ) : null}
-          {attachment.kind === 'file' && fileHref ? (
+          {attachment.kind === 'file' && fileHref && isImage ? (
+            <button
+              type="button"
+              className="font-medium text-[var(--accent)] hover:underline"
+              onClick={() => setLightbox(true)}
+            >
+              Preview
+            </button>
+          ) : null}
+          {attachment.kind === 'file' && fileHref && !isImage ? (
             <a
               href={fileHref}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[var(--accent)] hover:underline"
             >
-              {isPdf || isImage ? 'Preview' : 'Open'}
+              {isPdf ? 'Preview' : 'Open'}
             </a>
           ) : null}
           {attachment.kind === 'file' && fileHref ? (
@@ -100,6 +116,9 @@ export function AttachmentRow({ attachment }: { attachment: Attachment }) {
           </button>
         </div>
       </div>
+      {lightbox && fileHref && isImage ? (
+        <ReceiptLightbox src={fileHref} alt={attachment.name} onClose={() => setLightbox(false)} />
+      ) : null}
     </li>
   )
 }
