@@ -150,7 +150,18 @@ export function LineItemForm({ item }: { item: LineItem }) {
         value={whoPays}
         onPersist={(next) => {
           setWhoPays(next ?? '')
-          void persist({ whoPays: next })
+          void dbWrite(async () => {
+            if (next) {
+              await db.lineItems.update(item.id, { whoPays: next })
+              return
+            }
+            await db.lineItems
+              .where('id')
+              .equals(item.id)
+              .modify((row) => {
+                delete row.whoPays
+              })
+          })
         }}
       />
       <LineItemPaymentSection
