@@ -62,7 +62,18 @@ export function LineItemInstallmentsSection({
                       const patch = await recordPaymentWithUndo(live, inst.amount, {
                         note: inst.note ? `Installment · ${inst.note}` : 'Installment',
                       })
-                      if (patch) onPaid?.(patch)
+                      if (!patch) return
+                      const nextInst = (live.installments ?? []).filter((s) => s.id !== inst.id)
+                      await dbWrite(() =>
+                        db.lineItems.update(item.id, {
+                          installments: nextInst.length ? nextInst : undefined,
+                        }),
+                      )
+                      onChange(nextInst)
+                      onPaid?.({
+                        ...patch,
+                        installments: nextInst.length ? nextInst : undefined,
+                      })
                     }}
                   >
                     Pay this

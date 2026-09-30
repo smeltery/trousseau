@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import type { Attachment, Category, LineItem } from '../db/types'
 import { GROUP_ORDER, groupCategories } from '../lib/budget'
 import { isOverdue, todayKey } from '../lib/calendar'
-import { expensesRunningTotal } from '../lib/expense-display'
+import { expensesRunningTotal, isPaidWithoutReceipt } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { readHidePaid, writeHidePaid } from '../lib/ux/hide-paid'
-import { isDueSoon } from '../lib/ux/reimburse-aging'
-import { isReimbursementAging } from '../lib/ux/reimburse-aging'
+import { isDueSoon, isReimbursementAging } from '../lib/ux/reimburse-aging'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { applyGuestCountToPlateLines } from '../lib/ux/guest-plate'
 import { showToast } from '../lib/toast'
@@ -46,6 +45,7 @@ export function ExpenseGroups({
   const [whoFilter, setWhoFilter] = useState<WhoPaysFilter>('all')
   const [query, setQuery] = useState('')
   const [hidePaid, setHidePaid] = useState(readHidePaid)
+  const [showArchived, setShowArchived] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [bulkDue, setBulkDue] = useState('')
   const runningTotal = expensesRunningTotal(categories, lineItems)
@@ -59,10 +59,17 @@ export function ExpenseGroups({
     filter === 'dueSoon' ||
     filter === 'undated' ||
     filter === 'reimburse' ||
+    filter === 'noReceipt' ||
     whoFilter !== 'all'
   const q = query.trim().toLowerCase()
 
+  const activeCategories = showArchived
+    ? categories
+    : categories.filter((c) => !c.archived)
+
   const visibleItems = lineItems.filter((item) => {
+    const cat = categories.find((c) => c.id === item.categoryId)
+    if (!showArchived && cat?.archived) return false
     if (filter === 'all' && hidePaid) {
       if (item.status === 'paid' && !/^budget$/i.test(item.label.trim())) return false
     } else if (filter === 'unpaid') {
@@ -75,6 +82,8 @@ export function ExpenseGroups({
       if (item.status === 'paid' || item.dueDate || /^budget$/i.test(item.label.trim())) return false
     } else if (filter === 'reimburse') {
       if (!isReimbursementAging(item, categories, today)) return false
+    } else if (filter === 'noReceipt') {
+      if (!isPaidWithoutReceipt(item, attachments)) return false
     }
     if (whoFilter === 'unset') {
       if (item.whoPays) return false
@@ -82,12 +91,13 @@ export function ExpenseGroups({
       if (item.whoPays !== whoFilter) return false
     }
     if (!q) return true
-    const cat = categories.find((c) => c.id === item.categoryId)?.name ?? ''
-    const hay = `${item.label} ${item.notes ?? ''} ${cat} ${item.vendorUrl ?? ''}`.toLowerCase()
+    const catName = cat?.name ?? ''
+    const hay = `${item.label} ${item.notes ?? ''} ${catName} ${item.vendorUrl ?? ''}`.toLowerCase()
     return hay.includes(q)
   })
   const filterEmpty =
-    (filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid) && visibleItems.length === 0
+    (filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid || showArchived) &&
+    visibleItems.length === 0
 
   useEffect(() => {
     setSelectedIds(new Set())
@@ -186,6 +196,7 @@ export function ExpenseGroups({
           whoFilter={whoFilter}
           query={query}
           hidePaid={hidePaid}
+          showArchived={showArchived}
           onFilter={setFilter}
           onWhoFilter={setWhoFilter}
           onQuery={setQuery}
@@ -193,6 +204,7 @@ export function ExpenseGroups({
             setHidePaid(next)
             writeHidePaid(next)
           }}
+          onShowArchived={setShowArchived}
         />
 
         {selectMode ? (
@@ -219,6 +231,7 @@ export function ExpenseGroups({
                 setQuery('')
                 setHidePaid(false)
                 writeHidePaid(false)
+                setShowArchived(false)
               }}
               className="mt-5 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
             >
@@ -237,12 +250,14 @@ export function ExpenseGroups({
                     groupLabels: { ...site.groupLabels, [group]: label },
                   })
                 }
-                cats={groupCategories(categories, group)}
+                cats={groupCategories(activeCategories, group)}
                 lineItems={visibleItems}
                 allLineItems={lineItems}
                 attachments={attachments}
                 enteringIds={enteringIds}
-                filterActive={filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid}
+                filterActive={
+                  filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid || showArchived
+                }
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}

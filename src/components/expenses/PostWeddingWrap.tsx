@@ -7,7 +7,7 @@ import { formatMoney } from '../../lib/money'
 import { buildWrapSummary } from '../../lib/ux/post-wedding-wrap'
 import type { SiteSettings } from '../../lib/site-settings'
 import { showToast } from '../../lib/toast'
-import { dayOfCashTotal } from '../../lib/ux/who-pays-rollup'
+import { dayOfCashTotal, formatSettlementCue, whoPaysSettlement } from '../../lib/ux/who-pays-rollup'
 
 export function PostWeddingWrap({
   site,
@@ -25,6 +25,7 @@ export function PostWeddingWrap({
   const today = todayKey()
   const wrap = buildWrapSummary(site, funds, categories, lineItems, today)
   const liveFunds = useLiveQuery(() => db.funds.toArray(), []) ?? funds
+  const settle = whoPaysSettlement(lineItems, site)
   if (!wrap) return null
 
   const dayCash = dayOfCashTotal(site.dayOfCash?.tipCash, site.dayOfCash?.vendorCash)
@@ -72,6 +73,13 @@ export function PostWeddingWrap({
             </p>
           </div>
         </div>
+
+        {settle && settle.some((s) => s.responsible > 0) ? (
+          <p className="mt-6 text-sm tabular-nums text-[var(--ink-muted)]" role="status">
+            <span className="font-semibold text-[var(--accent-deep)]">Settle-up · </span>
+            {formatSettlementCue(settle)}
+          </p>
+        ) : null}
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2">
           <div>

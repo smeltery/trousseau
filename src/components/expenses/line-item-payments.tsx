@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/dexie'
-import type { LineItem } from '../../db/types'
-import { formatDue } from '../../lib/expense-display'
+import type { LineItem, PaymentStub } from '../../db/types'
+import { askConfirm } from '../../lib/confirm'
+import { dbWrite } from '../../lib/db-write'
+import {
+  formatDue,
+  removePaymentPatch,
+  updatePaymentPatch,
+} from '../../lib/expense-display'
 import { formatMoney, parseMoneyInput } from '../../lib/money'
 import { showToast } from '../../lib/toast'
 import { recordPaymentWithUndo } from '../../lib/ux/record-payment'
@@ -21,9 +27,25 @@ export function LineItemPaymentSection({
   const [method, setMethod] = useState('')
   const [note, setNote] = useState('')
   const [fundId, setFundId] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editDate, setEditDate] = useState('')
   const stubs = item.payments ?? []
   const fundLabel = (id: string | undefined) =>
     id ? funds.find((f) => f.id === id)?.label : undefined
+
+  async function applyPatch(patch: Partial<LineItem> | null, toast: string) {
+    if (!patch) return
+    await dbWrite(() => db.lineItems.update(item.id, patch))
+    onApplied(patch)
+    showToast(toast)
+  }
+
+  function startEdit(p: PaymentStub) {
+    setEditingId(p.id)
+    setEditAmount(String(p.amount))
+    setEditDate(p.date)
+  }
 
   return (
     <div className="grid gap-3">
@@ -32,19 +54,97 @@ export function LineItemPaymentSection({
           <p className="mb-1.5 text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
             Payment history
           </p>
-          <div className="flex flex-wrap gap-2">
+          <ul className="divide-y divide-[var(--line-soft)] border border-[var(--line-soft)]">
             {stubs.map((p) => (
-              <span
-                key={p.id}
-                className="rounded-sm border border-[var(--line-soft)] bg-[var(--paper)] px-2 py-1 text-xs tabular-nums text-[var(--ink-muted)]"
-              >
-                {formatDue(p.date)} · {formatMoney(p.amount)}
-                {p.method ? ` · ${p.method}` : ''}
-                {fundLabel(p.fundId) ? ` · from ${fundLabel(p.fundId)}` : ''}
-                {p.note ? ` · ${p.note}` : ''}
-              </span>
+              <li key={p.id} className="px-3 py-2 text-sm">
+                {editingId === p.id ? (
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="min-w-[6rem] flex-1">
+                      <span className="mb-1 block text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)] uppercase">
+                        Amount
+                      </span>
+                      <input
+                        inputMode="decimal"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="field-input py-1.5 text-sm"
+                      />
+                    </label>
+                    <label>
+                      <span className="mb-1 block text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)] uppercase">
+                        Date
+                      </span>
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="field-input py-1.5 text-sm"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-ghost px-2 py-1.5 text-sm"
+                      onClick={async () => {
+                        const patch = updatePaymentPatch(item, p.id, {
+                          amount: parseMoneyInput(editAmount),
+                          date: editDate || p.date,
+                        })
+                        if (!patch) {
+                          showToast('Enter a valid amount')
+                          return
+                        }
+                        await applyPatch(patch, 'Payment updated')
+                        setEditingId(null)
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-[var(--ink-faint)] hover:underline"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="tabular-nums text-[var(--ink-muted)]">
+                      {formatDue(p.date)} · {formatMoney(p.amount)}
+                      {p.method ? ` · ${p.method}` : ''}
+                      {fundLabel(p.fundId) ? ` · from ${fundLabel(p.fundId)}` : ''}
+                      {p.note ? ` · ${p.note}` : ''}
+                    </span>
+                    <span className="flex gap-2">
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-[var(--accent-deep)] hover:underline"
+                        onClick={() => startEdit(p)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs text-[var(--ink-faint)] hover:text-[var(--danger)]"
+                        onClick={async () => {
+                          const ok = await askConfirm({
+                            title: 'Remove this payment?',
+                            body: 'Paid amount will be recomputed from remaining stubs.',
+                            confirmLabel: 'Remove',
+                            danger: true,
+                          })
+                          if (!ok) return
+                          await applyPatch(removePaymentPatch(item, p.id), 'Payment removed')
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </span>
+                  </div>
+                )}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : null}
       {item.status !== 'paid' ? (

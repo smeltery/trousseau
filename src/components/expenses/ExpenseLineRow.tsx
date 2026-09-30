@@ -21,6 +21,7 @@ export function ExpenseLineRow({
   itemIndex,
   siblings,
   docCount,
+  missingReceipt = false,
   entering,
   filterActive,
   selectMode,
@@ -32,6 +33,7 @@ export function ExpenseLineRow({
   itemIndex: number
   siblings: LineItem[]
   docCount: number
+  missingReceipt?: boolean
   entering: boolean
   filterActive: boolean
   selectMode: boolean
@@ -120,6 +122,9 @@ export function ExpenseLineRow({
               {vendorHost ? ` · ${vendorHost}` : ''}
               {noteSnippet ? ` · ${noteSnippet}` : ''}
               {docCount > 0 ? ` · ${docCount} doc${docCount === 1 ? '' : 's'}` : ''}
+              {missingReceipt ? (
+                <span className="text-[var(--accent-deep)]"> · No receipt</span>
+              ) : null}
               {statusLabel !== '-' ? (
                 <span className={`sm:hidden ${statusTone}`}> · {statusLabel}</span>
               ) : null}

@@ -1,4 +1,4 @@
-import type { Category, LineItem } from '../db/types'
+import type { Attachment, Category, LineItem, PaymentStub } from '../db/types'
 import { isOverdue, todayKey } from './calendar'
 import { STATUS_LABELS } from './budget'
 import { formatMoney, sum } from './money'
@@ -99,6 +99,80 @@ export function recordPaymentPatch(
   }
   const status = item.status === 'planned' && item.paidAmount === 0 ? 'deposit' : 'partial'
   return { status, paidAmount, payments }
+}
+
+/** Recompute paidAmount + status from the payment stub list (durable edit/remove). */
+export function recomputeFromPayments(
+  item: LineItem,
+  payments: PaymentStub[],
+): Partial<LineItem> {
+  const paidAmount = Math.round(sum(payments.map((p) => p.amount)) * 100) / 100
+  if (payments.length === 0) {
+    return { payments: undefined, paidAmount: 0, status: 'planned' }
+  }
+  if (item.amount > 0 && paidAmount >= item.amount) {
+    return { payments, paidAmount: item.amount, status: 'paid' }
+  }
+  return {
+    payments,
+    paidAmount,
+    status: payments.length === 1 ? 'deposit' : 'partial',
+  }
+}
+
+export function removePaymentPatch(
+  item: LineItem,
+  paymentId: string,
+): Partial<LineItem> | null {
+  const payments = item.payments ?? []
+  if (!payments.some((p) => p.id === paymentId)) return null
+  return recomputeFromPayments(
+    item,
+    payments.filter((p) => p.id !== paymentId),
+  )
+}
+
+export function updatePaymentPatch(
+  item: LineItem,
+  paymentId: string,
+  patch: Partial<Pick<PaymentStub, 'amount' | 'date' | 'note' | 'method' | 'fundId'>>,
+): Partial<LineItem> | null {
+  const payments = item.payments ?? []
+  const idx = payments.findIndex((p) => p.id === paymentId)
+  if (idx < 0) return null
+  const cur = payments[idx]!
+  const nextAmount = patch.amount != null ? patch.amount : cur.amount
+  if (!(nextAmount > 0)) return null
+  const updated: PaymentStub = {
+    ...cur,
+    amount: nextAmount,
+    date: patch.date ?? cur.date,
+    note: patch.note !== undefined ? patch.note.trim() || undefined : cur.note,
+    method: patch.method !== undefined ? patch.method.trim() || undefined : cur.method,
+    fundId: patch.fundId !== undefined ? patch.fundId.trim() || undefined : cur.fundId,
+  }
+  const next = [...payments]
+  next[idx] = updated
+  return recomputeFromPayments(item, next)
+}
+
+/** Paid line with no receipt-role attachment (budget lines ignored). */
+export function isPaidWithoutReceipt(
+  item: LineItem,
+  attachments: Attachment[],
+): boolean {
+  if (item.status !== 'paid') return false
+  if (/^budget$/i.test(item.label.trim())) return false
+  return !attachments.some((a) => a.lineItemId === item.id && a.role === 'receipt')
+}
+
+/** True when category has ≥1 non-budget line and all of them are paid. */
+export function isCategoryFullyPaid(cat: Category, lineItems: LineItem[]): boolean {
+  const items = lineItems.filter(
+    (i) => i.categoryId === cat.id && !/^budget$/i.test(i.label.trim()),
+  )
+  if (items.length === 0) return false
+  return items.every((i) => i.status === 'paid')
 }
 
 export function daysUntil(iso: string, today = todayKey()): number {

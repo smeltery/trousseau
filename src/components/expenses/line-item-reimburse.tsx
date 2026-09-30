@@ -1,11 +1,12 @@
+import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../../db/dexie'
-import type { LineItem } from '../../db/types'
+import type { Fund, LineItem } from '../../db/types'
 import { todayKey } from '../../lib/calendar'
 import { dbWrite } from '../../lib/db-write'
 import { dateAfterWedding } from '../../lib/ux/wedding-dues'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../../lib/site-settings'
 import { showToast } from '../../lib/toast'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { LineItemField } from './line-item-field'
 
 export function LineItemReimburseSection({
@@ -22,12 +23,50 @@ export function LineItemReimburseSection({
   onBackReceived: (next: boolean) => void
 }) {
   const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [])
+  const funds = useLiveQuery(() => db.funds.orderBy('sort').toArray(), []) ?? ([] as Fund[])
   const weddingDate = (parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE).weddingDate
   const offset =
     item.expectedBackOffsetDays != null ? String(item.expectedBackOffsetDays) : ''
+  const [creditFundId, setCreditFundId] = useState('')
+  const refundAmount = item.amount > 0 ? item.amount : item.paidAmount
 
   async function persist(patch: Partial<LineItem>) {
     await dbWrite(() => db.lineItems.update(item.id, patch))
+  }
+
+  async function creditFund() {
+    if (!(refundAmount > 0)) {
+      showToast('Nothing to credit')
+      return
+    }
+    if (creditFundId === '__new_savings__' || creditFundId === '__new_gift__') {
+      const type = creditFundId === '__new_gift__' ? 'gift' : 'savings'
+      const peers = funds.filter((f) => f.type === type)
+      const sort = peers.length === 0 ? 0 : Math.max(...peers.map((f) => f.sort), 0) + 1
+      await dbWrite(() =>
+        db.funds.add({
+          id: newId('fund'),
+          label: item.label,
+          amount: refundAmount,
+          type,
+          sort,
+          receivedDate: todayKey(),
+        }),
+      )
+      showToast(type === 'gift' ? 'Added as gift fund' : 'Added as savings fund')
+      return
+    }
+    const fund = funds.find((f) => f.id === creditFundId)
+    if (!fund) {
+      showToast('Choose a fund')
+      return
+    }
+    await dbWrite(() =>
+      db.funds.update(fund.id, {
+        amount: Math.round((fund.amount + refundAmount) * 100) / 100,
+      }),
+    )
+    showToast(`Credited ${fund.label}`)
   }
 
   return (
@@ -82,28 +121,31 @@ export function LineItemReimburseSection({
         <span>Received back</span>
       </label>
       {backReceived ? (
-        <button
-          type="button"
-          className="btn-ghost self-start px-3 py-1.5 text-sm"
-          onClick={async () => {
-            const funds = await db.funds.where('type').equals('savings').toArray()
-            const sort = funds.length === 0 ? 0 : Math.max(...funds.map((f) => f.sort), 0) + 1
-            const amount = item.amount > 0 ? item.amount : item.paidAmount
-            await dbWrite(() =>
-              db.funds.add({
-                id: newId('fund'),
-                label: item.label,
-                amount,
-                type: 'savings',
-                sort,
-                receivedDate: todayKey(),
-              }),
-            )
-            showToast('Added as savings fund')
-          }}
-        >
-          Add as savings fund
-        </button>
+        <div className="grid gap-2">
+          <LineItemField label="Credit to fund">
+            <select
+              value={creditFundId}
+              onChange={(e) => setCreditFundId(e.target.value)}
+              className="field-input"
+            >
+              <option value="">—</option>
+              {funds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label} ({f.type})
+                </option>
+              ))}
+              <option value="__new_savings__">+ New savings fund</option>
+              <option value="__new_gift__">+ New gift fund</option>
+            </select>
+          </LineItemField>
+          <button
+            type="button"
+            className="btn-ghost self-start px-3 py-1.5 text-sm"
+            onClick={() => void creditFund()}
+          >
+            Credit refund
+          </button>
+        </div>
       ) : null}
     </div>
   )

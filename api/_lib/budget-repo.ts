@@ -79,21 +79,25 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
   await sql`DELETE FROM funds WHERE budget_id = ${budgetId}`
 
   for (const fund of payload.funds) {
+    const contributionsJson = fund.contributions?.length
+      ? JSON.stringify(fund.contributions)
+      : null
     await sql`
       INSERT INTO funds (
-        id, budget_id, label, amount, type, sort, source, received_date, thanked, earmark_category_id
+        id, budget_id, label, amount, type, sort, source, received_date, thanked,
+        earmark_category_id, contributions
       )
       VALUES (
         ${fund.id}, ${budgetId}, ${fund.label}, ${fund.amount}, ${fund.type}, ${fund.sort},
         ${fund.source ?? null}, ${fund.receivedDate ?? null}, ${fund.thanked ?? null},
-        ${fund.earmarkCategoryId ?? null}
+        ${fund.earmarkCategoryId ?? null}, ${contributionsJson}
       )
     `
   }
   for (const cat of payload.categories) {
     await sql`
-      INSERT INTO categories (id, budget_id, name, "group", sort)
-      VALUES (${cat.id}, ${budgetId}, ${cat.name}, ${cat.group}, ${cat.sort})
+      INSERT INTO categories (id, budget_id, name, "group", sort, archived)
+      VALUES (${cat.id}, ${budgetId}, ${cat.name}, ${cat.group}, ${cat.sort}, ${cat.archived ?? null})
     `
   }
   for (const item of payload.lineItems) {
@@ -150,12 +154,20 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     received_date: string | null
     thanked: boolean | null
     earmark_category_id: string | null
+    contributions: string | null
   }>`
-    SELECT id, label, amount, type, sort, source, received_date, thanked, earmark_category_id
+    SELECT id, label, amount, type, sort, source, received_date, thanked, earmark_category_id,
+      contributions
     FROM funds WHERE budget_id = ${budgetId} ORDER BY sort
   `
-  const categories = await sql<Category & { budget_id: string }>`
-    SELECT id, name, "group", sort FROM categories WHERE budget_id = ${budgetId} ORDER BY sort
+  const categories = await sql<{
+    id: string
+    name: string
+    group: Category['group']
+    sort: number
+    archived: boolean | null
+  }>`
+    SELECT id, name, "group", sort, archived FROM categories WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const lineItems = await sql<{
     id: string
@@ -205,7 +217,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   `
 
   return {
-    version: 6,
+    version: 7,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,
@@ -265,7 +277,8 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
       v.version === 3 ||
       v.version === 4 ||
       v.version === 5 ||
-      v.version === 6) &&
+      v.version === 6 ||
+      v.version === 7) &&
     Array.isArray(v.funds) &&
     Array.isArray(v.categories) &&
     Array.isArray(v.lineItems) &&

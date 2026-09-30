@@ -28,6 +28,15 @@ export interface InstallmentStub {
   note?: string
 }
 
+/** Dated deposit into a savings (or gift) fund toward a plan target. */
+export interface FundContribution {
+  id: string
+  amount: number
+  /** YYYY-MM-DD */
+  date: string
+  note?: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -42,6 +51,8 @@ export interface Fund {
   thanked?: boolean
   /** Optional category this gift is earmarked to cover. */
   earmarkCategoryId?: string
+  /** Dated contributions that built this fund’s amount. */
+  contributions?: FundContribution[]
 }
 
 export interface Category {
@@ -49,6 +60,8 @@ export interface Category {
   name: string
   group: CategoryGroup
   sort: number
+  /** Soft-archive fully-paid categories out of the main list. */
+  archived?: boolean
 }
 
 export interface LineItem {
@@ -110,9 +123,9 @@ export interface Meta {
   value: string
 }
 
-/** Backup / cloud snapshot shape. v1–v6 accepted on import. */
+/** Backup / cloud snapshot shape. v1–v7 accepted on import. */
 export interface BackupPayload {
-  version: 1 | 2 | 3 | 4 | 5 | 6
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7
   exportedAt: string
   funds: Fund[]
   categories: Category[]

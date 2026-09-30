@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Attachment, Category, CategoryGroup, LineItem } from '../db/types'
 import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
 import { GROUP_LABELS, GROUP_ORDER } from '../lib/budget'
 import { dbWrite } from '../lib/db-write'
-import { categoryDisplayTotals } from '../lib/expense-display'
+import { categoryDisplayTotals, isCategoryFullyPaid, isPaidWithoutReceipt } from '../lib/expense-display'
 import { earmarkShortfall } from '../lib/ux/earmark-gap'
 import { formatMoney, sum } from '../lib/money'
 import { swapSort } from '../lib/reorder'
@@ -45,6 +46,7 @@ export function ExpenseGroupBlock({
   onOpenItem: (id: string) => void
 }) {
   const funds = useLiveQuery(() => db.funds.toArray(), []) ?? []
+  const [expandedPaid, setExpandedPaid] = useState<Set<string>>(() => new Set())
   const visibleCats = filterActive
     ? cats.filter((c) => lineItems.some((i) => i.categoryId === c.id))
     : cats
@@ -93,6 +95,9 @@ export function ExpenseGroupBlock({
               cat.id,
               totals.amount,
             )
+            const fullyPaid = isCategoryFullyPaid(cat, allLineItems)
+            const collapsed = fullyPaid && !filterActive && !expandedPaid.has(cat.id)
+            const nonBudgetCount = catAll.filter((i) => !/^budget$/i.test(i.label.trim())).length
             const siblingCats = cats
             return (
               <div key={cat.id}>
@@ -106,6 +111,11 @@ export function ExpenseGroupBlock({
                       }}
                       className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-[28px] leading-[34px] tracking-[-0.02em]"
                     />
+                    {cat.archived ? (
+                      <span className="text-[11px] font-semibold tracking-[0.12em] text-[var(--ink-faint)] uppercase">
+                        Archived
+                      </span>
+                    ) : null}
                     {!filterActive && siblingCats.length > 1 ? (
                       <span className="flex shrink-0 gap-0.5">
                         <button
@@ -159,6 +169,25 @@ export function ExpenseGroupBlock({
                         ))}
                       </select>
                     </label>
+                    {fullyPaid ? (
+                      <button
+                        type="button"
+                        className="shrink-0 text-sm text-[var(--accent-deep)] hover:underline"
+                        onClick={async () => {
+                          if (cat.archived) {
+                            await dbWrite(() =>
+                              db.categories.update(cat.id, { archived: undefined }),
+                            )
+                            showToast('Category restored')
+                            return
+                          }
+                          await dbWrite(() => db.categories.update(cat.id, { archived: true }))
+                          showToast('Category archived')
+                        }}
+                      >
+                        {cat.archived ? 'Restore' : 'Archive'}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       aria-label={`Remove ${cat.name}`}
@@ -221,29 +250,46 @@ export function ExpenseGroupBlock({
                     ) : null}
                   </p>
                 </div>
-                <ul>
-                  {items.length === 0 ? (
-                    <li className="py-4 text-sm text-[var(--ink-faint)]">No expenses in this category.</li>
-                  ) : (
-                    items.map((item, itemIndex) => (
-                      <ExpenseLineRow
-                        key={item.id}
-                        item={item}
-                        itemIndex={itemIndex}
-                        siblings={allLineItems
-                          .filter((i) => i.categoryId === cat.id)
-                          .sort((a, b) => a.sort - b.sort)}
-                        docCount={attachments.filter((a) => a.lineItemId === item.id).length}
-                        entering={enteringIds.has(item.id)}
-                        filterActive={Boolean(filterActive)}
-                        selectMode={Boolean(selectMode)}
-                        selected={Boolean(selectedIds?.has(item.id))}
-                        onToggleSelect={onToggleSelect}
-                        onOpenItem={onOpenItem}
-                      />
-                    ))
-                  )}
-                </ul>
+                {collapsed ? (
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-[var(--accent-deep)] hover:underline"
+                    onClick={() =>
+                      setExpandedPaid((prev) => {
+                        const next = new Set(prev)
+                        next.add(cat.id)
+                        return next
+                      })
+                    }
+                  >
+                    Show {nonBudgetCount} paid line{nonBudgetCount === 1 ? '' : 's'}
+                  </button>
+                ) : (
+                  <ul>
+                    {items.length === 0 ? (
+                      <li className="py-4 text-sm text-[var(--ink-faint)]">No expenses in this category.</li>
+                    ) : (
+                      items.map((item, itemIndex) => (
+                        <ExpenseLineRow
+                          key={item.id}
+                          item={item}
+                          itemIndex={itemIndex}
+                          siblings={allLineItems
+                            .filter((i) => i.categoryId === cat.id)
+                            .sort((a, b) => a.sort - b.sort)}
+                          docCount={attachments.filter((a) => a.lineItemId === item.id).length}
+                          missingReceipt={isPaidWithoutReceipt(item, attachments)}
+                          entering={enteringIds.has(item.id)}
+                          filterActive={Boolean(filterActive)}
+                          selectMode={Boolean(selectMode)}
+                          selected={Boolean(selectedIds?.has(item.id))}
+                          onToggleSelect={onToggleSelect}
+                          onOpenItem={onOpenItem}
+                        />
+                      ))
+                    )}
+                  </ul>
+                )}
               </div>
             )
           })}
