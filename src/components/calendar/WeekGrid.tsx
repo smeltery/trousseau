@@ -1,5 +1,6 @@
 import type { LineItem } from '../../db/types'
 import { dayTone, parseDateKey } from '../../lib/calendar'
+import { dayDropProps } from './day-drop'
 import { DueChip } from './shared'
 import { TONE_CELL, WEEKDAYS } from './tones'
 
@@ -33,12 +34,15 @@ export function WeekGrid({
           const isToday = key === today
           const isSelected = key === selected
           const d = parseDateKey(key)
+          const drop = dayDropProps(key, () => onSelect(key))
           return (
             <div
               key={key}
               role="gridcell"
               aria-selected={isSelected}
               onClick={() => onSelect(key)}
+              onDragOver={drop.onDragOver}
+              onDrop={drop.onDrop}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
@@ -76,7 +80,7 @@ export function WeekGrid({
               </div>
               <span className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
                 {dues.length === 0 ? (
-                  <span className="text-[11px] text-[var(--ink-faint)]">No dues</span>
+                  <span className="text-[11px] text-[var(--ink-faint)]">Drop here or add</span>
                 ) : (
                   dues.map((item) => (
                     <DueChip

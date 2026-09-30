@@ -31,6 +31,7 @@ interface DueCalendarProps {
   weddingDate?: string
   syncBanner?: boolean
   onOpenItem: (id: string) => void
+  onAddExpense?: (dueDate?: string) => void
 }
 
 const VIEWS: { id: CalendarView; label: string }[] = [
@@ -45,6 +46,7 @@ export function DueCalendar({
   weddingDate,
   syncBanner = false,
   onOpenItem,
+  onAddExpense,
 }: DueCalendarProps) {
   const today = todayKey()
   const countdown = weddingCountdown(weddingDate, today)
@@ -280,6 +282,7 @@ export function DueCalendar({
             selectedItems={selectedItems}
             showDayList={view !== 'year'}
             onOpenItem={onOpenItem}
+            onAddExpense={onAddExpense}
           />
         </div>
       </div>

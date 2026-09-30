@@ -1,5 +1,6 @@
 import type { LineItem } from '../../db/types'
 import { dayTone, type MonthCell } from '../../lib/calendar'
+import { dayDropProps } from './day-drop'
 import { DueChip } from './shared'
 import { TONE_CELL, WEEKDAYS } from './tones'
 
@@ -56,12 +57,15 @@ export function MonthGrid({
         const isSelected = cell.key === selected
         const dateKey = cell.key
         const dayIndex = dayKeys.indexOf(dateKey)
+        const drop = dayDropProps(dateKey, () => onSelect(dateKey))
         return (
           <div
             key={dateKey}
             role="gridcell"
             aria-selected={isSelected}
             onClick={() => onSelect(dateKey)}
+            onDragOver={drop.onDragOver}
+            onDrop={drop.onDrop}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()

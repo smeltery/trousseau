@@ -47,12 +47,15 @@ export function EditableText({
   const shared = `editable-text min-w-0 bg-transparent outline-none placeholder:text-[var(--ink-faint)]${
     saved ? ' editable-saved' : ''
   }`
+  const label = ariaLabel ?? 'Editable text'
+  const title = `${label} — click or focus to edit`
 
   if (multiline) {
     return (
       <textarea
-        aria-label={ariaLabel}
-        title="Click to edit"
+        aria-label={label}
+        aria-description="Press Escape to cancel edits. Changes save when you leave the field."
+        title={title}
         value={draft}
         placeholder={placeholder}
         rows={2}
@@ -67,8 +70,9 @@ export function EditableText({
 
   return (
     <input
-      aria-label={ariaLabel}
-      title="Click to edit"
+      aria-label={label}
+      aria-description="Press Enter or leave the field to save. Escape cancels."
+      title={title}
       value={draft}
       placeholder={placeholder}
       size={Math.max(draft.length, 1)}

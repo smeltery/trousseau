@@ -11,9 +11,10 @@ import { useDialogFocus } from '../lib/use-dialog-focus'
 interface AddExpenseDialogProps {
   onClose: () => void
   onCreated: (lineItemId: string) => void
+  initialDueDate?: string
 }
 
-export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ onClose, onCreated, initialDueDate }: AddExpenseDialogProps) {
   const titleId = useId()
   const formRef = useRef<HTMLFormElement>(null)
   const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray()) ?? []
@@ -23,7 +24,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
   const [newGroup, setNewGroup] = useState<CategoryGroup>('vendor')
   const [label, setLabel] = useState('')
   const [amountText, setAmountText] = useState('')
-  const [dueDate, setDueDate] = useState('')
+  const [dueDate, setDueDate] = useState(initialDueDate ?? '')
   const selectedCategoryId = categoryId || categories[0]?.id || ''
 
   useDialogFocus(formRef)

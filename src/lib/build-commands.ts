@@ -11,6 +11,7 @@ import { downloadBlob } from './export-import'
 import { replaceBudgetAndShare } from './replace-budget'
 import { showToast } from './toast'
 import { markPaidWithUndo } from './ux/mark-paid'
+import { duplicateExpense } from './ux/duplicate-expense'
 
 export type CommandContext = {
   shareUrl?: string
@@ -242,13 +243,31 @@ export function buildCommands(ctx: CommandContext): CommandItem[] {
 
   for (const item of [...ctx.lineItems].sort((a, b) => a.label.localeCompare(b.label))) {
     const category = catName.get(item.categoryId) ?? 'Expense'
+    const note = item.notes?.trim()
+    const snippet = note
+      ? note.length > 56
+        ? `${note.slice(0, 56)}…`
+        : note
+      : undefined
     commands.push({
       id: `open-${item.id}`,
       label: item.label,
       hint: category,
+      snippet,
       group: 'Expenses',
-      keywords: `${category} ${item.status} ${item.dueDate ?? ''} open edit`,
+      keywords: `${category} ${item.status} ${item.dueDate ?? ''} ${note ?? ''} ${item.vendorUrl ?? ''} open edit`,
       run: () => ctx.onOpenItem(item.id),
+    })
+    commands.push({
+      id: `dup-${item.id}`,
+      label: `Duplicate · ${item.label}`,
+      hint: category,
+      group: 'Expenses',
+      keywords: `${category} clone copy duplicate`,
+      run: async () => {
+        const id = await duplicateExpense(item)
+        if (id) ctx.onOpenItem(id)
+      },
     })
     if (canMarkPaid(item)) {
       commands.push({

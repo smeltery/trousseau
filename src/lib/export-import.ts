@@ -51,7 +51,7 @@ export async function buildBackupPayload(): Promise<{
 
   return {
     payload: {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       funds,
       categories,
@@ -63,11 +63,15 @@ export async function buildBackupPayload(): Promise<{
   }
 }
 
+function assertBackupVersion(version: unknown): asserts version is 1 | 2 {
+  if (version !== 1 && version !== 2) throw new Error('Unsupported backup version')
+}
+
 export async function applyBackupPayload(
   payload: BackupPayload,
   restored: Attachment[],
 ): Promise<void> {
-  if (payload.version !== 1) throw new Error('Unsupported backup version')
+  assertBackupVersion(payload.version)
   await db.transaction(
     'rw',
     db.funds,
@@ -129,7 +133,7 @@ export async function exportBackup(): Promise<Blob> {
   }
 
   const payload: BackupPayload = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     funds,
     categories,
@@ -148,7 +152,7 @@ export async function importBackup(file: Blob): Promise<void> {
   if (!jsonFile) throw new Error('Backup is missing trousseau.json')
 
   const payload = JSON.parse(await jsonFile.async('string')) as BackupPayload
-  if (payload.version !== 1) throw new Error('Unsupported backup version')
+  assertBackupVersion(payload.version)
 
   const restored: Attachment[] = []
   for (const att of payload.attachments) {

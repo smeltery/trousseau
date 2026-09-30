@@ -139,6 +139,14 @@ export function upcomingAgendaItems(items: LineItem[], today: string, limit = 24
     .slice(0, limit)
 }
 
+/** Unpaid dues within the next 7 days (inclusive of today). */
+export function dueThisWeekItems(items: LineItem[], today: string): LineItem[] {
+  const end = addDays(today, 6)
+  return itemsWithDueDates(items)
+    .filter((i) => i.status !== 'paid' && i.dueDate! >= today && i.dueDate! <= end)
+    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
+}
+
 /** Money owed with no due date set. */
 export function undatedUnpaidItems(items: LineItem[]): LineItem[] {
   return items
@@ -210,6 +218,16 @@ export function buildDueDatesIcs(
         .filter(Boolean)
         .join('\n'),
     )
+    const alarm =
+      item.status === 'paid'
+        ? []
+        : [
+            'BEGIN:VALARM',
+            'ACTION:DISPLAY',
+            `DESCRIPTION:${summary}`,
+            'TRIGGER:-P1D',
+            'END:VALARM',
+          ]
     return [
       'BEGIN:VEVENT',
       `UID:${item.id}@trousseau.app`,
@@ -219,6 +237,7 @@ export function buildDueDatesIcs(
       `SUMMARY:${summary}`,
       `DESCRIPTION:${desc}`,
       item.status === 'paid' ? 'STATUS:CONFIRMED' : 'STATUS:TENTATIVE',
+      ...alarm,
       'END:VEVENT',
     ].join('\r\n')
   })

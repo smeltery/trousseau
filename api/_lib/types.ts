@@ -11,6 +11,8 @@ export interface Fund {
   amount: number
   type: FundType
   sort: number
+  source?: string
+  receivedDate?: string
 }
 
 export interface Category {
@@ -29,6 +31,7 @@ export interface LineItem {
   status: LineStatus
   dueDate?: string
   notes?: string
+  vendorUrl?: string
   sort: number
 }
 
@@ -46,7 +49,7 @@ export interface AttachmentMeta {
 }
 
 export interface BackupPayload {
-  version: 1
+  version: 1 | 2
   exportedAt: string
   funds: Fund[]
   categories: Category[]

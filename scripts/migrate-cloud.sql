@@ -65,3 +65,8 @@ CREATE INDEX IF NOT EXISTS funds_budget_idx ON funds (budget_id);
 CREATE INDEX IF NOT EXISTS categories_budget_idx ON categories (budget_id);
 CREATE INDEX IF NOT EXISTS line_items_budget_idx ON line_items (budget_id);
 CREATE INDEX IF NOT EXISTS attachments_budget_idx ON attachments (budget_id);
+
+-- Optional gift / vendor metadata (backup payload v2). Safe on fresh and existing DBs.
+ALTER TABLE funds ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE funds ADD COLUMN IF NOT EXISTS received_date TEXT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS vendor_url TEXT;
