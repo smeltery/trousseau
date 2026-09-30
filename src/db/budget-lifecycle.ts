@@ -1,13 +1,6 @@
 import { db } from './dexie'
-import {
-  blankCategories,
-  blankFunds,
-  blankLineItems,
-  demoCategories,
-  demoFunds,
-  demoLineItems,
-} from './seed'
-import { DEFAULT_SITE, DEMO_SITE, SITE_META_KEY } from '../lib/site-settings'
+import { blankCategories, blankFunds, blankLineItems, buildDemoSample } from './seed'
+import { DEFAULT_SITE, SITE_META_KEY } from '../lib/site-settings'
 
 const SEEDED_KEY = 'seeded'
 
@@ -74,13 +67,14 @@ export async function resetToBlank(): Promise<void> {
   })
 }
 
-/** Load the filled demo sample (for marketing “Try demo”). */
+/** Load a freshly randomized filled demo (for marketing “Try demo”). */
 export async function loadDemoSample(): Promise<void> {
+  const demo = buildDemoSample()
   await replaceBudget({
-    funds: demoFunds,
-    categories: demoCategories,
-    lineItems: demoLineItems,
-    site: DEMO_SITE,
+    funds: demo.funds,
+    categories: demo.categories,
+    lineItems: demo.lineItems,
+    site: demo.site,
   })
 }
 

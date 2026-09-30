@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { MarketingRings } from './MarketingRings'
 import { dismissNamesHint, isNamesHintDismissed } from '../lib/names-hint'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
@@ -35,11 +34,13 @@ export function OverviewHero({
 
   return (
     <header
-      className={`hero-surface page-pad${syncBanner ? ' pt-[6.75rem] lg:pt-[7.25rem]' : ''}`}
+      className={`hero-surface page-pad${syncBanner ? ' pt-[8.5rem] lg:pt-[9.25rem]' : ''}`}
     >
       <SiteNav variant="app" syncBanner={syncBanner} />
-      <div aria-hidden className="hero-glow animate-[drift-light_14s_ease-in-out_infinite]" />
-      <MarketingRings className="hero-rings select-none" />
+      <div
+        aria-hidden
+        className="hero-glow hero-glow-budget animate-[drift-light_14s_ease-in-out_infinite]"
+      />
 
       <div className="page-shell relative z-[1] animate-[rise-in_1s_var(--ease-out)_both]">
         <div className="flex max-w-[720px] flex-col items-start gap-5">

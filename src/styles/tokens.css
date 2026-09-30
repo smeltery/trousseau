@@ -28,7 +28,8 @@
   --sheet-shadow: 0 28px 70px color-mix(in srgb, var(--grove) 35%, transparent);
   /* Paper desktop content: 1440 - 160 = 1280 */
   --max: 80rem;
-  --page-pad: 1.5rem;
+  --page-pad: 1.25rem;
+  --page-pad-md: 2.5rem;
   --page-pad-lg: 5rem;
 }
 
@@ -89,11 +90,62 @@
 @keyframes float-soft {
   0%,
   100% {
-    transform: translateY(0) rotate(-3deg);
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    transform: translateY(-14px) rotate(2deg);
+    transform: translate3d(0, -12px, 0);
   }
+}
+
+.float-soft {
+  animation: float-soft 6.5s ease-in-out infinite;
+}
+
+@keyframes logo-ring-silver {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(0.7px, -1.4px) rotate(3deg);
+  }
+}
+
+@keyframes logo-ring-gold {
+  0%,
+  100% {
+    transform: translate(0, 0.3px) rotate(0deg);
+  }
+  50% {
+    transform: translate(-0.5px, 1.2px) rotate(-2.5deg);
+  }
+}
+
+.logo-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.logo-ring-silver {
+  animation: logo-ring-silver 4.8s ease-in-out infinite;
+}
+
+.logo-ring-gold {
+  animation: logo-ring-gold 6.2s ease-in-out -1.8s infinite;
+}
+
+a:hover .logo-ring-silver,
+a:focus-visible .logo-ring-silver {
+  animation-duration: 2.6s;
+}
+
+a:hover .logo-ring-gold,
+a:focus-visible .logo-ring-gold {
+  animation-duration: 3.2s;
+}
+
+.logo-lockup {
+  gap: 0.4rem;
 }
 
 @keyframes grain-shift {
@@ -151,14 +203,11 @@
 }
 
 @keyframes boot-bar {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scaleX(0.45);
+  0% {
+    transform: translateX(-120%);
   }
-  50% {
-    opacity: 1;
-    transform: scaleX(1);
+  100% {
+    transform: translateX(280%);
   }
 }
 

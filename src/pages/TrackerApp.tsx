@@ -20,7 +20,6 @@ import {
   leaveCloudBudget,
   pullCloudBudgetIfStale,
 } from '../lib/cloud/sync'
-import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { sum } from '../lib/money'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
@@ -35,7 +34,6 @@ export function TrackerApp() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [ready, setReady] = useState(false)
   const [bootError, setBootError] = useState<string | null>(null)
-  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const hydratedTokenRef = useRef<string | null>(null)
@@ -55,7 +53,6 @@ export function TrackerApp() {
 
       setBootError(null)
       setReady(false)
-      setAwaitingConfirm(false)
       try {
         if (shareToken) {
           await cloudBudgetStore.boot(shareToken)
@@ -86,27 +83,12 @@ export function TrackerApp() {
 
         if (wantDemo || wantNew) {
           setSearchParams({}, { replace: true })
+          await leaveCloudBudget()
+          clearRememberedShareToken()
           if (wantNew) {
-            setAwaitingConfirm(true)
-            const ok = await askConfirm({
-              title: 'Start a blank budget?',
-              body: 'This replaces your current budget and opens a new share link.',
-              confirmLabel: 'Start blank',
-              danger: true,
-            })
-            if (cancelled) return
-            setAwaitingConfirm(false)
-            if (!ok) {
-              // Resume existing share below.
-            } else {
-              await leaveCloudBudget()
-              clearRememberedShareToken()
-              await dbWrite(() => resetToBlank())
-              queueCelebrate('Blank budget ready')
-            }
+            await dbWrite(() => resetToBlank())
+            queueCelebrate('Blank budget ready')
           } else {
-            await leaveCloudBudget()
-            clearRememberedShareToken()
             await dbWrite(() => loadDemoSample())
             queueCelebrate('Demo sample loaded')
           }
@@ -169,7 +151,8 @@ export function TrackerApp() {
   useEffect(() => {
     if (!ready) return
     const hash = window.location.hash
-    if (hash !== '#backup' && hash !== '#calendar') return
+    if (hash !== '#backup' && hash !== '#calendar' && hash !== '#gift-summary' && hash !== '#expenses')
+      return
     document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [ready])
 
@@ -211,7 +194,7 @@ export function TrackerApp() {
 
   if (bootError) return <BootError message={bootError} />
 
-  if (!ready) return <BootLoading awaitingConfirm={awaitingConfirm} />
+  if (!ready) return <BootLoading />
 
   return (
     <div className="relative">

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import ringsUrl from '../assets/marketing-rings.png'
+import ringsUrl from '../../assets/marketing-ring-gold.png'
 
 /** Photoreal interlocking bands; tiny scroll parallax when motion is allowed. */
 export function MarketingRings({ className }: { className?: string }) {

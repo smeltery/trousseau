@@ -4,6 +4,7 @@ import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
+import { SiteNavMenu } from './SiteNavMenu'
 import { TrousseauLogo } from './TrousseauLogo'
 
 type SiteNavProps = {
@@ -14,6 +15,24 @@ type SiteNavProps = {
 
 const navQuiet =
   'text-sm font-medium text-[var(--on-dark-muted)] transition-colors hover:text-[var(--on-dark)]'
+
+const appSections = [
+  { label: 'Gifts', href: '#gift-summary' },
+  { label: 'Expenses', href: '#expenses' },
+  { label: 'Calendar', href: '#calendar' },
+  { label: 'Backup', href: '#backup' },
+] as const
+
+const marketingSections = [
+  { label: 'How it works', href: '#how' },
+  { label: 'Due dates', href: '#due' },
+  { label: 'Privacy', href: '#privacy' },
+] as const
+
+const marketingSheetSections = [
+  ...marketingSections,
+  { label: 'Questions', href: '#questions' },
+] as const
 
 export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
   const navigate = useNavigate()
@@ -33,9 +52,16 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
     setSearchParams(next, { replace: true })
   }
 
-  function openImport() {
+  function jumpTo(href: string) {
     setMenuOpen(false)
-    setImportRequested(true)
+    const id = href.slice(1)
+    // Defer so the sheet can close before scrolling on mobile.
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (href !== window.location.hash) {
+        window.history.replaceState(null, '', href)
+      }
+    })
   }
 
   useEffect(() => {
@@ -61,74 +87,101 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
     }
   }, [menuOpen])
 
+  const sheetClass = variant === 'marketing' ? 'lg:hidden' : 'md:hidden'
+  const desktopSections = variant === 'marketing' ? marketingSections : appSections
+  const sheetSections = variant === 'marketing' ? marketingSheetSections : appSections
+
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-30">
+      {menuOpen ? (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className={`fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] animate-[fade-in_0.2s_ease] ${sheetClass}`}
+          onClick={() => setMenuOpen(false)}
+        />
+      ) : null}
+
+      <div className={`fixed inset-x-0 top-0 ${menuOpen ? 'z-50' : 'z-30'}`}>
         <nav
           aria-label="Primary"
           className={`page-pad transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
-            scrolled || syncBanner
+            scrolled || syncBanner || menuOpen
               ? 'border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--on-dark)_20%,transparent),0_10px_30px_color-mix(in_srgb,var(--grove)_30%,transparent)] backdrop-blur-xl backdrop-saturate-150'
               : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-none'
           }`}
         >
-        <div className="page-shell flex items-center justify-between gap-4 py-4">
-          <Link
-            to="/"
-            className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
-          >
-            <TrousseauLogo
-              onDark
-              markClassName="h-7 w-[36px]"
-              wordClassName="font-[family-name:var(--font-display)] text-2xl leading-none tracking-[-0.03em] text-[var(--on-dark)]"
-              className="gap-3"
-            />
-          </Link>
+          <div className="page-shell flex items-center justify-between gap-4 py-4">
+            <Link
+              to="/"
+              onClick={(e) => {
+                setMenuOpen(false)
+                if (window.location.pathname === '/') {
+                  e.preventDefault()
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                  window.history.replaceState(null, '', '/')
+                }
+              }}
+              className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+            >
+              <TrousseauLogo
+                onDark
+                animateMark
+                markClassName="h-7 w-auto"
+                wordClassName="font-[family-name:var(--font-display)] text-2xl leading-none tracking-[-0.03em] text-[var(--on-dark)]"
+              />
+            </Link>
 
-          {variant === 'marketing' ? (
-            <div className="hidden items-center gap-5 md:flex">
-              <Link to="/?import=1" className={navQuiet}>
-                Import
-              </Link>
-              <Link to="/app?demo=1" className="btn-nav-demo">
-                Try demo
-              </Link>
-              <Link to="/app?new=1" className="btn-nav">
-                Start blank
-              </Link>
+            <div
+              className={`hidden items-center ${variant === 'marketing' ? 'gap-7 lg:flex' : 'gap-8 md:flex'}`}
+            >
+              {desktopSections.map((section) => (
+                <a
+                  key={section.href}
+                  href={section.href}
+                  className={navQuiet}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    jumpTo(section.href)
+                  }}
+                >
+                  {section.label}
+                </a>
+              ))}
+              {variant === 'marketing' ? (
+                <>
+                  <Link to="/?import=1" className={navQuiet}>
+                    Import
+                  </Link>
+                  <Link to="/app?demo=1" className="btn-nav-demo">
+                    Try demo
+                  </Link>
+                  <Link to="/app?new=1" className="btn-nav">
+                    Start blank
+                  </Link>
+                </>
+              ) : (
+                <button type="button" onClick={() => setImportRequested(true)} className="btn-nav">
+                  Import
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="hidden items-center gap-7 md:flex">
-              <Link to="/" className={navQuiet}>
-                About
-              </Link>
-              <a href="#calendar" className={navQuiet}>
-                Calendar
-              </a>
-              <a href="#backup" className={navQuiet}>
-                Backup
-              </a>
-              <button type="button" onClick={() => setImportRequested(true)} className="btn-nav">
-                Import
-              </button>
-            </div>
-          )}
 
-          <button
-            type="button"
-            className="nav-menu-toggle md:hidden"
-            aria-expanded={menuOpen}
-            aria-controls={menuTitleId}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <span className="sr-only">{menuOpen ? 'Close menu' : 'Open menu'}</span>
-            <span aria-hidden className={`nav-menu-bar ${menuOpen ? 'translate-y-[5px] rotate-45' : ''}`} />
-            <span aria-hidden className={`nav-menu-bar ${menuOpen ? 'opacity-0' : ''}`} />
-            <span aria-hidden className={`nav-menu-bar ${menuOpen ? '-translate-y-[5px] -rotate-45' : ''}`} />
-          </button>
-        </div>
-      </nav>
+            <button
+              type="button"
+              className={`nav-menu-toggle ${variant === 'marketing' ? 'lg:hidden' : 'md:hidden'}`}
+              aria-expanded={menuOpen}
+              aria-controls={menuTitleId}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <span className="sr-only">{menuOpen ? 'Close menu' : 'Open menu'}</span>
+              <span aria-hidden className="nav-menu-bar" />
+              <span aria-hidden className="nav-menu-bar" />
+              <span aria-hidden className="nav-menu-bar" />
+            </button>
+          </div>
+        </nav>
         {syncBanner ? (
           <div className="border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
             <p className="text-sm text-[var(--on-dark-muted)]">
@@ -136,93 +189,22 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
             </p>
           </div>
         ) : null}
-      </div>
 
-      {menuOpen ? (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <button
-            type="button"
-            aria-label="Close menu"
-            className="absolute inset-0 bg-[color-mix(in_srgb,var(--grove)_72%,transparent)] animate-[fade-in_0.2s_ease]"
-            onClick={() => setMenuOpen(false)}
+        {menuOpen ? (
+          <SiteNavMenu
+            variant={variant}
+            menuId={menuTitleId}
+            sheetClass={sheetClass}
+            sections={sheetSections}
+            onJump={jumpTo}
+            onClose={() => setMenuOpen(false)}
+            onImport={() => {
+              setMenuOpen(false)
+              setImportRequested(true)
+            }}
           />
-          <div
-            id={menuTitleId}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-            className="absolute inset-x-0 top-0 border-b border-[color-mix(in_srgb,var(--on-dark)_12%,transparent)] bg-[color-mix(in_srgb,var(--grove)_78%,transparent)] px-[var(--page-pad)] pt-8 pb-10 shadow-[var(--sheet-shadow)] backdrop-blur-2xl backdrop-saturate-150 animate-[drop-in_0.3s_var(--ease-out)]"
-          >
-            <div className="page-shell">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
-                  Menu
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen(false)}
-                  className={navQuiet}
-                >
-                  Close
-                </button>
-              </div>
-
-              {variant === 'marketing' ? (
-                <div className="mt-10 flex flex-col gap-4">
-                  <Link
-                    to="/app?new=1"
-                    className="btn-nav w-full"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Start blank
-                  </Link>
-                  <Link
-                    to="/app?demo=1"
-                    className="btn-nav-demo w-full"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Try demo
-                  </Link>
-                  <Link
-                    to="/?import=1"
-                    onClick={() => setMenuOpen(false)}
-                    className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
-                  >
-                    Import backup
-                  </Link>
-                </div>
-              ) : (
-                <div className="mt-10 flex flex-col gap-4">
-                  <button type="button" onClick={openImport} className="btn-nav w-full">
-                    Import backup
-                  </button>
-                  <a
-                    href="#calendar"
-                    className="btn-nav-demo w-full text-center"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Calendar
-                  </a>
-                  <a
-                    href="#backup"
-                    className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Backup
-                  </a>
-                  <Link
-                    to="/"
-                    className="w-full py-3 text-center text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    About Trousseau
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {importOpen ? (
         <ImportBackupDialog

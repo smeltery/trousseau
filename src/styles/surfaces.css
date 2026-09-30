@@ -1,0 +1,248 @@
+@layer components {
+  .hero-glow {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 85% 75% at 82% 58%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 68%),
+      linear-gradient(165deg, var(--grove-mid), var(--grove) 52%, #071410 100%);
+  }
+
+  .hero-glow-budget {
+    background:
+      radial-gradient(ellipse 120% 110% at 72% 42%, color-mix(in srgb, var(--accent) 48%, transparent), transparent 72%),
+      linear-gradient(165deg, var(--grove-mid), var(--grove) 52%, #071410 100%);
+  }
+
+  .hero-glow-marketing {
+    background:
+      radial-gradient(ellipse 100% 95% at 78% 48%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 70%),
+      linear-gradient(165deg, var(--grove-mid), var(--grove) 52%, #071410 100%);
+  }
+
+  .hero-glow-boot {
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 42%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 68%),
+      linear-gradient(165deg, var(--grove-mid), var(--grove) 52%, #071410 100%);
+  }
+
+  .boot-key {
+    transform: rotate(-12deg);
+    transform-origin: center;
+  }
+
+  .boot-progress {
+    display: flex;
+    width: 7.5rem;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  .boot-progress-fill {
+    height: 100%;
+    width: 42%;
+    border-radius: inherit;
+    background: var(--accent);
+    animation: boot-bar 1.6s ease-in-out infinite;
+  }
+
+  @media (min-width: 640px) {
+    .boot-progress {
+      width: 8.75rem;
+    }
+  }
+
+  .hero-surface-marketing {
+    min-height: auto;
+    justify-content: flex-start;
+    padding-bottom: 2.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    .hero-surface-marketing {
+      min-height: 42rem;
+      justify-content: flex-end;
+      padding-bottom: 3.5rem;
+    }
+  }
+
+  .hero-glimpse {
+    overflow: hidden;
+    background: var(--grove);
+    box-shadow:
+      0 16px 36px color-mix(in srgb, #000 36%, transparent),
+      0 4px 12px color-mix(in srgb, #000 18%, transparent);
+    transform: rotate(-1deg);
+    transform-origin: center;
+  }
+
+  @media (min-width: 1024px) {
+    .hero-glimpse {
+      padding-block: 2.5rem;
+      box-shadow:
+        0 28px 60px color-mix(in srgb, #000 42%, transparent),
+        0 8px 18px color-mix(in srgb, #000 24%, transparent);
+      transform: rotate(2deg);
+      transform-origin: top left;
+    }
+  }
+
+  /* Rings as the hero's right-plane atmosphere — keep phone copy clean. */
+  .hero-rings {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .hero-rings {
+      display: block;
+      pointer-events: none;
+      position: absolute;
+      z-index: 0;
+      top: auto;
+      right: -14%;
+      bottom: -16%;
+      width: min(88vw, 38rem);
+      height: auto;
+      opacity: 0.78;
+      mix-blend-mode: lighten;
+      mask-image:
+        linear-gradient(90deg, transparent 0%, black 28%, black 100%),
+        radial-gradient(72% 68% at 55% 42%, black 28%, transparent 78%);
+      mask-composite: intersect;
+      -webkit-mask-image:
+        linear-gradient(90deg, transparent 0%, black 28%, black 100%),
+        radial-gradient(72% 68% at 55% 42%, black 28%, transparent 78%);
+      -webkit-mask-composite: source-in;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-rings {
+      right: -4%;
+      bottom: -22%;
+      width: min(68vw, 46rem);
+      opacity: 0.92;
+      mask-image:
+        linear-gradient(90deg, transparent 0%, black 18%, black 100%),
+        radial-gradient(74% 70% at 52% 40%, black 32%, transparent 78%);
+      -webkit-mask-image:
+        linear-gradient(90deg, transparent 0%, black 18%, black 100%),
+        radial-gradient(74% 70% at 52% 40%, black 32%, transparent 78%);
+    }
+  }
+
+  .name-chest,
+  .section-art {
+    width: 100%;
+    max-width: min(72vw, 280px);
+  }
+
+  @media (min-width: 1024px) {
+    .name-chest {
+      max-width: min(28vw, 360px);
+    }
+  }
+
+  .name-chest-img,
+  .marketing-art-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    opacity: 0.96;
+    mask-image: radial-gradient(72% 68% at 50% 48%, black 32%, transparent 78%);
+    -webkit-mask-image: radial-gradient(72% 68% at 50% 48%, black 32%, transparent 78%);
+  }
+
+  .btn-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: var(--accent);
+    color: var(--grove);
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    cursor: pointer;
+    transition: background 0.25s ease;
+  }
+
+  .btn-nav:hover {
+    background: color-mix(in srgb, var(--accent) 88%, white);
+  }
+
+  .btn-nav-demo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
+    background: transparent;
+    color: var(--accent);
+    padding: 9px 15px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    cursor: pointer;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  }
+
+  .btn-nav-demo:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--on-dark);
+  }
+
+  .nav-menu-toggle {
+    position: relative;
+    display: inline-flex;
+    height: 40px;
+    width: 40px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .nav-menu-bar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    height: 1.5px;
+    width: 18px;
+    margin-top: -0.75px;
+    background: var(--on-dark);
+    transform: translateX(-50%);
+    transition:
+      transform 0.25s var(--ease-out),
+      opacity 0.2s ease;
+  }
+
+  .nav-menu-bar:nth-child(2) {
+    transform: translate(-50%, -6px);
+  }
+
+  .nav-menu-bar:nth-child(3) {
+    transform: translate(-50%, 0);
+  }
+
+  .nav-menu-bar:nth-child(4) {
+    transform: translate(-50%, 6px);
+  }
+
+  .nav-menu-toggle[aria-expanded='true'] .nav-menu-bar:nth-child(2) {
+    transform: translate(-50%, 0) rotate(45deg);
+  }
+
+  .nav-menu-toggle[aria-expanded='true'] .nav-menu-bar:nth-child(3) {
+    opacity: 0;
+  }
+
+  .nav-menu-toggle[aria-expanded='true'] .nav-menu-bar:nth-child(4) {
+    transform: translate(-50%, 0) rotate(-45deg);
+  }
+}

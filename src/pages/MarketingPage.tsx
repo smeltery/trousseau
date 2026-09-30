@@ -1,8 +1,10 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MarketingHero } from './marketing/Hero'
 import {
+  CalendarSection,
   HowSection,
   InsideSection,
+  NameSection,
   WhySection,
   YoursSection,
 } from './marketing/FeatureSections'
@@ -32,13 +34,19 @@ export function MarketingPage() {
   }
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <MarketingHero />
       <Reveal>
+        <NameSection />
+      </Reveal>
+      <Reveal delayMs={40}>
         <WhySection />
       </Reveal>
       <Reveal delayMs={40}>
         <InsideSection />
+      </Reveal>
+      <Reveal delayMs={40}>
+        <CalendarSection />
       </Reveal>
       <Reveal delayMs={40}>
         <HowSection />
