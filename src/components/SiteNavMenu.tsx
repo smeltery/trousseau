@@ -17,6 +17,7 @@ type SiteNavMenuProps = {
   onImport: () => void
   onCopyShare?: () => void
   onOpenCommands?: () => void
+  onAddExpense?: () => void
 }
 
 export function SiteNavMenu({
@@ -31,6 +32,7 @@ export function SiteNavMenu({
   onImport,
   onCopyShare,
   onOpenCommands,
+  onAddExpense,
 }: SiteNavMenuProps) {
   return (
     <div
@@ -79,6 +81,11 @@ export function SiteNavMenu({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            {onAddExpense ? (
+              <button type="button" onClick={onAddExpense} className="btn-nav w-full">
+                Add expense
+              </button>
+            ) : null}
             {onOpenCommands ? (
               <button type="button" onClick={onOpenCommands} className="btn-nav w-full">
                 Search &amp; commands

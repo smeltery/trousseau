@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Category, Fund, LineItem } from '../../db/types'
 import { buildCommands } from '../../lib/build-commands'
@@ -34,6 +34,8 @@ export function CommandPalette({
   const dialogRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const listId = useId()
+  const optionId = (id: string) => `${listId}-${id}`
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [importOpen, setImportOpen] = useState(false)
@@ -63,7 +65,6 @@ export function CommandPalette({
       }),
     [shareUrl, lineItems, categories, funds, navigate, onAddExpense, onOpenItem],
   )
-
   const filtered = useMemo(() => filterCommands(commands, query), [commands, query])
   const grouped = useMemo(
     () =>
@@ -74,6 +75,8 @@ export function CommandPalette({
     [filtered],
   )
   const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped])
+  const activeCmd = flat[active]
+  const activeDescendant = activeCmd ? optionId(activeCmd.id) : undefined
 
   useEffect(() => {
     if (!open) return
@@ -155,13 +158,16 @@ export function CommandPalette({
                 }}
                 placeholder="Jump, create, open, or share…"
                 className="w-full bg-transparent text-base outline-none placeholder:text-[var(--ink-faint)]"
+                role="combobox"
+                aria-expanded={true}
                 aria-autocomplete="list"
-                aria-controls="command-list"
+                aria-controls={listId}
+                aria-activedescendant={activeDescendant}
               />
             </div>
             <div
               ref={listRef}
-              id="command-list"
+              id={listId}
               role="listbox"
               className="min-h-0 flex-1 overflow-y-auto py-2"
             >
@@ -178,7 +184,12 @@ export function CommandPalette({
                         const index = flat.indexOf(cmd)
                         const selected = index === active
                         return (
-                          <li key={cmd.id} role="option" aria-selected={selected}>
+                          <li
+                            key={cmd.id}
+                            id={optionId(cmd.id)}
+                            role="option"
+                            aria-selected={selected}
+                          >
                             <button
                               type="button"
                               data-cmd-index={index}

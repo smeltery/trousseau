@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { dismissNamesHint, isNamesHintDismissed } from '../lib/names-hint'
+import { dismissHint, isHintDismissed } from '../lib/ux/onboarding-hints'
 import { formatDue, weddingCountdown } from '../lib/expense-display'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { showToast } from '../lib/toast'
@@ -12,6 +13,7 @@ interface OverviewHeroProps {
   allocated: number
   spent: number
   remaining: number
+  fundCount?: number
   onAddExpense: () => void
   onOpenCommands?: () => void
   syncBanner?: boolean
@@ -19,11 +21,14 @@ interface OverviewHeroProps {
   overdueCount?: number
 }
 
+type HintKind = 'names' | 'date' | 'gift' | 'share'
+
 export function OverviewHero({
   site,
   allocated,
   spent,
   remaining,
+  fundCount = 0,
   onAddExpense,
   onOpenCommands,
   syncBanner = false,
@@ -32,13 +37,34 @@ export function OverviewHero({
 }: OverviewHeroProps) {
   const over = remaining < 0
   const blankNames = site.brandLeft === 'Groom' && site.brandRight === 'Bride'
-  const [hintDismissed, setHintDismissed] = useState(() => isNamesHintDismissed())
-  const showHint = blankNames && !hintDismissed
+  const [namesDismissed, setNamesDismissed] = useState(() => isNamesHintDismissed())
+  const [dateDismissed, setDateDismissed] = useState(() => isHintDismissed('date'))
+  const [giftDismissed, setGiftDismissed] = useState(() => isHintDismissed('gift'))
+  const [shareDismissed, setShareDismissed] = useState(() => isHintDismissed('share'))
   const countdown = weddingCountdown(site.weddingDate)
 
-  function hideHint() {
-    dismissNamesHint()
-    setHintDismissed(true)
+  const hint: HintKind | null = (() => {
+    if (blankNames && !namesDismissed) return 'names'
+    if (!site.weddingDate && !dateDismissed) return 'date'
+    if (fundCount === 0 && !giftDismissed) return 'gift'
+    if (shareUrl && !shareDismissed) return 'share'
+    return null
+  })()
+
+  function hideHint(kind: HintKind) {
+    if (kind === 'names') {
+      dismissNamesHint()
+      setNamesDismissed(true)
+    } else if (kind === 'date') {
+      dismissHint('date')
+      setDateDismissed(true)
+    } else if (kind === 'gift') {
+      dismissHint('gift')
+      setGiftDismissed(true)
+    } else {
+      dismissHint('share')
+      setShareDismissed(true)
+    }
   }
 
   async function copyShare() {
@@ -46,9 +72,17 @@ export function OverviewHero({
     try {
       await navigator.clipboard.writeText(shareUrl)
       showToast('Share link copied')
+      hideHint('share')
     } catch {
       showToast(shareUrl)
     }
+  }
+
+  const hintCopy: Record<HintKind, string> = {
+    names: 'Click the names to make them yours',
+    date: 'Set your wedding date for a countdown',
+    gift: 'Add a gift or savings to fund the day',
+    share: 'Copy the share link for your partner',
   }
 
   return (
@@ -60,6 +94,7 @@ export function OverviewHero({
         syncBanner={syncBanner}
         shareUrl={shareUrl}
         onOpenCommands={onOpenCommands}
+        onAddExpense={onAddExpense}
         overdueCount={overdueCount}
       />
       <div
@@ -82,7 +117,7 @@ export function OverviewHero({
               value={site.brandLeft}
               onSave={async (brandLeft) => {
                 await patchSiteSettings({ brandLeft })
-                if (brandLeft !== 'Groom') hideHint()
+                if (brandLeft !== 'Groom') hideHint('names')
               }}
               className="inline-block align-baseline font-[family-name:var(--font-display)] text-[clamp(3.25rem,10vw,7.5rem)] leading-[0.9] tracking-[-0.03em] text-[var(--on-dark)]"
             />
@@ -94,19 +129,30 @@ export function OverviewHero({
               value={site.brandRight}
               onSave={async (brandRight) => {
                 await patchSiteSettings({ brandRight })
-                if (brandRight !== 'Bride') hideHint()
+                if (brandRight !== 'Bride') hideHint('names')
               }}
               className="inline-block align-baseline font-[family-name:var(--font-display)] text-[clamp(3.25rem,10vw,7.5rem)] leading-[0.9] tracking-[-0.03em] text-[var(--on-dark)]"
             />
           </h1>
 
-          {showHint ? (
+          {hint ? (
             <button
               type="button"
-              onClick={hideHint}
+              onClick={() => {
+                if (hint === 'gift') {
+                  hideHint('gift')
+                  document.getElementById('gift-summary')?.scrollIntoView({ behavior: 'smooth' })
+                  return
+                }
+                if (hint === 'share') {
+                  void copyShare()
+                  return
+                }
+                hideHint(hint)
+              }}
               className="animate-[fade-in_0.6s_var(--ease-out)_both] text-left text-sm text-[var(--on-dark-faint)] underline decoration-1 underline-offset-4 hover:text-[var(--on-dark-muted)]"
             >
-              Click the names to make them yours
+              {hintCopy[hint]}
             </button>
           ) : null}
 
@@ -127,7 +173,9 @@ export function OverviewHero({
                 aria-label="Wedding date"
                 value={site.weddingDate ?? ''}
                 onChange={(e) => {
-                  void patchSiteSettings({ weddingDate: e.target.value || undefined })
+                  const weddingDate = e.target.value || undefined
+                  void patchSiteSettings({ weddingDate })
+                  if (weddingDate) hideHint('date')
                 }}
                 className="date-on-dark rounded-sm border border-[color-mix(in_srgb,var(--on-dark)_22%,transparent)] bg-transparent px-2 py-1 text-[var(--on-dark)] outline-none focus:border-[var(--accent)]"
               />

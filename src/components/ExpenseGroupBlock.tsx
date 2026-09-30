@@ -15,6 +15,9 @@ import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
 
+const reorderBtn =
+  'flex h-8 w-8 items-center justify-center text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30'
+
 export function ExpenseGroupBlock({
   group,
   groupLabel,
@@ -92,12 +95,12 @@ export function ExpenseGroupBlock({
                       className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-[28px] leading-[34px] tracking-[-0.02em]"
                     />
                     {!filterActive && siblingCats.length > 1 ? (
-                      <span className="flex shrink-0 gap-1">
+                      <span className="flex shrink-0 gap-0.5">
                         <button
                           type="button"
                           aria-label={`Move ${cat.name} up`}
                           disabled={catIndex === 0}
-                          className="text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30"
+                          className={reorderBtn}
                           onClick={async () => {
                             const prev = siblingCats[catIndex - 1]
                             if (!prev) return
@@ -110,7 +113,7 @@ export function ExpenseGroupBlock({
                           type="button"
                           aria-label={`Move ${cat.name} down`}
                           disabled={catIndex === siblingCats.length - 1}
-                          className="text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30"
+                          className={reorderBtn}
                           onClick={async () => {
                             const next = siblingCats[catIndex + 1]
                             if (!next) return
@@ -175,12 +178,12 @@ export function ExpenseGroupBlock({
                             }`}
                           >
                             {!filterActive && siblings.length > 1 ? (
-                              <span className="flex shrink-0 flex-col gap-0.5">
+                              <span className="flex shrink-0 flex-col">
                                 <button
                                   type="button"
                                   aria-label={`Move ${item.label} up`}
                                   disabled={itemIndex === 0}
-                                  className="px-1 text-[10px] text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30"
+                                  className={reorderBtn}
                                   onClick={async () => {
                                     const prev = siblings[itemIndex - 1]
                                     if (!prev) return
@@ -193,7 +196,7 @@ export function ExpenseGroupBlock({
                                   type="button"
                                   aria-label={`Move ${item.label} down`}
                                   disabled={itemIndex === siblings.length - 1}
-                                  className="px-1 text-[10px] text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30"
+                                  className={reorderBtn}
                                   onClick={async () => {
                                     const next = siblings[itemIndex + 1]
                                     if (!next) return
@@ -223,6 +226,9 @@ export function ExpenseGroupBlock({
                                   )}
                                   {noteHint ? ' · note' : ''}
                                   {docCount > 0 ? ` · ${docCount} doc${docCount === 1 ? '' : 's'}` : ''}
+                                  {statusLabel !== '-' ? (
+                                    <span className={`sm:hidden ${statusTone}`}> · {statusLabel}</span>
+                                  ) : null}
                                 </span>
                               </span>
                               <span
@@ -247,11 +253,7 @@ export function ExpenseGroupBlock({
                                 Paid
                               </button>
                             ) : (
-                              <span
-                                className={`w-10 shrink-0 text-center text-[11px] font-semibold tracking-[0.06em] uppercase sm:hidden ${statusTone}`}
-                              >
-                                {statusLabel === '-' ? '' : statusLabel.slice(0, 4)}
-                              </span>
+                              <span className="w-10 shrink-0 sm:hidden" aria-hidden />
                             )}
                           </div>
                         </li>

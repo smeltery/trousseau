@@ -3,6 +3,7 @@ import type { Attachment, Category, LineItem } from '../db/types'
 import { GROUP_ORDER, groupCategories } from '../lib/budget'
 import { isOverdue, todayKey } from '../lib/calendar'
 import { expensesRunningTotal } from '../lib/expense-display'
+import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
@@ -16,6 +17,7 @@ interface ExpenseGroupsProps {
   lineItems: LineItem[]
   attachments: Attachment[]
   allocated: number
+  syncBanner?: boolean
   onOpenItem: (id: string) => void
   onAddExpense: () => void
 }
@@ -32,6 +34,7 @@ export function ExpenseGroups({
   lineItems,
   attachments,
   allocated,
+  syncBanner = false,
   onOpenItem,
   onAddExpense,
 }: ExpenseGroupsProps) {
@@ -48,6 +51,7 @@ export function ExpenseGroups({
     if (filter === 'overdue') return isOverdue(item, today)
     return true
   })
+  const filterEmpty = filter !== 'all' && visibleItems.length === 0
 
   useEffect(() => {
     const fresh = new Set<string>()
@@ -66,7 +70,7 @@ export function ExpenseGroups({
   return (
     <section
       id="expenses"
-      className="relative scroll-mt-24 overflow-x-clip border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24"
+      className={`relative ${sectionScrollMt(syncBanner)} overflow-x-clip border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24`}
     >
       <div className="page-shell">
         <div className="mb-10 flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
@@ -104,6 +108,17 @@ export function ExpenseGroups({
           role="tablist"
           aria-label="Expense filter"
           className="mb-12 inline-flex border border-[var(--line-soft)] bg-[var(--paper)]"
+          onKeyDown={(e) => {
+            const i = FILTERS.findIndex((f) => f.id === filter)
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault()
+              const next =
+                e.key === 'ArrowRight'
+                  ? FILTERS[(i + 1) % FILTERS.length]!
+                  : FILTERS[(i - 1 + FILTERS.length) % FILTERS.length]!
+              setFilter(next.id)
+            }
+          }}
         >
           {FILTERS.map((f) => (
             <button
@@ -111,6 +126,7 @@ export function ExpenseGroups({
               type="button"
               role="tab"
               aria-selected={filter === f.id}
+              tabIndex={filter === f.id ? 0 : -1}
               onClick={() => setFilter(f.id)}
               className={`px-3 py-2 text-sm font-semibold transition-colors ${
                 filter === f.id
@@ -123,27 +139,45 @@ export function ExpenseGroups({
           ))}
         </div>
 
-        <div className="space-y-16">
-          {GROUP_ORDER.map((group) => (
-            <ExpenseGroupBlock
-              key={group}
-              group={group}
-              groupLabel={site.groupLabels[group]}
-              onRenameGroup={(label) =>
-                patchSiteSettings({
-                  groupLabels: { ...site.groupLabels, [group]: label },
-                })
-              }
-              cats={groupCategories(categories, group)}
-              lineItems={visibleItems}
-              allLineItems={lineItems}
-              attachments={attachments}
-              enteringIds={enteringIds}
-              filterActive={filter !== 'all'}
-              onOpenItem={onOpenItem}
-            />
-          ))}
-        </div>
+        {filterEmpty ? (
+          <div className="rounded-sm border border-[var(--line-soft)] bg-[var(--paper)] px-6 py-10 text-center">
+            <p className="font-[family-name:var(--font-display)] text-2xl tracking-[-0.02em]">
+              Nothing matches this filter
+            </p>
+            <p className="mt-2 text-sm text-[var(--ink-muted)]">
+              Try another view, or clear the filter to see every expense.
+            </p>
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className="mt-5 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
+            >
+              Clear filter
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {GROUP_ORDER.map((group) => (
+              <ExpenseGroupBlock
+                key={group}
+                group={group}
+                groupLabel={site.groupLabels[group]}
+                onRenameGroup={(label) =>
+                  patchSiteSettings({
+                    groupLabels: { ...site.groupLabels, [group]: label },
+                  })
+                }
+                cats={groupCategories(categories, group)}
+                lineItems={visibleItems}
+                allLineItems={lineItems}
+                attachments={attachments}
+                enteringIds={enteringIds}
+                filterActive={filter !== 'all'}
+                onOpenItem={onOpenItem}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="mt-16 flex flex-col gap-8 border-t border-[var(--line)] pt-6 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
           <div>

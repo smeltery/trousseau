@@ -5,6 +5,8 @@ import { celebrate } from '../lib/celebrate'
 import { askConfirm } from '../lib/confirm'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { replaceBudgetAndShare } from '../lib/replace-budget'
+import { truncateShareUrl } from '../lib/ux/format-share-url'
+import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
@@ -14,7 +16,7 @@ const linkQuiet =
   'text-sm font-medium tracking-wide text-[var(--ink-faint)] underline decoration-1 underline-offset-5 hover:text-[var(--ink-muted)] disabled:cursor-not-allowed disabled:opacity-50'
 
 /** Tracker backup: export, import, share link, blank/demo. */
-export function BackupBar({ shareUrl }: { shareUrl?: string }) {
+export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string; syncBanner?: boolean }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -62,7 +64,10 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
   }
 
   return (
-    <section id="backup" className="scroll-mt-24 overflow-x-clip bg-[var(--paper)] page-pad py-24">
+    <section
+      id="backup"
+      className={`${sectionScrollMt(syncBanner)} overflow-x-clip bg-[var(--paper)] page-pad py-24`}
+    >
       <div className="page-shell">
         <div className="flex max-w-[560px] flex-col gap-4">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-[var(--lichen)] uppercase">
@@ -104,8 +109,14 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
                 Share or restore
               </p>
               <p className="mt-2 text-sm leading-[22px] text-[var(--ink-faint)]">
-                Copy the live link for your partner, or import a zip to start fresh.
+                Treat the share link like a password. Copy it for your partner, or import a zip to
+                start fresh.
               </p>
+              {shareUrl ? (
+                <p className="mt-2 truncate font-mono text-xs text-[var(--ink-faint)]" title={shareUrl}>
+                  {truncateShareUrl(shareUrl, 48)}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-col items-start gap-3.5 sm:items-end">
               <button
