@@ -8,6 +8,7 @@ import { replaceBudgetAndShare } from '../lib/replace-budget'
 import { truncateShareUrl } from '../lib/ux/format-share-url'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
+import { ShareQr } from './backup/ShareQr'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
 const linkAction =
@@ -116,6 +117,11 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
                 <p className="mt-2 truncate font-mono text-xs text-[var(--ink-faint)]" title={shareUrl}>
                   {truncateShareUrl(shareUrl, 48)}
                 </p>
+              ) : null}
+              {shareUrl ? (
+                <div className="mt-4">
+                  <ShareQr url={shareUrl} size={144} />
+                </div>
               ) : null}
             </div>
             <div className="flex flex-col items-start gap-3.5 sm:items-end">

@@ -2,11 +2,10 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
-import { dbWrite } from '../lib/db-write'
 import { canMarkPaid } from '../lib/expense-display'
+import { deleteExpenseWithUndo } from '../lib/ux/delete-expense'
 import { markPaidWithUndo } from '../lib/ux/mark-paid'
 import { duplicateExpense } from '../lib/ux/duplicate-expense'
-import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 import { AttachmentList } from './AttachmentList'
 import { LineItemForm } from './expenses/LineItemForm'
@@ -91,13 +90,7 @@ export function LineItemSheet({
             danger: true,
           })
           if (!ok) return
-          await dbWrite(() =>
-            db.transaction('rw', db.lineItems, db.attachments, async () => {
-              await db.attachments.where('lineItemId').equals(item.id).delete()
-              await db.lineItems.delete(item.id)
-            }),
-          )
-          showToast('Expense deleted')
+          await deleteExpenseWithUndo(item)
           onClose()
         }}
       >

@@ -79,3 +79,7 @@ ALTER TABLE line_items ADD COLUMN IF NOT EXISTS expected_back_date TEXT;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS back_received BOOLEAN;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS due_offset_days INT;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS balance_offset_days INT;
+
+-- Backup payload v4: gift earmarks + who-pays on lines.
+ALTER TABLE funds ADD COLUMN IF NOT EXISTS earmark_category_id TEXT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays TEXT;

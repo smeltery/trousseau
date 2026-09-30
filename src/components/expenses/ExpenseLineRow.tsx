@@ -1,3 +1,5 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../db/dexie'
 import type { LineItem } from '../../db/types'
 import { dbWrite } from '../../lib/db-write'
 import {
@@ -7,6 +9,8 @@ import {
   paperLineStatus,
 } from '../../lib/expense-display'
 import { markPaidWithUndo } from '../../lib/ux/mark-paid'
+import { whoPaysLabel } from '../../lib/ux/who-pays-label'
+import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../../lib/site-settings'
 import { swapSort } from '../../lib/reorder'
 
 const reorderBtn =
@@ -35,6 +39,9 @@ export function ExpenseLineRow({
   onToggleSelect?: (id: string) => void
   onOpenItem: (id: string) => void
 }) {
+  const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [])
+  const site = parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE
+  const pays = whoPaysLabel(item.whoPays, site)
   const noteHint = item.notes?.trim()
   const noteSnippet = noteHint
     ? noteHint.length > 48
@@ -109,6 +116,7 @@ export function ExpenseLineRow({
               ) : (
                 <span>No due date</span>
               )}
+              {pays ? ` · ${pays}` : ''}
               {vendorHost ? ` · ${vendorHost}` : ''}
               {noteSnippet ? ` · ${noteSnippet}` : ''}
               {docCount > 0 ? ` · ${docCount} doc${docCount === 1 ? '' : 's'}` : ''}

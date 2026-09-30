@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/dexie'
-import type { Category, LineItem, LineStatus } from '../../db/types'
+import type { Category, LineItem, LineStatus, WhoPays } from '../../db/types'
 import { GROUP_LABELS, STATUS_LABELS } from '../../lib/budget'
 import { dbWrite } from '../../lib/db-write'
 import { parseMoneyInput } from '../../lib/money'
 import { LineItemDuesSection } from './line-item-dues'
 import { LineItemField } from './line-item-field'
 import { LineItemPaymentSection } from './line-item-payments'
+import { LineItemPlateHelper } from './line-item-plate'
 import { LineItemReceiptAssist } from './line-item-receipt'
 import { LineItemReimburseSection } from './line-item-reimburse'
+import { LineItemWhoPaysField } from './line-item-who-pays'
 
 const STATUSES: LineStatus[] = ['planned', 'deposit', 'partial', 'paid']
 
@@ -21,6 +23,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
   const [amount, setAmount] = useState(String(item.amount))
   const [paid, setPaid] = useState(String(item.paidAmount))
   const [status, setStatus] = useState(item.status)
+  const [whoPays, setWhoPays] = useState<WhoPays | ''>(item.whoPays ?? '')
   const [dueDate, setDueDate] = useState(item.dueDate ?? '')
   const [balanceDue, setBalanceDue] = useState(item.remainingBalanceDueDate ?? '')
   const [dueOffset, setDueOffset] = useState(
@@ -41,6 +44,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
     if (!dirty.current.amount) setAmount(String(item.amount))
     if (!dirty.current.paid) setPaid(String(item.paidAmount))
     setStatus(item.status)
+    setWhoPays(item.whoPays ?? '')
     setDueDate(item.dueDate ?? '')
     setBalanceDue(item.remainingBalanceDueDate ?? '')
     setDueOffset(item.dueOffsetDays != null ? String(item.dueOffsetDays) : '')
@@ -92,23 +96,32 @@ export function LineItemForm({ item }: { item: LineItem }) {
         </select>
       </LineItemField>
       <div className="grid gap-5 sm:grid-cols-2">
-        <LineItemField label="Expected amount">
-          <input
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => {
-              dirty.current.amount = true
-              setAmount(e.target.value)
-            }}
-            onBlur={() => {
-              const n = parseMoneyInput(amount)
+        <div className="grid gap-2">
+          <LineItemField label="Expected amount">
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => {
+                dirty.current.amount = true
+                setAmount(e.target.value)
+              }}
+              onBlur={() => {
+                const n = parseMoneyInput(amount)
+                setAmount(String(n))
+                dirty.current.amount = false
+                void persist({ amount: n })
+              }}
+              className="field-input"
+            />
+          </LineItemField>
+          <LineItemPlateHelper
+            onApply={(n) => {
               setAmount(String(n))
               dirty.current.amount = false
               void persist({ amount: n })
             }}
-            className="field-input"
           />
-        </LineItemField>
+        </div>
         <LineItemField label="Paid so far">
           <input
             inputMode="decimal"
@@ -133,6 +146,24 @@ export function LineItemForm({ item }: { item: LineItem }) {
           />
         </LineItemField>
       </div>
+      <LineItemWhoPaysField
+        value={whoPays}
+        onPersist={(next) => {
+          setWhoPays(next ?? '')
+          void dbWrite(async () => {
+            if (next) {
+              await db.lineItems.update(item.id, { whoPays: next })
+              return
+            }
+            await db.lineItems
+              .where('id')
+              .equals(item.id)
+              .modify((row) => {
+                delete row.whoPays
+              })
+          })
+        }}
+      />
       <LineItemPaymentSection
         item={item}
         onApplied={(patch) => {

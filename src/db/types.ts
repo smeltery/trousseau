@@ -3,11 +3,17 @@ export type CategoryGroup = 'venue' | 'vendor' | 'reimbursement'
 export type LineStatus = 'planned' | 'deposit' | 'partial' | 'paid'
 export type AttachmentKind = 'file' | 'link'
 
+export type WhoPays = 'left' | 'right' | 'joint'
+
 export interface PaymentStub {
   id: string
   amount: number
   /** YYYY-MM-DD */
   date: string
+  /** Optional short note (e.g. check number). */
+  note?: string
+  /** Optional method label (Cash, Check, Card…). */
+  method?: string
 }
 
 export interface Fund {
@@ -22,6 +28,8 @@ export interface Fund {
   receivedDate?: string
   /** Gift thank-you sent (optional). */
   thanked?: boolean
+  /** Optional category this gift is earmarked to cover. */
+  earmarkCategoryId?: string
 }
 
 export interface Category {
@@ -54,6 +62,8 @@ export interface LineItem {
   dueOffsetDays?: number
   /** Days before wedding for remainingBalanceDueDate. */
   balanceOffsetDays?: number
+  /** Who is covering this line (couple left / right / joint). */
+  whoPays?: WhoPays
   sort: number
 }
 
@@ -74,9 +84,9 @@ export interface Meta {
   value: string
 }
 
-/** Backup / cloud snapshot shape. v1–v3 accepted on import. */
+/** Backup / cloud snapshot shape. v1–v4 accepted on import. */
 export interface BackupPayload {
-  version: 1 | 2 | 3
+  version: 1 | 2 | 3 | 4
   exportedAt: string
   funds: Fund[]
   categories: Category[]

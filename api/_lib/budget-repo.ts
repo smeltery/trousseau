@@ -1,28 +1,22 @@
 import { sql } from './db.js'
 import { deleteBlob } from './blob-store.js'
+import {
+  mapAttachmentRow,
+  mapCategoryRow,
+  mapFundRow,
+  mapLineItemRow,
+} from './budget-map.js'
 import type {
   AttachmentMeta,
   BackupPayload,
   Category,
   CloudSnapshot,
   Fund,
-  LineItem,
-  PaymentStub,
 } from './types.js'
 import { hashToken, newShareToken } from './token.js'
 
 function newBudgetId(): string {
   return `bud-${crypto.randomUUID().slice(0, 12)}`
-}
-
-function parsePayments(raw: string | null): PaymentStub[] | undefined {
-  if (!raw) return undefined
-  try {
-    const parsed = JSON.parse(raw) as PaymentStub[]
-    return Array.isArray(parsed) ? parsed : undefined
-  } catch {
-    return undefined
-  }
 }
 
 export async function resolveBudgetId(token: string): Promise<string | null> {
@@ -86,10 +80,13 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
 
   for (const fund of payload.funds) {
     await sql`
-      INSERT INTO funds (id, budget_id, label, amount, type, sort, source, received_date, thanked)
+      INSERT INTO funds (
+        id, budget_id, label, amount, type, sort, source, received_date, thanked, earmark_category_id
+      )
       VALUES (
         ${fund.id}, ${budgetId}, ${fund.label}, ${fund.amount}, ${fund.type}, ${fund.sort},
-        ${fund.source ?? null}, ${fund.receivedDate ?? null}, ${fund.thanked ?? null}
+        ${fund.source ?? null}, ${fund.receivedDate ?? null}, ${fund.thanked ?? null},
+        ${fund.earmarkCategoryId ?? null}
       )
     `
   }
@@ -104,7 +101,8 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
     await sql`
       INSERT INTO line_items (
         id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
-        remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days, balance_offset_days
+        remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days,
+        balance_offset_days, who_pays
       )
       VALUES (
         ${item.id}, ${budgetId}, ${item.categoryId}, ${item.label}, ${item.amount},
@@ -112,7 +110,8 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
         ${item.vendorUrl ?? null}, ${item.sort},
         ${item.remainingBalanceDueDate ?? null}, ${paymentsJson},
         ${item.expectedBackDate ?? null}, ${item.backReceived ?? null},
-        ${item.dueOffsetDays ?? null}, ${item.balanceOffsetDays ?? null}
+        ${item.dueOffsetDays ?? null}, ${item.balanceOffsetDays ?? null},
+        ${item.whoPays ?? null}
       )
     `
   }
@@ -146,8 +145,9 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     source: string | null
     received_date: string | null
     thanked: boolean | null
+    earmark_category_id: string | null
   }>`
-    SELECT id, label, amount, type, sort, source, received_date, thanked
+    SELECT id, label, amount, type, sort, source, received_date, thanked, earmark_category_id
     FROM funds WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const categories = await sql<Category & { budget_id: string }>`
@@ -170,9 +170,11 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     back_received: boolean | null
     due_offset_days: number | null
     balance_offset_days: number | null
+    who_pays: string | null
   }>`
     SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
-      remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days, balance_offset_days
+      remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days,
+      balance_offset_days, who_pays
     FROM line_items WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const attachments = await sql<{
@@ -191,57 +193,14 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   `
 
   return {
-    version: 3,
+    version: 4,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,
-    funds: funds.rows.map((f) => ({
-      id: f.id,
-      label: f.label,
-      amount: Number(f.amount),
-      type: f.type,
-      sort: f.sort,
-      source: f.source ?? undefined,
-      receivedDate: f.received_date ?? undefined,
-      thanked: f.thanked ?? undefined,
-    })),
-    categories: categories.rows.map((c) => ({
-      id: c.id,
-      name: c.name,
-      group: c.group,
-      sort: c.sort,
-    })),
-    lineItems: lineItems.rows.map((i) => ({
-      id: i.id,
-      categoryId: i.category_id,
-      label: i.label,
-      amount: Number(i.amount),
-      paidAmount: Number(i.paid_amount),
-      status: i.status as LineItem['status'],
-      dueDate: i.due_date ?? undefined,
-      notes: i.notes ?? undefined,
-      vendorUrl: i.vendor_url ?? undefined,
-      sort: i.sort,
-      remainingBalanceDueDate: i.remaining_balance_due_date ?? undefined,
-      payments: parsePayments(i.payments),
-      expectedBackDate: i.expected_back_date ?? undefined,
-      backReceived: i.back_received ?? undefined,
-      dueOffsetDays: i.due_offset_days ?? undefined,
-      balanceOffsetDays: i.balance_offset_days ?? undefined,
-    })),
-    attachments: attachments.rows.map(
-      (a): AttachmentMeta => ({
-        id: a.id,
-        lineItemId: a.line_item_id,
-        kind: a.kind as AttachmentMeta['kind'],
-        name: a.name,
-        url: a.url ?? undefined,
-        mime: a.mime ?? undefined,
-        size: a.size != null ? Number(a.size) : undefined,
-        createdAt: a.created_at,
-        blobPathname: a.blob_pathname ?? undefined,
-      }),
-    ),
+    funds: funds.rows.map(mapFundRow),
+    categories: categories.rows.map(mapCategoryRow),
+    lineItems: lineItems.rows.map(mapLineItemRow),
+    attachments: attachments.rows.map(mapAttachmentRow),
   }
 }
 
@@ -289,7 +248,7 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
   if (!value || typeof value !== 'object') return false
   const v = value as BackupPayload
   return (
-    (v.version === 1 || v.version === 2 || v.version === 3) &&
+    (v.version === 1 || v.version === 2 || v.version === 3 || v.version === 4) &&
     Array.isArray(v.funds) &&
     Array.isArray(v.categories) &&
     Array.isArray(v.lineItems) &&

@@ -1,5 +1,5 @@
 import type { LineItem } from '../../db/types'
-import { dayTone, type MonthCell } from '../../lib/calendar'
+import { dayTone, dueEntriesForDay, type MonthCell } from '../../lib/calendar'
 import { dayDropProps } from './day-drop'
 import { DueChip } from './shared'
 import { TONE_CELL, WEEKDAYS } from './tones'
@@ -54,6 +54,7 @@ export function MonthGrid({
           )
         }
         const dues = byDate.get(cell.key) ?? []
+        const entries = dueEntriesForDay(dues, cell.key)
         const tone = dayTone(dues, today, cell.key)
         const isToday = cell.key === today
         const isWedding = Boolean(weddingDate && cell.key === weddingDate)
@@ -121,10 +122,11 @@ export function MonthGrid({
               ) : null}
             </span>
             <span className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-              {dues.slice(0, 2).map((item) => (
+              {entries.slice(0, 2).map(({ item, kind }) => (
                 <DueChip
-                  key={item.id}
+                  key={`${item.id}:${kind}`}
                   item={item}
+                  dueKind={kind}
                   today={today}
                   onOpen={() => {
                     onSelect(dateKey)
@@ -132,7 +134,7 @@ export function MonthGrid({
                   }}
                 />
               ))}
-              {dues.length > 2 ? (
+              {entries.length > 2 ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -141,7 +143,7 @@ export function MonthGrid({
                   }}
                   className="min-h-6 rounded-[2px] px-0.5 text-left text-[10px] font-semibold text-[var(--ink-faint)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)] hover:text-[var(--ink-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]"
                 >
-                  +{dues.length - 2} more
+                  +{entries.length - 2} more
                 </button>
               ) : null}
             </span>

@@ -1,26 +1,38 @@
 import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/dexie'
-import type { Fund } from '../../db/types'
+import type { Category, Fund } from '../../db/types'
+import { GROUP_LABELS } from '../../lib/budget'
 import { askConfirm } from '../../lib/confirm'
 import { dbWrite } from '../../lib/db-write'
 import { parseMoneyInput } from '../../lib/money'
 import { swapSort } from '../../lib/reorder'
 import { showToast } from '../../lib/toast'
+import { FundGiftMeta } from './FundGiftMeta'
 
 export function FundRow({
   fund,
   index,
   siblings,
+  categories: categoriesProp,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: {
   fund: Fund
   index: number
   siblings: Fund[]
+  categories?: Category[]
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
 }) {
+  const liveCategories =
+    useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? ([] as Category[])
+  const categories = categoriesProp ?? liveCategories
+
   const [label, setLabel] = useState(fund.label)
   const [amountText, setAmountText] = useState(String(fund.amount))
-  const [source, setSource] = useState(fund.source ?? '')
-  const [receivedDate, setReceivedDate] = useState(fund.receivedDate ?? '')
-  const [thanked, setThanked] = useState(Boolean(fund.thanked))
   const [saved, setSaved] = useState(false)
   const showGiftMeta = fund.type === 'gift'
 
@@ -36,7 +48,16 @@ export function FundRow({
       }`}
     >
       <div className="flex items-center justify-between gap-3 sm:gap-4">
-        {siblings.length > 1 ? (
+        {selectMode ? (
+          <input
+            type="checkbox"
+            checked={selected}
+            aria-label={`Select ${fund.label}`}
+            className="size-4 shrink-0 accent-[var(--grove)]"
+            onChange={() => onToggleSelect?.(fund.id)}
+          />
+        ) : null}
+        {!selectMode && siblings.length > 1 ? (
           <span className="flex shrink-0 flex-col">
             <button
               type="button"
@@ -115,66 +136,12 @@ export function FundRow({
         </button>
       </div>
       {showGiftMeta ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 pl-0 text-sm text-[var(--ink-muted)] sm:pl-10">
-          <label className="flex min-w-[10rem] flex-1 items-center gap-2">
-            <span className="shrink-0 text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--ink-faint)]">
-              From
-            </span>
-            <input
-              aria-label={`${fund.label} from`}
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              onBlur={async () => {
-                const next = source.trim()
-                setSource(next)
-                if (next !== (fund.source ?? '')) {
-                  await dbWrite(() =>
-                    db.funds.update(fund.id, { source: next || undefined }),
-                  )
-                  flashSaved()
-                }
-              }}
-              placeholder="Who gave this"
-              className="min-w-0 flex-1 border-b border-transparent bg-transparent outline-none focus:border-[var(--line)]"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="shrink-0 text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--ink-faint)]">
-              Received
-            </span>
-            <input
-              type="date"
-              aria-label={`${fund.label} received date`}
-              value={receivedDate}
-              onChange={async (e) => {
-                const next = e.target.value
-                setReceivedDate(next)
-                await dbWrite(() =>
-                  db.funds.update(fund.id, { receivedDate: next || undefined }),
-                )
-                flashSaved()
-              }}
-              className="bg-transparent outline-none"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={thanked}
-              aria-label={`${fund.label} thanked`}
-              className="size-4 accent-[var(--grove)]"
-              onChange={async (e) => {
-                const next = e.target.checked
-                setThanked(next)
-                await dbWrite(() => db.funds.update(fund.id, { thanked: next || undefined }))
-                flashSaved()
-              }}
-            />
-            <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--ink-faint)]">
-              Thanked
-            </span>
-          </label>
-        </div>
+        <FundGiftMeta
+          fund={fund}
+          categories={categories}
+          groupLabels={GROUP_LABELS}
+          onSaved={flashSaved}
+        />
       ) : null}
     </li>
   )

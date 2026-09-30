@@ -1,11 +1,26 @@
 import type { LineItem } from '../db/types'
 
+export type DueKind = 'deposit' | 'balance'
+
 /** Unique calendar due keys for an item (deposit + remaining balance). */
 export function dueDateKeys(item: LineItem): string[] {
   const keys = new Set<string>()
   if (item.dueDate) keys.add(item.dueDate)
   if (item.remainingBalanceDueDate) keys.add(item.remainingBalanceDueDate)
   return [...keys]
+}
+
+/** Expand items due on a day into deposit / balance entries (two chips if same day). */
+export function dueEntriesForDay(
+  items: LineItem[],
+  dateKey: string,
+): Array<{ item: LineItem; kind: DueKind }> {
+  const out: Array<{ item: LineItem; kind: DueKind }> = []
+  for (const item of items) {
+    if (item.dueDate === dateKey) out.push({ item, kind: 'deposit' })
+    if (item.remainingBalanceDueDate === dateKey) out.push({ item, kind: 'balance' })
+  }
+  return out
 }
 
 export function earliestDueDate(item: LineItem): string | undefined {
@@ -54,4 +69,34 @@ export function cashDueThisMonth(items: LineItem[], today: string): number {
   const last = new Date(y, m + 1, 0).getDate()
   const end = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`
   return cashDueInRange(items, start, end)
+}
+
+/** Remaining dues through wedding vs funds left, with optional monthly pace. */
+export function cashRunway(
+  items: LineItem[],
+  fundsLeft: number,
+  weddingDate: string | undefined,
+  today: string,
+): {
+  duesBeforeWedding: number
+  fundsLeft: number
+  months: number
+  monthlyPace: number
+  short: boolean
+} | null {
+  if (!weddingDate || weddingDate < today) return null
+  const duesBeforeWedding = cashDueInRange(items, today, weddingDate)
+  if (duesBeforeWedding <= 0) return null
+  const days = Math.round(
+    (new Date(`${weddingDate}T12:00:00`).getTime() - new Date(`${today}T12:00:00`).getTime()) /
+      86400000,
+  )
+  const months = Math.max(1, days / 30.44)
+  return {
+    duesBeforeWedding,
+    fundsLeft,
+    months,
+    monthlyPace: duesBeforeWedding / months,
+    short: duesBeforeWedding > fundsLeft,
+  }
 }

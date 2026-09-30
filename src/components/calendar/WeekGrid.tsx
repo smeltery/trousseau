@@ -1,5 +1,5 @@
 import type { LineItem } from '../../db/types'
-import { dayTone, parseDateKey } from '../../lib/calendar'
+import { dayTone, dueEntriesForDay, parseDateKey } from '../../lib/calendar'
 import { dayDropProps } from './day-drop'
 import { DueChip } from './shared'
 import { TONE_CELL, WEEKDAYS } from './tones'
@@ -32,6 +32,7 @@ export function WeekGrid({
       >
         {days.map((key, i) => {
           const dues = byDate.get(key) ?? []
+          const entries = dueEntriesForDay(dues, key)
           const tone = dayTone(dues, today, key)
           const isToday = key === today
           const isWedding = Boolean(weddingDate && key === weddingDate)
@@ -93,13 +94,14 @@ export function WeekGrid({
                 </span>
               </div>
               <span className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-                {dues.length === 0 ? (
+                {entries.length === 0 ? (
                   <span className="text-[11px] text-[var(--ink-faint)]">Drop here or add</span>
                 ) : (
-                  dues.map((item) => (
+                  entries.map(({ item, kind }) => (
                     <DueChip
-                      key={item.id}
+                      key={`${item.id}:${kind}`}
                       item={item}
+                      dueKind={kind}
                       today={today}
                       onOpen={() => {
                         onSelect(key)
