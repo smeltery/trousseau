@@ -5,11 +5,14 @@ import {
   remainingDue,
 } from './calendar-dues'
 
+export type { DueKind } from './calendar-dues'
 export {
   cashDueInRange,
   cashDueThisMonth,
   cashDueThisWeek,
+  cashRunway,
   dueDateKeys,
+  dueEntriesForDay,
   earliestDueDate,
   remainingDue,
 } from './calendar-dues'

@@ -1,6 +1,13 @@
 import type { Category, Fund, LineItem } from '../../db/types'
 import { GROUP_ORDER, groupCategories } from '../../lib/budget'
-import { categoryDisplayTotals, expensesPaidTotal, expensesRunningTotal } from '../../lib/expense-display'
+import {
+  earliestDueDate,
+  overdueAgendaItems,
+  remainingDue,
+  todayKey,
+  upcomingAgendaItems,
+} from '../../lib/calendar'
+import { categoryDisplayTotals, expensesPaidTotal, expensesRunningTotal, formatDue } from '../../lib/expense-display'
 import { formatMoney, sum } from '../../lib/money'
 import type { SiteSettings } from '../../lib/site-settings'
 
@@ -21,6 +28,9 @@ export function PrintBudgetSummary({
   const left = allocated - budgeted
   const gifts = funds.filter((f) => f.type === 'gift')
   const savings = funds.filter((f) => f.type === 'savings')
+  const today = todayKey()
+  const overdue = overdueAgendaItems(lineItems, today)
+  const upcoming = upcomingAgendaItems(lineItems, today, 24)
 
   return (
     <section id="print-summary" className="print-only page-pad py-8" aria-hidden>
@@ -85,6 +95,16 @@ export function PrintBudgetSummary({
             })}
           </div>
         </div>
+
+        {overdue.length > 0 || upcoming.length > 0 ? (
+          <div className="mt-10">
+            <h2 className="text-[11px] font-semibold tracking-[0.18em] text-[var(--ink-faint)] uppercase">
+              Upcoming dues
+            </h2>
+            <DueTable title="Overdue" rows={overdue} />
+            <DueTable title="Upcoming" rows={upcoming} />
+          </div>
+        ) : null}
       </div>
     </section>
   )
@@ -113,6 +133,28 @@ function FundTable({ title, rows }: { title: string; rows: Fund[] }) {
             <span className="shrink-0 tabular-nums">{formatMoney(f.amount)}</span>
           </li>
         ))}
+      </ul>
+    </div>
+  )
+}
+
+function DueTable({ title, rows }: { title: string; rows: LineItem[] }) {
+  if (!rows.length) return null
+  return (
+    <div className="mt-4">
+      <p className="text-sm font-semibold">{title}</p>
+      <ul className="mt-2 divide-y divide-[var(--line-soft)] border-t border-[var(--line-soft)]">
+        {rows.map((item) => {
+          const due = earliestDueDate(item)
+          return (
+            <li key={item.id} className="flex justify-between gap-3 py-1.5 text-sm">
+              <span className="min-w-0 truncate">
+                {due ? formatDue(due) : '—'} · {item.label}
+              </span>
+              <span className="shrink-0 tabular-nums">{formatMoney(remainingDue(item))}</span>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

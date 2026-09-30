@@ -274,6 +274,7 @@ export function TrackerApp() {
           categories={categories}
           lineItems={lineItems}
           weddingDate={site.weddingDate} coupleNames={`${site.brandLeft} & ${site.brandRight}`}
+          fundsLeft={remaining}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
           onAddExpense={(d) => {

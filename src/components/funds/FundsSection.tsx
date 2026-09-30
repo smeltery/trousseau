@@ -1,21 +1,72 @@
+import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../db/dexie'
+import type { Category, Fund } from '../../db/types'
 import { patchSiteSettings, type SiteSettings } from '../../lib/site-settings'
 import { sectionScrollMt } from '../../lib/ux/scroll-mt'
 import { sum } from '../../lib/money'
-import type { Fund } from '../../db/types'
 import { EditableText } from '../EditableText'
 import { SettlingMoney } from '../SettlingMoney'
 import { FundGroup } from './FundGroup'
+import { GiftBulkBar } from './GiftBulkBar'
+
+type GiftFilter = 'all' | 'unthanked'
+
+const FILTERS: { id: GiftFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unthanked', label: 'Unthanked' },
+]
 
 interface FundsSectionProps {
   site: SiteSettings
   funds: Fund[]
+  categories?: Category[]
   syncBanner?: boolean
 }
 
-export function FundsSection({ site, funds, syncBanner = false }: FundsSectionProps) {
-  const gifts = funds.filter((f) => f.type === 'gift').sort((a, b) => a.sort - b.sort)
-  const savings = funds.filter((f) => f.type === 'savings').sort((a, b) => a.sort - b.sort)
+export function FundsSection({ site, funds, categories: categoriesProp, syncBanner = false }: FundsSectionProps) {
+  const liveCategories =
+    useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? ([] as Category[])
+  const categories = categoriesProp ?? liveCategories
+
+  const [filter, setFilter] = useState<GiftFilter>('all')
+  const [query, setQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const selectMode = filter === 'unthanked'
+  const q = query.trim().toLowerCase()
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [filter, query])
+
+  function matchesSearch(f: Fund) {
+    if (!q) return true
+    return `${f.label} ${f.source ?? ''}`.toLowerCase().includes(q)
+  }
+
+  const gifts = funds
+    .filter((f) => f.type === 'gift')
+    .filter((f) => (filter === 'unthanked' ? !f.thanked : true))
+    .filter(matchesSearch)
+    .sort((a, b) => a.sort - b.sort)
+  const savings = funds
+    .filter((f) => f.type === 'savings')
+    .filter(matchesSearch)
+    .sort((a, b) => a.sort - b.sort)
   const allocated = sum(funds.map((f) => f.amount))
+  const filterEmpty =
+    (filter !== 'all' || q.length > 0) && gifts.length === 0 && savings.length === 0
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectedFunds = gifts.filter((f) => selectedIds.has(f.id))
 
   return (
     <section
@@ -45,24 +96,101 @@ export function FundsSection({ site, funds, syncBanner = false }: FundsSectionPr
           />
         </div>
 
-        <div className="mt-14 flex flex-col gap-14 lg:flex-row lg:gap-20">
-          <FundGroup
-            title={site.giftColumn}
-            onRenameTitle={(giftColumn) => patchSiteSettings({ giftColumn })}
-            type="gift"
-            funds={gifts}
-            emptyLabel="No gifts yet"
-            emptyWhy="Cash gifts and checks that fund the day."
-          />
-          <FundGroup
-            title={site.savingsColumn}
-            onRenameTitle={(savingsColumn) => patchSiteSettings({ savingsColumn })}
-            type="savings"
-            funds={savings}
-            emptyLabel="No savings yet"
-            emptyWhy="What you’ve set aside together for the wedding."
-          />
+        <div className="mt-10 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            role="tablist"
+            aria-label="Gift filter"
+            className="inline-flex border border-[var(--line-soft)] bg-[var(--paper)]"
+            onKeyDown={(e) => {
+              const i = FILTERS.findIndex((f) => f.id === filter)
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault()
+                const next =
+                  e.key === 'ArrowRight'
+                    ? FILTERS[(i + 1) % FILTERS.length]!
+                    : FILTERS[(i - 1 + FILTERS.length) % FILTERS.length]!
+                setFilter(next.id)
+              }
+            }}
+          >
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.id}
+                tabIndex={filter === f.id ? 0 : -1}
+                onClick={() => setFilter(f.id)}
+                className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                  filter === f.id
+                    ? 'bg-[var(--grove)] text-[var(--on-dark)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <label className="relative block min-w-0 sm:w-64">
+            <span className="sr-only">Search gifts</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search gift or source…"
+              className="field-input w-full py-2 text-sm"
+            />
+          </label>
         </div>
+
+        {selectMode ? (
+          <GiftBulkBar
+            selectedFunds={selectedFunds}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        ) : null}
+
+        {filterEmpty ? (
+          <div className="rounded-sm border border-[var(--line-soft)] bg-[var(--paper)] px-6 py-10 text-center">
+            <p className="font-[family-name:var(--font-display)] text-2xl tracking-[-0.02em]">
+              Nothing matches
+            </p>
+            <p className="mt-2 text-sm text-[var(--ink-muted)]">Try another filter or clear search.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter('all')
+                setQuery('')
+              }}
+              className="mt-5 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-col gap-14 lg:flex-row lg:gap-20">
+            <FundGroup
+              title={site.giftColumn}
+              onRenameTitle={(giftColumn) => patchSiteSettings({ giftColumn })}
+              type="gift"
+              funds={gifts}
+              categories={categories}
+              emptyLabel="No gifts yet"
+              emptyWhy="Cash gifts and checks that fund the day."
+              selectMode={selectMode}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
+            <FundGroup
+              title={site.savingsColumn}
+              onRenameTitle={(savingsColumn) => patchSiteSettings({ savingsColumn })}
+              type="savings"
+              funds={savings}
+              emptyLabel="No savings yet"
+              emptyWhy="What you’ve set aside together for the wedding."
+            />
+          </div>
+        )}
 
         <div className="mt-14 flex items-baseline justify-between gap-6 pt-2">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--ink-faint)] uppercase">

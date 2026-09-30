@@ -73,12 +73,24 @@ export function canMarkPaid(item: LineItem): boolean {
 }
 
 /** Apply an incremental payment; promotes status to partial/deposit/paid and appends a stub. */
-export function recordPaymentPatch(item: LineItem, payment: number): Partial<LineItem> | null {
+export function recordPaymentPatch(
+  item: LineItem,
+  payment: number,
+  meta?: { note?: string; method?: string },
+): Partial<LineItem> | null {
   if (!(payment > 0)) return null
   const paidAmount = Math.round((item.paidAmount + payment) * 100) / 100
+  const note = meta?.note?.trim() || undefined
+  const method = meta?.method?.trim() || undefined
   const payments = [
     ...(item.payments ?? []),
-    { id: crypto.randomUUID().slice(0, 8), amount: payment, date: todayKey() },
+    {
+      id: crypto.randomUUID().slice(0, 8),
+      amount: payment,
+      date: todayKey(),
+      ...(note ? { note } : {}),
+      ...(method ? { method } : {}),
+    },
   ]
   if (item.amount > 0 && paidAmount >= item.amount) {
     return { status: 'paid', paidAmount: item.amount, payments }

@@ -1,8 +1,10 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { Attachment, Category, CategoryGroup, LineItem } from '../db/types'
 import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { categoryDisplayTotals } from '../lib/expense-display'
+import { giftCoverageForCategory } from '../lib/gift-coverage'
 import { formatMoney, sum } from '../lib/money'
 import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
@@ -41,6 +43,7 @@ export function ExpenseGroupBlock({
   onToggleSelect?: (id: string) => void
   onOpenItem: (id: string) => void
 }) {
+  const funds = useLiveQuery(() => db.funds.toArray(), []) ?? []
   const visibleCats = filterActive
     ? cats.filter((c) => lineItems.some((i) => i.categoryId === c.id))
     : cats
@@ -84,6 +87,7 @@ export function ExpenseGroupBlock({
               catAll.filter((i) => !/^budget$/i.test(i.label.trim())).map((i) => i.amount),
             )
             const envelopeLeft = totals.amount - committed
+            const giftCovered = giftCoverageForCategory(funds, cat.id)
             const siblingCats = cats
             return (
               <div key={cat.id}>
@@ -141,11 +145,17 @@ export function ExpenseGroupBlock({
                         })
                         if (!ok) return
                         await dbWrite(() =>
-                          db.transaction('rw', db.categories, db.lineItems, db.attachments, async () => {
+                          db.transaction('rw', db.categories, db.lineItems, db.attachments, db.funds, async () => {
                             for (const item of full) {
                               await db.attachments.where('lineItemId').equals(item.id).delete()
                             }
                             await db.lineItems.where('categoryId').equals(cat.id).delete()
+                            const earmarked = await db.funds
+                              .filter((f) => f.earmarkCategoryId === cat.id)
+                              .toArray()
+                            for (const fund of earmarked) {
+                              await db.funds.update(fund.id, { earmarkCategoryId: undefined })
+                            }
                             await db.categories.delete(cat.id)
                           }),
                         )
@@ -168,6 +178,7 @@ export function ExpenseGroupBlock({
                         </span>
                       </>
                     ) : null}
+                    {giftCovered > 0 ? ` · ${formatMoney(giftCovered)} gift-covered` : ''}
                   </p>
                 </div>
                 <ul>

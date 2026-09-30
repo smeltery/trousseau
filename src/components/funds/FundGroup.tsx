@@ -1,5 +1,5 @@
 import { db, newId } from '../../db/dexie'
-import type { Fund, FundType } from '../../db/types'
+import type { Category, Fund, FundType } from '../../db/types'
 import { dbWrite } from '../../lib/db-write'
 import { showToast } from '../../lib/toast'
 import { EditableText } from '../EditableText'
@@ -10,15 +10,23 @@ export function FundGroup({
   onRenameTitle,
   type,
   funds,
+  categories,
   emptyLabel,
   emptyWhy,
+  selectMode,
+  selectedIds,
+  onToggleSelect,
 }: {
   title: string
   onRenameTitle: (next: string) => void | Promise<void>
   type: FundType
   funds: Fund[]
+  categories?: Category[]
   emptyLabel: string
   emptyWhy: string
+  selectMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }) {
   async function addFund() {
     const sort = funds.length ? Math.max(...funds.map((f) => f.sort)) + 1 : 0
@@ -67,7 +75,16 @@ export function FundGroup({
       ) : (
         <ul>
           {funds.map((fund, index) => (
-            <FundRow key={fund.id} fund={fund} index={index} siblings={funds} />
+            <FundRow
+              key={fund.id}
+              fund={fund}
+              index={index}
+              siblings={funds}
+              categories={categories}
+              selectMode={Boolean(selectMode)}
+              selected={Boolean(selectedIds?.has(fund.id))}
+              onToggleSelect={onToggleSelect}
+            />
           ))}
         </ul>
       )}

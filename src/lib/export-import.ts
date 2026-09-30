@@ -51,7 +51,7 @@ export async function buildBackupPayload(): Promise<{
 
   return {
     payload: {
-      version: 3,
+      version: 4,
       exportedAt: new Date().toISOString(),
       funds,
       categories,
@@ -63,8 +63,10 @@ export async function buildBackupPayload(): Promise<{
   }
 }
 
-function assertBackupVersion(version: unknown): asserts version is 1 | 2 | 3 {
-  if (version !== 1 && version !== 2 && version !== 3) throw new Error('Unsupported backup version')
+function assertBackupVersion(version: unknown): asserts version is 1 | 2 | 3 | 4 {
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
+    throw new Error('Unsupported backup version')
+  }
 }
 
 export async function applyBackupPayload(
@@ -133,7 +135,7 @@ export async function exportBackup(): Promise<Blob> {
   }
 
   const payload: BackupPayload = {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     funds,
     categories,

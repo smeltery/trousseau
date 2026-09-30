@@ -8,6 +8,7 @@ import { replaceBudgetAndShare } from '../lib/replace-budget'
 import { truncateShareUrl } from '../lib/ux/format-share-url'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
+import { ShareQr } from './backup/ShareQr'
 import { ImportBackupDialog } from './ImportBackupDialog'
 
 const linkAction =
@@ -119,6 +120,7 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
               ) : null}
             </div>
             <div className="flex flex-col items-start gap-3.5 sm:items-end">
+              {shareUrl ? <ShareQr url={shareUrl} /> : null}
               <button
                 type="button"
                 disabled={busy || !shareUrl}
