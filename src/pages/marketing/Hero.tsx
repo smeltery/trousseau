@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HeroProductGlimpse } from '../../components/marketing/HeroProductGlimpse'
 import { SiteNav } from '../../components/SiteNav'
+import { readRememberedShareToken } from '../../lib/cloud/session'
 
 export function MarketingHero() {
+  const [resumeToken] = useState(() => readRememberedShareToken())
+
   return (
     <header className="hero-surface hero-surface-marketing page-pad">
       <SiteNav variant="marketing" />
@@ -31,24 +35,49 @@ export function MarketingHero() {
           </p>
 
           <div className="order-last flex w-full flex-col items-stretch gap-3 pt-2 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:gap-7 lg:order-none lg:pt-5">
-            <Link
-              to="/app?new=1"
-              className="btn-primary w-full animate-[rise-in_1.05s_var(--ease-out)_both] sm:w-auto"
-            >
-              Start your tracker
-            </Link>
-            <Link
-              to="/app?demo=1"
-              className="flex w-full items-center justify-center border border-[color-mix(in_srgb,var(--accent)_65%,transparent)] px-7 py-3.5 text-sm font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] hover:text-[var(--on-dark)] sm:hidden"
-            >
-              Try a filled demo
-            </Link>
-            <Link
-              to="/app?demo=1"
-              className="hidden text-sm font-semibold tracking-wide text-[var(--accent)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)] sm:inline"
-            >
-              Try a filled demo
-            </Link>
+            {resumeToken ? (
+              <>
+                <Link
+                  to={`/b/${resumeToken}`}
+                  className="btn-primary w-full animate-[rise-in_1.05s_var(--ease-out)_both] sm:w-auto"
+                >
+                  Resume your budget
+                </Link>
+                <Link
+                  to="/app?new=1"
+                  className="text-sm font-semibold tracking-wide text-[var(--accent)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
+                >
+                  Start new instead
+                </Link>
+                <Link
+                  to="/app?demo=1"
+                  className="hidden text-sm font-semibold tracking-wide text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)] sm:inline"
+                >
+                  Try a filled demo
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/app?new=1"
+                  className="btn-primary w-full animate-[rise-in_1.05s_var(--ease-out)_both] sm:w-auto"
+                >
+                  Start your tracker
+                </Link>
+                <Link
+                  to="/app?demo=1"
+                  className="flex w-full items-center justify-center border border-[color-mix(in_srgb,var(--accent)_65%,transparent)] px-7 py-3.5 text-sm font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] hover:text-[var(--on-dark)] sm:hidden"
+                >
+                  Try a filled demo
+                </Link>
+                <Link
+                  to="/app?demo=1"
+                  className="hidden text-sm font-semibold tracking-wide text-[var(--accent)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)] sm:inline"
+                >
+                  Try a filled demo
+                </Link>
+              </>
+            )}
           </div>
 
           <HeroProductGlimpse className="w-full max-w-[28rem] lg:hidden" />

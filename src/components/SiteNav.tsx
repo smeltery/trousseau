@@ -22,6 +22,7 @@ type SiteNavProps = {
   syncBanner?: boolean
   shareUrl?: string
   onOpenCommands?: () => void
+  onAddExpense?: () => void
   overdueCount?: number
 }
 
@@ -51,6 +52,7 @@ export function SiteNav({
   syncBanner = false,
   shareUrl,
   onOpenCommands,
+  onAddExpense,
   overdueCount = 0,
 }: SiteNavProps) {
   const navigate = useNavigate()
@@ -192,6 +194,18 @@ export function SiteNav({
                   {section.label}
                 </a>
               ))}
+              {variant === 'app' && overdueCount > 0 ? (
+                <a
+                  href="#calendar"
+                  className="text-sm font-semibold text-[var(--accent)] transition-colors hover:text-[var(--on-dark)]"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    jumpTo('#calendar')
+                  }}
+                >
+                  {overdueCount} overdue
+                </a>
+              ) : null}
               {variant === 'marketing' ? (
                 <>
                   <Link to="/?import=1" className={navQuiet}>
@@ -269,6 +283,14 @@ export function SiteNav({
                 setImportRequested(true)
               }}
               onCopyShare={() => void copyShare()}
+              onAddExpense={
+                onAddExpense
+                  ? () => {
+                      setMenuOpen(false)
+                      onAddExpense()
+                    }
+                  : undefined
+              }
               onOpenCommands={() => {
                 setMenuOpen(false)
                 if (onOpenCommands) onOpenCommands()
@@ -278,6 +300,16 @@ export function SiteNav({
           </div>
         ) : null}
       </div>
+
+      {variant === 'app' && onAddExpense ? (
+        <button
+          type="button"
+          onClick={onAddExpense}
+          className="btn-primary fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-20 shadow-[0_12px_28px_color-mix(in_srgb,var(--grove)_35%,transparent)] md:hidden"
+        >
+          Add expense
+        </button>
+      ) : null}
 
       {importOpen ? (
         <ImportBackupDialog

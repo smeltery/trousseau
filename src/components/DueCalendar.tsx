@@ -18,6 +18,7 @@ import {
 } from '../lib/calendar'
 import { downloadBlob } from '../lib/export-import'
 import { formatDue, weddingCountdown } from '../lib/expense-display'
+import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
 import { CalendarLegend, DueAgendaList } from './DueAgendaList'
 import { MonthGrid } from './calendar/MonthGrid'
@@ -29,6 +30,7 @@ interface DueCalendarProps {
   categories: Category[]
   lineItems: LineItem[]
   weddingDate?: string
+  syncBanner?: boolean
   onOpenItem: (id: string) => void
 }
 
@@ -38,7 +40,13 @@ const VIEWS: { id: CalendarView; label: string }[] = [
   { id: 'year', label: 'Year' },
 ]
 
-export function DueCalendar({ categories, lineItems, weddingDate, onOpenItem }: DueCalendarProps) {
+export function DueCalendar({
+  categories,
+  lineItems,
+  weddingDate,
+  syncBanner = false,
+  onOpenItem,
+}: DueCalendarProps) {
   const today = todayKey()
   const countdown = weddingCountdown(weddingDate, today)
   const [view, setView] = useState<CalendarView>('month')
@@ -129,7 +137,10 @@ export function DueCalendar({ categories, lineItems, weddingDate, onOpenItem }: 
   }
 
   return (
-    <section id="calendar" className="scroll-mt-24 overflow-x-clip bg-[var(--mist)] page-pad py-24">
+    <section
+      id="calendar"
+      className={`${sectionScrollMt(syncBanner)} overflow-x-clip bg-[var(--mist)] page-pad py-24`}
+    >
       <div className="page-shell">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
           <div className="max-w-[560px]">

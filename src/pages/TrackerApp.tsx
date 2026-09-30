@@ -7,14 +7,19 @@ import { CommandPalette } from '../components/command/CommandPalette'
 import { TrackerFooter } from '../components/nav/TrackerFooter'
 import { DueCalendar } from '../components/DueCalendar'
 import { ExpenseGroups } from '../components/ExpenseGroups'
-import { FundsSection } from '../components/FundsSection'
+import { FundsSection } from '../components/funds/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
 import { OverviewHero } from '../components/OverviewHero'
 import { Reveal } from '../components/Reveal'
 import { db, loadDemoSample, resetToBlank } from '../db/dexie'
 import { cloudBudgetStore, localBudgetStore } from '../lib/budget-store'
 import { celebrate } from '../lib/celebrate'
-import { clearRememberedShareToken, getActiveCloudToken, readRememberedShareToken } from '../lib/cloud/session'
+import {
+  clearRememberedShareToken,
+  CLOUD_UPDATED_META,
+  getActiveCloudToken,
+  readRememberedShareToken,
+} from '../lib/cloud/session'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import {
   ensureCloudBudget,
@@ -22,15 +27,16 @@ import {
   leaveCloudBudget,
   pullCloudBudgetIfStale,
 } from '../lib/cloud/sync'
+import { applyDocumentTitle } from '../lib/ux/document-title'
 import { dbWrite } from '../lib/db-write'
 import { expensesPaidTotal, expensesRunningTotal } from '../lib/expense-display'
 import { isOverdue, todayKey } from '../lib/calendar'
 import { sum } from '../lib/money'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
-import { dismissShareHint, isShareHintDismissed } from '../lib/share-hint'
 import { showToast } from '../lib/toast'
+import { noteCloudUpdatedAt } from '../lib/sync-status'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
-import { BootError, BootLoading } from './BootScreen'
+import { BootError, BootLoading, BootResumeChoice } from './BootScreen'
 
 export function TrackerApp() {
   const { token: shareToken } = useParams<{ token?: string }>()
@@ -39,6 +45,7 @@ export function TrackerApp() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [ready, setReady] = useState(false)
   const [bootError, setBootError] = useState<string | null>(null)
+  const [resumeChoice, setResumeChoice] = useState<string | null>(null)
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
@@ -47,7 +54,6 @@ export function TrackerApp() {
   useEffect(() => {
     let cancelled = false
     async function boot() {
-      // Soft handoff: already activated for this token (publish or prior boot).
       if (
         shareToken &&
         (hydratedTokenRef.current === shareToken || getActiveCloudToken() === shareToken)
@@ -59,6 +65,7 @@ export function TrackerApp() {
 
       setBootError(null)
       setReady(false)
+      setResumeChoice(null)
       try {
         if (shareToken) {
           await cloudBudgetStore.boot(shareToken)
@@ -71,25 +78,27 @@ export function TrackerApp() {
         const wantImport = searchParams.get('import') === '1'
         const wantDemo = searchParams.get('demo') === '1'
         const wantNew = searchParams.get('new') === '1'
+        const wantResume = searchParams.get('resume') === '1'
 
-        // Import lives on the marketing home so cancel stays there.
         if (wantImport) {
           navigate('/?import=1', { replace: true })
           return
         }
 
-        // Resume: jump straight to the share URL instead of waiting on /app.
         if (!wantDemo && !wantNew) {
           const remembered = readRememberedShareToken()
           if (remembered) {
-            goToSharedBudget(remembered, navigate)
+            if (wantResume) {
+              goToSharedBudget(remembered, navigate)
+              return
+            }
+            setResumeChoice(remembered)
             return
           }
         }
 
         if (wantDemo || wantNew) {
           setSearchParams({}, { replace: true })
-          // Let BootLoading paint + start its bar before heavy IndexedDB work (iOS stalls otherwise).
           await new Promise<void>((resolve) => {
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
           })
@@ -110,7 +119,6 @@ export function TrackerApp() {
 
         const share = await ensureCloudBudget()
         if (cancelled) return
-        // Activate on local data, then soft-route so we don't remount into BootShell.
         await enterCloudBudget(share.token)
         if (cancelled) return
         hydratedTokenRef.current = share.token
@@ -136,13 +144,6 @@ export function TrackerApp() {
     showToast(message)
     celebrate()
   }, [ready])
-
-  useEffect(() => {
-    if (!ready || !cloudMode) return
-    if (isShareHintDismissed()) return
-    dismissShareHint()
-    showToast('Copy share link in the nav for your partner')
-  }, [ready, cloudMode])
 
   useEffect(() => {
     if (!ready || !cloudMode) return
@@ -198,7 +199,18 @@ export function TrackerApp() {
   const lineItems = useLiveQuery(() => db.lineItems.toArray(), [ready]) ?? []
   const attachments = useLiveQuery(() => db.attachments.toArray(), [ready]) ?? []
   const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [ready])
+  const cloudUpdated = useLiveQuery(() => db.meta.get(CLOUD_UPDATED_META), [ready])
   const site = parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE
+
+  useEffect(() => {
+    if (!ready) return
+    applyDocumentTitle(site.brandLeft, site.brandRight)
+  }, [ready, site.brandLeft, site.brandRight])
+
+  useEffect(() => {
+    if (!ready || !cloudUpdated?.value) return
+    noteCloudUpdatedAt(cloudUpdated.value)
+  }, [ready, cloudUpdated?.value])
 
   const allocated = sum(funds.map((f) => f.amount))
   const spent = expensesPaidTotal(lineItems)
@@ -217,6 +229,23 @@ export function TrackerApp() {
 
   if (bootError) return <BootError message={bootError} />
 
+  if (resumeChoice) {
+    return (
+      <BootResumeChoice
+        onResume={() => goToSharedBudget(resumeChoice, navigate)}
+        onStartNew={() => {
+          setResumeChoice(null)
+          navigate('/app?new=1', { replace: true })
+          window.location.assign('/app?new=1')
+        }}
+        onDemo={() => {
+          setResumeChoice(null)
+          window.location.assign('/app?demo=1')
+        }}
+      />
+    )
+  }
+
   if (!ready) return <BootLoading />
 
   const shareUrl = cloudMode ? window.location.href : undefined
@@ -229,6 +258,7 @@ export function TrackerApp() {
         allocated={allocated}
         spent={spent}
         remaining={remaining}
+        fundCount={funds.length}
         onAddExpense={() => setAdding(true)}
         onOpenCommands={() => setCmdOpen(true)}
         syncBanner={cloudMode}
@@ -236,7 +266,7 @@ export function TrackerApp() {
         overdueCount={overdueCount}
       />
       <Reveal>
-        <FundsSection site={site} funds={funds} />
+        <FundsSection site={site} funds={funds} syncBanner={cloudMode} />
       </Reveal>
       <Reveal delayMs={40}>
         <ExpenseGroups
@@ -245,6 +275,7 @@ export function TrackerApp() {
           lineItems={lineItems}
           attachments={attachments}
           allocated={allocated}
+          syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
           onAddExpense={() => setAdding(true)}
         />
@@ -254,11 +285,12 @@ export function TrackerApp() {
           categories={categories}
           lineItems={lineItems}
           weddingDate={site.weddingDate}
+          syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
         />
       </Reveal>
       <Reveal>
-        <BackupBar shareUrl={shareUrl} />
+        <BackupBar shareUrl={shareUrl} syncBanner={cloudMode} />
       </Reveal>
       <TrackerFooter />
 

@@ -116,3 +116,43 @@ export function BootError({ message }: { message: string }) {
     </BootShell>
   )
 }
+
+/** Explicit resume vs start when a share token was remembered. */
+export function BootResumeChoice({
+  onResume,
+  onStartNew,
+  onDemo,
+}: {
+  onResume: () => void
+  onStartNew: () => void
+  onDemo: () => void
+}) {
+  return (
+    <BootShell>
+      <BootArt kind="chest" />
+      <div className="flex flex-col items-center gap-3 sm:gap-3.5">
+        <p className="font-[family-name:var(--font-display)] text-[clamp(2.5rem,8vw,3.75rem)] leading-[0.95] tracking-[-0.03em] text-[var(--on-dark)]">
+          Welcome back
+        </p>
+        <p className="max-w-[22rem] text-[15px] leading-6 text-[color-mix(in_srgb,var(--on-dark)_62%,transparent)]">
+          We found a shared budget on this device. Resume it, or start fresh.
+        </p>
+      </div>
+      <div className="mt-2 flex w-full flex-col items-stretch gap-3 sm:max-w-[18rem]">
+        <button type="button" className="btn-primary w-full" onClick={onResume}>
+          Resume your budget
+        </button>
+        <button type="button" className="btn-nav w-full" onClick={onStartNew}>
+          Start new
+        </button>
+        <button
+          type="button"
+          className="py-2 text-sm font-medium text-[var(--on-dark-muted)] underline decoration-1 underline-offset-6 hover:text-[var(--on-dark)]"
+          onClick={onDemo}
+        >
+          Try a filled demo
+        </button>
+      </div>
+    </BootShell>
+  )
+}
