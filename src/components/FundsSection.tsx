@@ -20,7 +20,7 @@ export function FundsSection({ site, funds }: FundsSectionProps) {
   const allocated = sum(funds.map((f) => f.amount))
 
   return (
-    <section id="gift-summary" className="scroll-mt-24 bg-[var(--mist)] page-pad py-24">
+    <section id="gift-summary" className="scroll-mt-24 overflow-x-clip bg-[var(--mist)] page-pad py-24">
       <div className="page-shell">
         <div className="max-w-[560px]">
           <EditableText
@@ -179,7 +179,7 @@ function FundRow({ fund }: { fund: Fund }) {
       <button
         type="button"
         aria-label={`Remove ${fund.label}`}
-        className="sr-only text-sm text-[var(--ink-faint)] group-focus-within:not-sr-only group-hover:not-sr-only hover:text-[var(--danger)]"
+        className="shrink-0 text-sm text-[var(--ink-faint)] hover:text-[var(--danger)]"
         onClick={async () => {
           const ok = await askConfirm({
             title: `Remove “${fund.label}”?`,

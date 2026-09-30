@@ -1,4 +1,7 @@
 {
   "default_lines": 300,
-  "files": {}
+  "files": {
+    "src/components/LineItemSheet.tsx": 340,
+    "src/components/DueCalendar.tsx": 340
+  }
 }

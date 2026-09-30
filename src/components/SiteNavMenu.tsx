@@ -10,9 +10,13 @@ type SiteNavMenuProps = {
   menuId: string
   sheetClass: string
   sections: readonly Section[]
+  shareUrl?: string
+  overdueCount?: number
   onJump: (href: string) => void
   onClose: () => void
   onImport: () => void
+  onCopyShare?: () => void
+  onOpenCommands?: () => void
 }
 
 export function SiteNavMenu({
@@ -20,9 +24,13 @@ export function SiteNavMenu({
   menuId,
   sheetClass,
   sections,
+  shareUrl,
+  overdueCount = 0,
   onJump,
   onClose,
   onImport,
+  onCopyShare,
+  onOpenCommands,
 }: SiteNavMenuProps) {
   return (
     <div
@@ -70,9 +78,37 @@ export function SiteNavMenu({
             </Link>
           </div>
         ) : (
-          <button type="button" onClick={onImport} className="btn-nav w-full">
-            Import backup
-          </button>
+          <div className="flex flex-col gap-3">
+            {onOpenCommands ? (
+              <button type="button" onClick={onOpenCommands} className="btn-nav w-full">
+                Search &amp; commands
+              </button>
+            ) : null}
+            {overdueCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => onJump('#calendar')}
+                className="btn-nav-demo w-full"
+              >
+                Review {overdueCount} overdue
+              </button>
+            ) : null}
+            {shareUrl && onCopyShare ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onCopyShare()
+                  onClose()
+                }}
+                className="btn-nav w-full"
+              >
+                Copy share link
+              </button>
+            ) : null}
+            <button type="button" onClick={onImport} className="btn-nav w-full">
+              Import backup
+            </button>
+          </div>
         )}
       </div>
     </div>

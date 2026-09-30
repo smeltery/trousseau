@@ -21,6 +21,68 @@ export function addMonths(year: number, month: number, delta: number): { year: n
   return { year: d.getFullYear(), month: d.getMonth() }
 }
 
+export function addDays(iso: string, delta: number): string {
+  const d = parseDateKey(iso)
+  d.setDate(d.getDate() + delta)
+  return toDateKey(d)
+}
+
+export function startOfWeek(iso: string): string {
+  const d = parseDateKey(iso)
+  d.setDate(d.getDate() - d.getDay())
+  return toDateKey(d)
+}
+
+export function weekDays(weekStart: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+}
+
+export function weekLabel(weekStart: string): string {
+  const end = addDays(weekStart, 6)
+  const a = parseDateKey(weekStart)
+  const b = parseDateKey(end)
+  const sameMonth = a.getMonth() === b.getMonth()
+  const sameYear = a.getFullYear() === b.getFullYear()
+  if (sameMonth) {
+    return `${a.toLocaleDateString('en-US', { month: 'long' })} ${a.getDate()}–${b.getDate()}, ${a.getFullYear()}`
+  }
+  if (sameYear) {
+    return `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${a.getFullYear()}`
+  }
+  return `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} – ${b.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+}
+
+export function monthShortLabel(year: number, month: number): string {
+  return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short' })
+}
+
+export type YearMonthTone = {
+  year: number
+  month: number
+  label: string
+  overdue: number
+  upcoming: number
+  paid: number
+  total: number
+}
+
+export function yearMonthTones(
+  items: LineItem[],
+  year: number,
+  today: string,
+): YearMonthTone[] {
+  return Array.from({ length: 12 }, (_, month) => {
+    const stats = monthDueStats(items, year, month, today)
+    return {
+      year,
+      month,
+      label: monthShortLabel(year, month),
+      ...stats,
+      total: stats.overdue + stats.upcoming + stats.paid,
+    }
+  })
+}
+
 export function monthLabel(year: number, month: number): string {
   return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
@@ -60,7 +122,7 @@ export function groupByDueDate(items: LineItem[]): Map<string, LineItem[]> {
 }
 
 /** Unpaid dues on or before today, then upcoming unpaid, then paid in range. */
-export function agendaItems(items: LineItem[], today: string, limit = 8): LineItem[] {
+export function agendaItems(items: LineItem[], today: string, limit = 24): LineItem[] {
   const dated = itemsWithDueDates(items)
   const unpaid = dated.filter((i) => i.status !== 'paid')
   const overdue = unpaid

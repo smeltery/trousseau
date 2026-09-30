@@ -67,21 +67,12 @@ export function BackupSection() {
           <p className="max-w-sm font-[family-name:var(--font-display)] text-[clamp(1.35rem,3vw,1.5rem)] leading-snug tracking-tight text-[var(--ink)]">
             Copy the share link for your partner. Export a zip for yourself.
           </p>
-          <div className="flex flex-col items-start gap-3 sm:items-end">
-            <Link
-              to="/app"
-              className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
-            >
-              Open tracker
-            </Link>
-            <a
-              href="/samples/sample-wedding.zip"
-              download="sample-wedding.zip"
-              className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
-            >
-              Download sample wedding
-            </a>
-          </div>
+          <Link
+            to="/app"
+            className="shrink-0 text-sm font-semibold tracking-wide text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
+          >
+            Open tracker
+          </Link>
         </div>
       </div>
     </section>

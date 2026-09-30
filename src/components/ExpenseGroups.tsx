@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Attachment, Category, LineItem } from '../db/types'
 import { GROUP_ORDER, groupCategories } from '../lib/budget'
+import { isOverdue, todayKey } from '../lib/calendar'
 import { expensesRunningTotal } from '../lib/expense-display'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
 import { SettlingMoney } from './SettlingMoney'
+
+type ExpenseFilter = 'all' | 'unpaid' | 'overdue'
 
 interface ExpenseGroupsProps {
   site: SiteSettings
@@ -17,6 +20,12 @@ interface ExpenseGroupsProps {
   onAddExpense: () => void
 }
 
+const FILTERS: { id: ExpenseFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unpaid', label: 'Unpaid' },
+  { id: 'overdue', label: 'Overdue' },
+]
+
 export function ExpenseGroups({
   site,
   categories,
@@ -26,11 +35,19 @@ export function ExpenseGroups({
   onOpenItem,
   onAddExpense,
 }: ExpenseGroupsProps) {
+  const today = todayKey()
+  const [filter, setFilter] = useState<ExpenseFilter>('all')
   const runningTotal = expensesRunningTotal(categories, lineItems)
   const moneyLeft = allocated - runningTotal
   const over = moneyLeft < 0
   const seenIds = useRef(new Set(lineItems.map((i) => i.id)))
   const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
+
+  const visibleItems = lineItems.filter((item) => {
+    if (filter === 'unpaid') return item.status !== 'paid'
+    if (filter === 'overdue') return isOverdue(item, today)
+    return true
+  })
 
   useEffect(() => {
     const fresh = new Set<string>()
@@ -49,11 +66,11 @@ export function ExpenseGroups({
   return (
     <section
       id="expenses"
-      className="relative scroll-mt-24 border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24"
+      className="relative scroll-mt-24 overflow-x-clip border-t border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--grove)_4%,transparent)] page-pad py-24"
     >
       <div className="page-shell">
-        <div className="mb-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-[560px]">
+        <div className="mb-10 flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 max-w-[560px] flex-1">
             <EditableText
               aria-label="Expenses section eyebrow"
               value={site.expensesEyebrow}
@@ -83,6 +100,29 @@ export function ExpenseGroups({
           </button>
         </div>
 
+        <div
+          role="tablist"
+          aria-label="Expense filter"
+          className="mb-12 inline-flex border border-[var(--line-soft)] bg-[var(--paper)]"
+        >
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={filter === f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                filter === f.id
+                  ? 'bg-[var(--grove)] text-[var(--on-dark)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-16">
           {GROUP_ORDER.map((group) => (
             <ExpenseGroupBlock
@@ -95,9 +135,11 @@ export function ExpenseGroups({
                 })
               }
               cats={groupCategories(categories, group)}
-              lineItems={lineItems}
+              lineItems={visibleItems}
+              allLineItems={lineItems}
               attachments={attachments}
               enteringIds={enteringIds}
+              filterActive={filter !== 'all'}
               onOpenItem={onOpenItem}
             />
           ))}

@@ -2,16 +2,20 @@ import archiveUrl from '../../assets/marketing-archive.png'
 import calendarUrl from '../../assets/marketing-calendar.png'
 import chestUrl from '../../assets/marketing-chest.png'
 import envelopeUrl from '../../assets/marketing-envelope.png'
+import folioUrl from '../../assets/marketing-folio.png'
 import keyUrl from '../../assets/marketing-key.png'
 import nameplateUrl from '../../assets/marketing-nameplate.png'
+import purseUrl from '../../assets/marketing-purse.png'
 
 const arts = {
   archive: archiveUrl,
   calendar: calendarUrl,
   chest: chestUrl,
   envelope: envelopeUrl,
+  folio: folioUrl,
   key: keyUrl,
   nameplate: nameplateUrl,
+  purse: purseUrl,
 } as const
 
 export type MarketingArtKind = keyof typeof arts

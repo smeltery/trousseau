@@ -146,6 +146,7 @@ a:focus-visible .logo-ring-gold {
 
 .logo-lockup {
   gap: 0.4rem;
+  line-height: 1;
 }
 
 @keyframes grain-shift {
@@ -204,10 +205,10 @@ a:focus-visible .logo-ring-gold {
 
 @keyframes boot-bar {
   0% {
-    transform: translateX(-120%);
+    transform: translate3d(-120%, 0, 0);
   }
   100% {
-    transform: translateX(280%);
+    transform: translate3d(280%, 0, 0);
   }
 }
 
@@ -270,6 +271,17 @@ a:focus-visible .logo-ring-gold {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Keep essential busy indicators moving so load state stays visible. */
+  .boot-progress-fill,
+  .boot-art-float {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .boot-art-float {
+    animation-duration: 6.5s !important;
   }
 
   .reveal {
