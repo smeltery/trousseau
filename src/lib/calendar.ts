@@ -1,4 +1,20 @@
 import type { LineItem } from '../db/types'
+import {
+  dueDateKeys,
+  earliestDueDate,
+  remainingDue,
+} from './calendar-dues'
+
+export {
+  cashDueInRange,
+  cashDueThisMonth,
+  cashDueThisWeek,
+  dueDateKeys,
+  earliestDueDate,
+  remainingDue,
+} from './calendar-dues'
+
+export { buildDueDatesIcs } from './calendar-ics'
 
 /** Local calendar day key YYYY-MM-DD (noon to avoid TZ edge cases). */
 export function toDateKey(d: Date): string {
@@ -66,11 +82,7 @@ export type YearMonthTone = {
   total: number
 }
 
-export function yearMonthTones(
-  items: LineItem[],
-  year: number,
-  today: string,
-): YearMonthTone[] {
+export function yearMonthTones(items: LineItem[], year: number, today: string): YearMonthTone[] {
   return Array.from({ length: 12 }, (_, month) => {
     const stats = monthDueStats(items, year, month, today)
     return {
@@ -104,16 +116,17 @@ export function monthCells(year: number, month: number): MonthCell[] {
 }
 
 export function itemsWithDueDates(items: LineItem[]): LineItem[] {
-  return items.filter((i) => Boolean(i.dueDate))
+  return items.filter((i) => dueDateKeys(i).length > 0)
 }
 
 export function groupByDueDate(items: LineItem[]): Map<string, LineItem[]> {
   const map = new Map<string, LineItem[]>()
   for (const item of itemsWithDueDates(items)) {
-    const key = item.dueDate!
-    const list = map.get(key) ?? []
-    list.push(item)
-    map.set(key, list)
+    for (const key of dueDateKeys(item)) {
+      const list = map.get(key) ?? []
+      list.push(item)
+      map.set(key, list)
+    }
   }
   for (const list of map.values()) {
     list.sort((a, b) => a.label.localeCompare(b.label))
@@ -128,14 +141,14 @@ export function agendaItems(items: LineItem[], today: string, limit = 24): LineI
 
 export function overdueAgendaItems(items: LineItem[], today: string): LineItem[] {
   return itemsWithDueDates(items)
-    .filter((i) => i.status !== 'paid' && i.dueDate! < today)
-    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
+    .filter((i) => isOverdue(i, today))
+    .sort((a, b) => (earliestDueDate(a) ?? '').localeCompare(earliestDueDate(b) ?? ''))
 }
 
 export function upcomingAgendaItems(items: LineItem[], today: string, limit = 24): LineItem[] {
   return itemsWithDueDates(items)
-    .filter((i) => i.status !== 'paid' && i.dueDate! >= today)
-    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
+    .filter((i) => i.status !== 'paid' && remainingDue(i) > 0 && !isOverdue(i, today))
+    .sort((a, b) => (earliestDueDate(a) ?? '').localeCompare(earliestDueDate(b) ?? ''))
     .slice(0, limit)
 }
 
@@ -143,26 +156,42 @@ export function upcomingAgendaItems(items: LineItem[], today: string, limit = 24
 export function dueThisWeekItems(items: LineItem[], today: string): LineItem[] {
   const end = addDays(today, 6)
   return itemsWithDueDates(items)
-    .filter((i) => i.status !== 'paid' && i.dueDate! >= today && i.dueDate! <= end)
-    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
+    .filter(
+      (i) =>
+        i.status !== 'paid' &&
+        remainingDue(i) > 0 &&
+        dueDateKeys(i).some((d) => d >= today && d <= end),
+    )
+    .sort((a, b) => (earliestDueDate(a) ?? '').localeCompare(earliestDueDate(b) ?? ''))
 }
 
 /** Money owed with no due date set. */
 export function undatedUnpaidItems(items: LineItem[]): LineItem[] {
   return items
-    .filter((i) => i.status !== 'paid' && !i.dueDate && !/^budget$/i.test(i.label.trim()))
+    .filter(
+      (i) => i.status !== 'paid' && dueDateKeys(i).length === 0 && !/^budget$/i.test(i.label.trim()),
+    )
     .sort((a, b) => a.label.localeCompare(b.label))
 }
 
+/** Unpaid with remaining balance and any due date before today. */
 export function isOverdue(item: LineItem, today: string): boolean {
-  return Boolean(item.dueDate && item.status !== 'paid' && item.dueDate < today)
+  if (item.status === 'paid' || remainingDue(item) <= 0) return false
+  return dueDateKeys(item).some((d) => d < today)
 }
 
 export type DayTone = 'empty' | 'paid' | 'due' | 'overdue'
 
 /** Strongest urgency among items due on a day. */
-export function dayTone(items: LineItem[], today: string): DayTone {
+export function dayTone(items: LineItem[], today: string, dateKey?: string): DayTone {
   if (!items.length) return 'empty'
+  if (dateKey) {
+    if (items.some((i) => i.status !== 'paid' && remainingDue(i) > 0 && dateKey < today)) {
+      return 'overdue'
+    }
+    if (items.some((i) => i.status !== 'paid')) return 'due'
+    return 'paid'
+  }
   if (items.some((i) => isOverdue(i, today))) return 'overdue'
   if (items.some((i) => i.status !== 'paid')) return 'due'
   return 'paid'
@@ -179,76 +208,12 @@ export function monthDueStats(
   let upcoming = 0
   let paid = 0
   for (const item of itemsWithDueDates(items)) {
-    if (!item.dueDate?.startsWith(prefix)) continue
-    if (item.status === 'paid') paid += 1
-    else if (item.dueDate < today) overdue += 1
-    else upcoming += 1
+    for (const date of dueDateKeys(item)) {
+      if (!date.startsWith(prefix)) continue
+      if (item.status === 'paid') paid += 1
+      else if (date < today) overdue += 1
+      else upcoming += 1
+    }
   }
   return { overdue, upcoming, paid }
-}
-
-function nextDateKey(iso: string): string {
-  const d = parseDateKey(iso)
-  d.setDate(d.getDate() + 1)
-  return toDateKey(d)
-}
-
-function icsEscape(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
-}
-
-function icsStamp(d = new Date()): string {
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-}
-
-/** Build an .ics calendar of expense due dates for Apple / Google / Outlook. */
-export function buildDueDatesIcs(
-  items: LineItem[],
-  categoryName: (categoryId: string) => string,
-): string {
-  const dated = itemsWithDueDates(items).sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
-  const stamp = icsStamp()
-  const events = dated.map((item) => {
-    const start = item.dueDate!.replace(/-/g, '')
-    const end = nextDateKey(item.dueDate!).replace(/-/g, '')
-    const cat = categoryName(item.categoryId)
-    const summary = icsEscape(`${cat}: ${item.label}`)
-    const desc = icsEscape(
-      [`Amount: ${item.amount}`, `Paid: ${item.paidAmount}`, `Status: ${item.status}`, item.notes?.trim()]
-        .filter(Boolean)
-        .join('\n'),
-    )
-    const alarm =
-      item.status === 'paid'
-        ? []
-        : [
-            'BEGIN:VALARM',
-            'ACTION:DISPLAY',
-            `DESCRIPTION:${summary}`,
-            'TRIGGER:-P1D',
-            'END:VALARM',
-          ]
-    return [
-      'BEGIN:VEVENT',
-      `UID:${item.id}@trousseau.app`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART;VALUE=DATE:${start}`,
-      `DTEND;VALUE=DATE:${end}`,
-      `SUMMARY:${summary}`,
-      `DESCRIPTION:${desc}`,
-      item.status === 'paid' ? 'STATUS:CONFIRMED' : 'STATUS:TENTATIVE',
-      ...alarm,
-      'END:VEVENT',
-    ].join('\r\n')
-  })
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Trousseau//Budget Due Dates//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'X-WR-CALNAME:Trousseau due dates',
-    ...events,
-    'END:VCALENDAR',
-  ].join('\r\n')
 }

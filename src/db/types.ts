@@ -3,6 +3,13 @@ export type CategoryGroup = 'venue' | 'vendor' | 'reimbursement'
 export type LineStatus = 'planned' | 'deposit' | 'partial' | 'paid'
 export type AttachmentKind = 'file' | 'link'
 
+export interface PaymentStub {
+  id: string
+  amount: number
+  /** YYYY-MM-DD */
+  date: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -13,6 +20,8 @@ export interface Fund {
   source?: string
   /** When the gift or savings was received (YYYY-MM-DD). */
   receivedDate?: string
+  /** Gift thank-you sent (optional). */
+  thanked?: boolean
 }
 
 export interface Category {
@@ -33,6 +42,18 @@ export interface LineItem {
   notes?: string
   /** Vendor site or booking link (optional). */
   vendorUrl?: string
+  /** Balance remaining due date (deposit vs final). */
+  remainingBalanceDueDate?: string
+  /** Dated payment stubs when recording payments. */
+  payments?: PaymentStub[]
+  /** Reimbursement expected-back date. */
+  expectedBackDate?: string
+  /** Reimbursement marked received. */
+  backReceived?: boolean
+  /** Days before wedding for dueDate (positive = before). */
+  dueOffsetDays?: number
+  /** Days before wedding for remainingBalanceDueDate. */
+  balanceOffsetDays?: number
   sort: number
 }
 
@@ -53,9 +74,9 @@ export interface Meta {
   value: string
 }
 
-/** Backup / cloud snapshot shape. v1 and v2 are both accepted on import. */
+/** Backup / cloud snapshot shape. v1–v3 accepted on import. */
 export interface BackupPayload {
-  version: 1 | 2
+  version: 1 | 2 | 3
   exportedAt: string
   funds: Fund[]
   categories: Category[]

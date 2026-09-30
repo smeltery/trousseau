@@ -19,6 +19,13 @@ import {
   setActiveCloudToken,
 } from './session'
 import { clearPendingEdits, hasUnsyncedEdits, setSyncStatus } from '../sync-status'
+import { showToast } from '../toast'
+import {
+  diffPartnerLabels,
+  formatPartnerChangesMessage,
+  labelsFromRows,
+  type LabelSnapshot,
+} from '../ux/partner-changes'
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 let pushing = false
@@ -36,6 +43,17 @@ function snapshotToAttachments(snapshot: CloudSnapshot): Attachment[] {
     size: att.size,
     createdAt: att.createdAt,
   }))
+}
+
+async function captureLocalLabels(): Promise<LabelSnapshot> {
+  const [expenses, funds] = await Promise.all([db.lineItems.toArray(), db.funds.toArray()])
+  return labelsFromRows(expenses, funds)
+}
+
+function announcePartnerChanges(before: LabelSnapshot, remote: CloudSnapshot): void {
+  const after = labelsFromRows(remote.lineItems, remote.funds)
+  const msg = formatPartnerChangesMessage(diffPartnerLabels(before, after))
+  showToast(msg ?? 'Shared budget updated')
 }
 
 /** Load shared budget into IndexedDB and activate cloud session. */
@@ -138,7 +156,8 @@ export async function pushCloudBudget(): Promise<void> {
   }
 }
 
-async function applyRemote(token: string, remote: CloudSnapshot): Promise<void> {
+async function applyRemote(token: string, remote: CloudSnapshot, announce: boolean): Promise<void> {
+  const before = announce ? await captureLocalLabels() : null
   pullPaused = true
   try {
     await applyBackupPayload(remote, snapshotToAttachments(remote))
@@ -148,6 +167,7 @@ async function applyRemote(token: string, remote: CloudSnapshot): Promise<void> 
   } finally {
     pullPaused = false
   }
+  if (before) announcePartnerChanges(before, remote)
 }
 
 /** Pull server snapshot if newer (focus / visibility). Blocks silent overwrite when dirty. */
@@ -174,7 +194,7 @@ export async function pullCloudBudgetIfStale(): Promise<boolean> {
         return false
       }
       if (choice === 'secondary') {
-        await applyRemote(token, remote)
+        await applyRemote(token, remote, true)
         return true
       }
       return false
@@ -183,6 +203,6 @@ export async function pullCloudBudgetIfStale(): Promise<boolean> {
     }
   }
 
-  await applyRemote(token, remote)
+  await applyRemote(token, remote, true)
   return true
 }

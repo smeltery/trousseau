@@ -5,6 +5,12 @@ export type CategoryGroup = 'venue' | 'vendor' | 'reimbursement'
 export type LineStatus = 'planned' | 'deposit' | 'partial' | 'paid'
 export type AttachmentKind = 'file' | 'link'
 
+export interface PaymentStub {
+  id: string
+  amount: number
+  date: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -13,6 +19,7 @@ export interface Fund {
   sort: number
   source?: string
   receivedDate?: string
+  thanked?: boolean
 }
 
 export interface Category {
@@ -32,6 +39,12 @@ export interface LineItem {
   dueDate?: string
   notes?: string
   vendorUrl?: string
+  remainingBalanceDueDate?: string
+  payments?: PaymentStub[]
+  expectedBackDate?: string
+  backReceived?: boolean
+  dueOffsetDays?: number
+  balanceOffsetDays?: number
   sort: number
 }
 
@@ -49,7 +62,7 @@ export interface AttachmentMeta {
 }
 
 export interface BackupPayload {
-  version: 1 | 2
+  version: 1 | 2 | 3
   exportedAt: string
   funds: Fund[]
   categories: Category[]

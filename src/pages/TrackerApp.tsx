@@ -30,7 +30,7 @@ import {
 import { applyDocumentTitle } from '../lib/ux/document-title'
 import { useCloudFocusAndUnload } from '../lib/ux/cloud-focus'
 import { dbWrite } from '../lib/db-write'
-import { expensesPaidTotal, expensesRunningTotal } from '../lib/expense-display'
+import { expensesPaidTotal, expensesRunningTotal, orderedExpenseIds } from '../lib/expense-display'
 import { isOverdue, todayKey, undatedUnpaidItems } from '../lib/calendar'
 import { sum } from '../lib/money'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
@@ -230,7 +230,7 @@ export function TrackerApp() {
   const shareUrl = cloudMode ? window.location.href : undefined
   const overdueCount = lineItems.filter((i) => isOverdue(i, todayKey())).length
   const undatedUnpaidCount = undatedUnpaidItems(lineItems).length
-
+  const expenseSiblingIds = orderedExpenseIds(categories, lineItems)
   return (
     <div className="relative">
       <SkipToMain />
@@ -273,11 +273,11 @@ export function TrackerApp() {
         <DueCalendar
           categories={categories}
           lineItems={lineItems}
-          weddingDate={site.weddingDate}
+          weddingDate={site.weddingDate} coupleNames={`${site.brandLeft} & ${site.brandRight}`}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
-          onAddExpense={(dueDate) => {
-            setAddDueDate(dueDate)
+          onAddExpense={(d) => {
+            setAddDueDate(d)
             setAdding(true)
           }}
         />
@@ -297,6 +297,7 @@ export function TrackerApp() {
       {openItemId ? (
         <LineItemSheet
           lineItemId={openItemId}
+          siblingIds={expenseSiblingIds}
           onClose={() => setOpenItemId(null)}
           onOpenItem={setOpenItemId}
         />
@@ -319,6 +320,7 @@ export function TrackerApp() {
         open={cmdOpen}
         onOpenChange={setCmdOpen}
         shareUrl={shareUrl}
+        weddingDate={site.weddingDate}
         lineItems={lineItems}
         categories={categories}
         funds={funds}

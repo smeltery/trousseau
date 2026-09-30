@@ -72,15 +72,19 @@ export function canMarkPaid(item: LineItem): boolean {
   return item.amount > 0
 }
 
-/** Apply an incremental payment; promotes status to partial/deposit/paid. */
+/** Apply an incremental payment; promotes status to partial/deposit/paid and appends a stub. */
 export function recordPaymentPatch(item: LineItem, payment: number): Partial<LineItem> | null {
   if (!(payment > 0)) return null
   const paidAmount = Math.round((item.paidAmount + payment) * 100) / 100
+  const payments = [
+    ...(item.payments ?? []),
+    { id: crypto.randomUUID().slice(0, 8), amount: payment, date: todayKey() },
+  ]
   if (item.amount > 0 && paidAmount >= item.amount) {
-    return { status: 'paid', paidAmount: item.amount }
+    return { status: 'paid', paidAmount: item.amount, payments }
   }
   const status = item.status === 'planned' && item.paidAmount === 0 ? 'deposit' : 'partial'
-  return { status, paidAmount }
+  return { status, paidAmount, payments }
 }
 
 export function daysUntil(iso: string, today = todayKey()): number {
@@ -97,4 +101,14 @@ export function weddingCountdown(iso: string | undefined, today = todayKey()): s
   if (days > 1) return `${days} days to go`
   if (days === -1) return '1 day ago'
   return `${Math.abs(days)} days ago`
+}
+
+/** Non-budget expense ids ordered by category.sort then item.sort. */
+export function orderedExpenseIds(categories: Category[], lineItems: LineItem[]): string[] {
+  return categories.flatMap((cat) =>
+    lineItems
+      .filter((i) => i.categoryId === cat.id && !/^budget$/i.test(i.label.trim()))
+      .sort((a, b) => a.sort - b.sort)
+      .map((i) => i.id),
+  )
 }

@@ -15,6 +15,7 @@ import { duplicateExpense } from './ux/duplicate-expense'
 
 export type CommandContext = {
   shareUrl?: string
+  weddingDate?: string
   lineItems: LineItem[]
   categories: Category[]
   funds: Fund[]
@@ -211,17 +212,14 @@ export function buildCommands(ctx: CommandContext): CommandItem[] {
       group: 'Calendar',
       keywords: 'apple google outlook calendar',
       run: () => {
-        if (dated.length === 0) {
+        if (dated.length === 0 && !ctx.weddingDate) {
           showToast('Add due dates to expenses first')
           return
         }
-        downloadBlob(
-          new Blob(
-            [buildDueDatesIcs(ctx.lineItems, (id) => catName.get(id) ?? 'Expense')],
-            { type: 'text/calendar;charset=utf-8' },
-          ),
-          'trousseau-due-dates.ics',
-        )
+        const ics = buildDueDatesIcs(ctx.lineItems, (id) => catName.get(id) ?? 'Expense', {
+          weddingDate: ctx.weddingDate,
+        })
+        downloadBlob(new Blob([ics], { type: 'text/calendar;charset=utf-8' }), 'trousseau-due-dates.ics')
         showToast('Calendar file downloaded')
       },
     },
@@ -240,6 +238,20 @@ export function buildCommands(ctx: CommandContext): CommandItem[] {
       },
     },
   ]
+
+  if (ctx.weddingDate) {
+    const date = ctx.weddingDate
+    commands.push({
+      id: 'jump-wedding',
+      label: 'Jump to wedding day',
+      group: 'Calendar',
+      keywords: 'ceremony date countdown',
+      run: () => {
+        jump('calendar')
+        window.dispatchEvent(new CustomEvent('trousseau:select-date', { detail: { date } }))
+      },
+    })
+  }
 
   for (const item of [...ctx.lineItems].sort((a, b) => a.label.localeCompare(b.label))) {
     const category = catName.get(item.categoryId) ?? 'Expense'

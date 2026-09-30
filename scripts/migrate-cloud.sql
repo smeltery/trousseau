@@ -70,3 +70,12 @@ CREATE INDEX IF NOT EXISTS attachments_budget_idx ON attachments (budget_id);
 ALTER TABLE funds ADD COLUMN IF NOT EXISTS source TEXT;
 ALTER TABLE funds ADD COLUMN IF NOT EXISTS received_date TEXT;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS vendor_url TEXT;
+
+-- Backup payload v3: thank-yous, payment stubs, balance / reimbursement dates, offsets.
+ALTER TABLE funds ADD COLUMN IF NOT EXISTS thanked BOOLEAN;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS remaining_balance_due_date TEXT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS payments TEXT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS expected_back_date TEXT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS back_received BOOLEAN;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS due_offset_days INT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS balance_offset_days INT;

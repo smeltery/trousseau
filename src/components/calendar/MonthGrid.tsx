@@ -9,6 +9,7 @@ export function MonthGrid({
   byDate,
   today,
   selected,
+  weddingDate,
   onSelect,
   onOpenItem,
 }: {
@@ -16,6 +17,7 @@ export function MonthGrid({
   byDate: Map<string, LineItem[]>
   today: string
   selected: string | null
+  weddingDate?: string
   onSelect: (key: string) => void
   onOpenItem: (id: string) => void
 }) {
@@ -52,8 +54,9 @@ export function MonthGrid({
           )
         }
         const dues = byDate.get(cell.key) ?? []
-        const tone = dayTone(dues, today)
+        const tone = dayTone(dues, today, cell.key)
         const isToday = cell.key === today
+        const isWedding = Boolean(weddingDate && cell.key === weddingDate)
         const isSelected = cell.key === selected
         const dateKey = cell.key
         const dayIndex = dayKeys.indexOf(dateKey)
@@ -63,6 +66,7 @@ export function MonthGrid({
             key={dateKey}
             role="gridcell"
             aria-selected={isSelected}
+            aria-label={isWedding ? `Wedding day ${dateKey}` : undefined}
             onClick={() => onSelect(dateKey)}
             onDragOver={drop.onDragOver}
             onDrop={drop.onDrop}
@@ -91,18 +95,30 @@ export function MonthGrid({
             tabIndex={dateKey === focusKey ? 0 : -1}
             className={`flex min-h-[5.5rem] cursor-pointer flex-col gap-1 p-1.5 text-left transition-[box-shadow,filter] hover:brightness-[0.97] sm:min-h-[6.5rem] sm:p-2 ${TONE_CELL[tone]} ${
               isSelected ? 'ring-2 ring-inset ring-[var(--accent-deep)]' : ''
-            } ${isToday ? 'shadow-[inset_0_0_0_1px_var(--lichen)]' : ''}`}
+            } ${isToday ? 'shadow-[inset_0_0_0_1px_var(--lichen)]' : ''} ${
+              isWedding && !isSelected ? 'ring-1 ring-inset ring-[var(--accent-deep)]' : ''
+            }`}
           >
-            <span
-              className={`text-sm tabular-nums ${
-                isToday
-                  ? 'font-semibold text-[var(--lichen)]'
-                  : tone === 'overdue'
-                    ? 'font-semibold text-[var(--danger)]'
-                    : 'text-[var(--ink-muted)]'
-              }`}
-            >
-              {cell.day}
+            <span className="flex items-center gap-1">
+              <span
+                className={`text-sm tabular-nums ${
+                  isToday
+                    ? 'font-semibold text-[var(--lichen)]'
+                    : tone === 'overdue'
+                      ? 'font-semibold text-[var(--danger)]'
+                      : 'text-[var(--ink-muted)]'
+                }`}
+              >
+                {cell.day}
+              </span>
+              {isWedding ? (
+                <span
+                  aria-hidden
+                  className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full text-[8px] font-bold tracking-tight text-[var(--accent-deep)] ring-1 ring-[var(--accent-deep)]"
+                >
+                  W
+                </span>
+              ) : null}
             </span>
             <span className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
               {dues.slice(0, 2).map((item) => (

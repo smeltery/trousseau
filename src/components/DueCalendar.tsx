@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Category, LineItem } from '../db/types'
 import {
   addDays,
@@ -20,6 +20,7 @@ import { formatDue, weddingCountdown } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
 import { CalendarAgenda, CalendarStatsLegend } from './calendar/CalendarAgenda'
+import { CashDueStrip } from './calendar/CashDueStrip'
 import { MonthGrid } from './calendar/MonthGrid'
 import { WeekGrid } from './calendar/WeekGrid'
 import { YearGrid } from './calendar/YearGrid'
@@ -29,6 +30,7 @@ interface DueCalendarProps {
   categories: Category[]
   lineItems: LineItem[]
   weddingDate?: string
+  coupleNames?: string
   syncBanner?: boolean
   onOpenItem: (id: string) => void
   onAddExpense?: (dueDate?: string) => void
@@ -44,6 +46,7 @@ export function DueCalendar({
   categories,
   lineItems,
   weddingDate,
+  coupleNames,
   syncBanner = false,
   onOpenItem,
   onAddExpense,
@@ -94,12 +97,15 @@ export function DueCalendar({
   }
 
   function exportIcs() {
-    if (datedCount === 0) {
+    if (datedCount === 0 && !weddingDate) {
       showToast('Add due dates to expenses first')
       return
     }
     downloadBlob(
-      new Blob([buildDueDatesIcs(lineItems, categoryName)], { type: 'text/calendar;charset=utf-8' }),
+      new Blob(
+        [buildDueDatesIcs(lineItems, categoryName, { weddingDate, coupleNames })],
+        { type: 'text/calendar;charset=utf-8' },
+      ),
       'trousseau-due-dates.ics',
     )
     showToast('Calendar file downloaded')
@@ -111,6 +117,17 @@ export function DueCalendar({
     setCursor({ year: d.getFullYear(), month: d.getMonth() })
     setWeekStart(startOfWeek(key))
   }
+
+  useEffect(() => {
+    function onSelectDate(e: Event) {
+      const date = (e as CustomEvent<{ date?: string }>).detail?.date
+      if (!date) return
+      setView('month')
+      selectDay(date)
+    }
+    window.addEventListener('trousseau:select-date', onSelectDate)
+    return () => window.removeEventListener('trousseau:select-date', onSelectDate)
+  }, [])
 
   const navLabel =
     view === 'week'
@@ -170,8 +187,10 @@ export function DueCalendar({
           </button>
         </div>
 
-        <CalendarStatsLegend overdue={stats.overdue} upcoming={stats.upcoming} paid={stats.paid} />
-
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-5 sm:gap-y-2">
+          <CalendarStatsLegend overdue={stats.overdue} upcoming={stats.upcoming} paid={stats.paid} />
+          <CashDueStrip items={lineItems} today={today} />
+        </div>
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16">
           <div>
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -242,6 +261,7 @@ export function DueCalendar({
                 byDate={byDate}
                 today={today}
                 selected={selected}
+                weddingDate={weddingDate}
                 onSelect={selectDay}
                 onOpenItem={onOpenItem}
               />
@@ -252,6 +272,7 @@ export function DueCalendar({
                 byDate={byDate}
                 today={today}
                 selected={selected}
+                weddingDate={weddingDate}
                 onSelect={selectDay}
                 onOpenItem={onOpenItem}
               />
