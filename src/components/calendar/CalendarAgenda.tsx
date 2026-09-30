@@ -168,7 +168,7 @@ export function CalendarStatsLegend({
   paid: number
 }) {
   return (
-    <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--ink-muted)]">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--ink-muted)]">
       <CalendarLegend swatch="bg-[var(--danger)]" label="Overdue" count={overdue} />
       <CalendarLegend swatch="bg-[var(--accent)]" label="Upcoming" count={upcoming} />
       <CalendarLegend swatch="bg-[var(--lichen)]" label="Paid" count={paid} />

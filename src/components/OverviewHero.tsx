@@ -4,6 +4,7 @@ import { dismissHint, isHintDismissed } from '../lib/ux/onboarding-hints'
 import { formatDue, weddingCountdown } from '../lib/expense-display'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { showToast } from '../lib/toast'
+import { recomputeWeddingAnchoredDues } from '../lib/ux/wedding-dues'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
 import { SiteNav } from './SiteNav'
@@ -187,8 +188,13 @@ export function OverviewHero({
                 value={site.weddingDate ?? ''}
                 onChange={(e) => {
                   const weddingDate = e.target.value || undefined
-                  void patchSiteSettings({ weddingDate })
-                  if (weddingDate) hideHint('date')
+                  void (async () => {
+                    await patchSiteSettings({ weddingDate })
+                    if (weddingDate) {
+                      await recomputeWeddingAnchoredDues(weddingDate)
+                      hideHint('date')
+                    }
+                  })()
                 }}
                 className="date-on-dark rounded-sm border border-[color-mix(in_srgb,var(--on-dark)_22%,transparent)] bg-transparent px-2 py-1 text-[var(--on-dark)] outline-none focus:border-[var(--accent)]"
               />

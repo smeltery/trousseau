@@ -3,7 +3,7 @@ import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { categoryDisplayTotals } from '../lib/expense-display'
-import { formatMoney } from '../lib/money'
+import { formatMoney, sum } from '../lib/money'
 import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
@@ -78,9 +78,12 @@ export function ExpenseGroupBlock({
             const items = lineItems
               .filter((i) => i.categoryId === cat.id)
               .sort((a, b) => a.sort - b.sort)
-            const totals = categoryDisplayTotals(
-              allLineItems.filter((i) => i.categoryId === cat.id),
+            const catAll = allLineItems.filter((i) => i.categoryId === cat.id)
+            const totals = categoryDisplayTotals(catAll)
+            const committed = sum(
+              catAll.filter((i) => !/^budget$/i.test(i.label.trim())).map((i) => i.amount),
             )
+            const envelopeLeft = totals.amount - committed
             const siblingCats = cats
             return (
               <div key={cat.id}>
@@ -155,6 +158,16 @@ export function ExpenseGroupBlock({
                   <p className="shrink-0 text-sm leading-[18px] tabular-nums text-[var(--ink-muted)]">
                     {formatMoney(totals.paid)} paid
                     {totals.amount > 0 ? ` · ${formatMoney(totals.amount)} budget` : ''}
+                    {totals.amount > 0 ? (
+                      <>
+                        {' · '}
+                        <span className={envelopeLeft < 0 ? 'text-[var(--danger)]' : ''}>
+                          {envelopeLeft < 0
+                            ? `${formatMoney(Math.abs(envelopeLeft))} over`
+                            : `${formatMoney(envelopeLeft)} left`}
+                        </span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <ul>

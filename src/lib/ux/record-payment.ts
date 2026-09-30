@@ -4,14 +4,18 @@ import { dbWrite } from '../db-write'
 import { recordPaymentPatch } from '../expense-display'
 import { dismissToast, showToast } from '../toast'
 
-/** Record a payment and offer undo restoring prior status/paidAmount. */
+/** Record a payment and offer undo restoring prior status/paidAmount/payments. */
 export async function recordPaymentWithUndo(
   item: LineItem,
   payment: number,
 ): Promise<Partial<LineItem> | null> {
   const patch = recordPaymentPatch(item, payment)
   if (!patch) return null
-  const prior = { status: item.status, paidAmount: item.paidAmount }
+  const prior = {
+    status: item.status,
+    paidAmount: item.paidAmount,
+    payments: item.payments,
+  }
   const result = await dbWrite(() => db.lineItems.update(item.id, patch))
   if (result === undefined) return null
   const id = showToast(patch.status === 'paid' ? 'Marked paid' : 'Payment recorded', {

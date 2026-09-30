@@ -1,10 +1,28 @@
 import { sql } from './db.js'
 import { deleteBlob } from './blob-store.js'
-import type { AttachmentMeta, BackupPayload, Category, CloudSnapshot, Fund, LineItem } from './types.js'
+import type {
+  AttachmentMeta,
+  BackupPayload,
+  Category,
+  CloudSnapshot,
+  Fund,
+  LineItem,
+  PaymentStub,
+} from './types.js'
 import { hashToken, newShareToken } from './token.js'
 
 function newBudgetId(): string {
   return `bud-${crypto.randomUUID().slice(0, 12)}`
+}
+
+function parsePayments(raw: string | null): PaymentStub[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw) as PaymentStub[]
+    return Array.isArray(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
 }
 
 export async function resolveBudgetId(token: string): Promise<string | null> {
@@ -68,10 +86,10 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
 
   for (const fund of payload.funds) {
     await sql`
-      INSERT INTO funds (id, budget_id, label, amount, type, sort, source, received_date)
+      INSERT INTO funds (id, budget_id, label, amount, type, sort, source, received_date, thanked)
       VALUES (
         ${fund.id}, ${budgetId}, ${fund.label}, ${fund.amount}, ${fund.type}, ${fund.sort},
-        ${fund.source ?? null}, ${fund.receivedDate ?? null}
+        ${fund.source ?? null}, ${fund.receivedDate ?? null}, ${fund.thanked ?? null}
       )
     `
   }
@@ -82,14 +100,19 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
     `
   }
   for (const item of payload.lineItems) {
+    const paymentsJson = item.payments?.length ? JSON.stringify(item.payments) : null
     await sql`
       INSERT INTO line_items (
-        id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort
+        id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
+        remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days, balance_offset_days
       )
       VALUES (
         ${item.id}, ${budgetId}, ${item.categoryId}, ${item.label}, ${item.amount},
         ${item.paidAmount}, ${item.status}, ${item.dueDate ?? null}, ${item.notes ?? null},
-        ${item.vendorUrl ?? null}, ${item.sort}
+        ${item.vendorUrl ?? null}, ${item.sort},
+        ${item.remainingBalanceDueDate ?? null}, ${paymentsJson},
+        ${item.expectedBackDate ?? null}, ${item.backReceived ?? null},
+        ${item.dueOffsetDays ?? null}, ${item.balanceOffsetDays ?? null}
       )
     `
   }
@@ -122,8 +145,9 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     sort: number
     source: string | null
     received_date: string | null
+    thanked: boolean | null
   }>`
-    SELECT id, label, amount, type, sort, source, received_date
+    SELECT id, label, amount, type, sort, source, received_date, thanked
     FROM funds WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const categories = await sql<Category & { budget_id: string }>`
@@ -140,8 +164,15 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     notes: string | null
     vendor_url: string | null
     sort: number
+    remaining_balance_due_date: string | null
+    payments: string | null
+    expected_back_date: string | null
+    back_received: boolean | null
+    due_offset_days: number | null
+    balance_offset_days: number | null
   }>`
-    SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort
+    SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
+      remaining_balance_due_date, payments, expected_back_date, back_received, due_offset_days, balance_offset_days
     FROM line_items WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const attachments = await sql<{
@@ -160,7 +191,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   `
 
   return {
-    version: 2,
+    version: 3,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,
@@ -172,6 +203,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
       sort: f.sort,
       source: f.source ?? undefined,
       receivedDate: f.received_date ?? undefined,
+      thanked: f.thanked ?? undefined,
     })),
     categories: categories.rows.map((c) => ({
       id: c.id,
@@ -190,6 +222,12 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
       notes: i.notes ?? undefined,
       vendorUrl: i.vendor_url ?? undefined,
       sort: i.sort,
+      remainingBalanceDueDate: i.remaining_balance_due_date ?? undefined,
+      payments: parsePayments(i.payments),
+      expectedBackDate: i.expected_back_date ?? undefined,
+      backReceived: i.back_received ?? undefined,
+      dueOffsetDays: i.due_offset_days ?? undefined,
+      balanceOffsetDays: i.balance_offset_days ?? undefined,
     })),
     attachments: attachments.rows.map(
       (a): AttachmentMeta => ({
@@ -251,7 +289,7 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
   if (!value || typeof value !== 'object') return false
   const v = value as BackupPayload
   return (
-    (v.version === 1 || v.version === 2) &&
+    (v.version === 1 || v.version === 2 || v.version === 3) &&
     Array.isArray(v.funds) &&
     Array.isArray(v.categories) &&
     Array.isArray(v.lineItems) &&

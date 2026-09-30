@@ -13,11 +13,17 @@ import { LineItemForm } from './expenses/LineItemForm'
 
 interface LineItemSheetProps {
   lineItemId: string
+  siblingIds?: string[]
   onClose: () => void
   onOpenItem?: (id: string) => void
 }
 
-export function LineItemSheet({ lineItemId, onClose, onOpenItem }: LineItemSheetProps) {
+export function LineItemSheet({
+  lineItemId,
+  siblingIds = [],
+  onClose,
+  onOpenItem,
+}: LineItemSheetProps) {
   const titleId = useId()
   const item = useLiveQuery(async () => {
     const row = await db.lineItems.get(lineItemId)
@@ -32,26 +38,41 @@ export function LineItemSheet({ lineItemId, onClose, onOpenItem }: LineItemSheet
       lineItemId,
     ]) ?? []
 
+  const idx = siblingIds.indexOf(lineItemId)
+  const prevId = idx > 0 ? siblingIds[idx - 1] : undefined
+  const nextId = idx >= 0 && idx < siblingIds.length - 1 ? siblingIds[idx + 1] : undefined
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (e.key === 'ArrowLeft' && prevId && onOpenItem) {
+        e.preventDefault()
+        onOpenItem(prevId)
+      }
+      if (e.key === 'ArrowRight' && nextId && onOpenItem) {
+        e.preventDefault()
+        onOpenItem(nextId)
+      }
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [onClose])
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, onOpenItem, prevId, nextId])
 
   if (item === undefined) {
     return (
-      <SheetShell titleId={titleId} onClose={onClose} title="Expense">
+      <SheetShell titleId={titleId} onClose={onClose} title="Expense" prevId={prevId} nextId={nextId} onOpenItem={onOpenItem}>
         <p className="text-[var(--ink-muted)]">Opening…</p>
       </SheetShell>
     )
   }
   if (item === null) {
     return (
-      <SheetShell titleId={titleId} onClose={onClose} title="Expense">
+      <SheetShell titleId={titleId} onClose={onClose} title="Expense" prevId={prevId} nextId={nextId} onOpenItem={onOpenItem}>
         <p className="text-[var(--ink-muted)]">This expense was removed.</p>
       </SheetShell>
     )
@@ -113,6 +134,9 @@ export function LineItemSheet({ lineItemId, onClose, onOpenItem }: LineItemSheet
       title={item.label}
       subtitle={category?.name}
       footer={footer}
+      prevId={prevId}
+      nextId={nextId}
+      onOpenItem={onOpenItem}
     >
       <LineItemForm key={item.id} item={item} />
       <div className="mt-10 border-t border-[var(--line)] pt-8">
@@ -129,6 +153,9 @@ function SheetShell({
   onClose,
   footer,
   children,
+  prevId,
+  nextId,
+  onOpenItem,
 }: {
   titleId: string
   title: string
@@ -136,6 +163,9 @@ function SheetShell({
   onClose: () => void
   footer?: ReactNode
   children: ReactNode
+  prevId?: string
+  nextId?: string
+  onOpenItem?: (id: string) => void
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   useDialogFocus(dialogRef)
@@ -169,13 +199,37 @@ function SheetShell({
               {title}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 text-sm text-[var(--ink-muted)] hover:text-[var(--ink)]"
-          >
-            Close
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {onOpenItem && (prevId || nextId) ? (
+              <span className="flex gap-1">
+                <button
+                  type="button"
+                  aria-label="Previous expense"
+                  disabled={!prevId}
+                  className="btn-ghost px-2 py-1 text-sm disabled:opacity-30"
+                  onClick={() => prevId && onOpenItem(prevId)}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next expense"
+                  disabled={!nextId}
+                  className="btn-ghost px-2 py-1 text-sm disabled:opacity-30"
+                  onClick={() => nextId && onOpenItem(nextId)}
+                >
+                  ›
+                </button>
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            >
+              Close
+            </button>
+          </div>
         </div>
         <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">{children}</div>
         {footer ? (

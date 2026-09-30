@@ -37,3 +37,20 @@ export async function bulkSetDueDate(items: LineItem[], dueDate: string): Promis
   showToast(`Set due date on ${targets.length}`)
   return targets.length
 }
+
+export async function bulkSetCategory(items: LineItem[], categoryId: string): Promise<number> {
+  const targets = items.filter((i) => i.categoryId !== categoryId)
+  if (!targets.length) {
+    showToast('Already in that category')
+    return 0
+  }
+  await dbWrite(() =>
+    db.transaction('rw', db.lineItems, async () => {
+      for (const item of targets) {
+        await db.lineItems.update(item.id, { categoryId })
+      }
+    }),
+  )
+  showToast(`Moved ${targets.length} to category`)
+  return targets.length
+}

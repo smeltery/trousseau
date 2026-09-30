@@ -4,6 +4,7 @@ import { GROUP_ORDER, groupCategories } from '../lib/budget'
 import { isOverdue, todayKey } from '../lib/calendar'
 import { expensesRunningTotal } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
+import { readHidePaid, writeHidePaid } from '../lib/ux/hide-paid'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
@@ -43,6 +44,7 @@ export function ExpenseGroups({
   const today = todayKey()
   const [filter, setFilter] = useState<ExpenseFilter>('all')
   const [query, setQuery] = useState('')
+  const [hidePaid, setHidePaid] = useState(readHidePaid)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [bulkDue, setBulkDue] = useState('')
   const runningTotal = expensesRunningTotal(categories, lineItems)
@@ -54,7 +56,9 @@ export function ExpenseGroups({
   const q = query.trim().toLowerCase()
 
   const visibleItems = lineItems.filter((item) => {
-    if (filter === 'unpaid') {
+    if (filter === 'all' && hidePaid) {
+      if (item.status === 'paid' && !/^budget$/i.test(item.label.trim())) return false
+    } else if (filter === 'unpaid') {
       if (item.status === 'paid') return false
     } else if (filter === 'overdue') {
       if (!isOverdue(item, today)) return false
@@ -66,7 +70,7 @@ export function ExpenseGroups({
     const hay = `${item.label} ${item.notes ?? ''} ${cat} ${item.vendorUrl ?? ''}`.toLowerCase()
     return hay.includes(q)
   })
-  const filterEmpty = (filter !== 'all' || q.length > 0) && visibleItems.length === 0
+  const filterEmpty = (filter !== 'all' || q.length > 0 || hidePaid) && visibleItems.length === 0
 
   useEffect(() => {
     setSelectedIds(new Set())
@@ -181,9 +185,24 @@ export function ExpenseGroups({
           </label>
         </div>
 
+        {filter === 'all' ? (
+          <label className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+            <input
+              type="checkbox"
+              checked={hidePaid}
+              onChange={(e) => {
+                setHidePaid(e.target.checked)
+                writeHidePaid(e.target.checked)
+              }}
+            />
+            Hide paid
+          </label>
+        ) : null}
+
         {selectMode ? (
           <ExpenseBulkBar
             selectedItems={selectedItems}
+            categories={categories}
             bulkDue={bulkDue}
             onBulkDueChange={setBulkDue}
             onClear={() => setSelectedIds(new Set())}
@@ -195,14 +214,14 @@ export function ExpenseGroups({
             <p className="font-[family-name:var(--font-display)] text-2xl tracking-[-0.02em]">
               Nothing matches
             </p>
-            <p className="mt-2 text-sm text-[var(--ink-muted)]">
-              Try another filter or clear the search.
-            </p>
+            <p className="mt-2 text-sm text-[var(--ink-muted)]">Try another filter or clear search.</p>
             <button
               type="button"
               onClick={() => {
                 setFilter('all')
                 setQuery('')
+                setHidePaid(false)
+                writeHidePaid(false)
               }}
               className="mt-5 text-sm font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-6 hover:text-[var(--ink)]"
             >
@@ -226,7 +245,7 @@ export function ExpenseGroups({
                 allLineItems={lineItems}
                 attachments={attachments}
                 enteringIds={enteringIds}
-                filterActive={filter !== 'all' || q.length > 0}
+                filterActive={filter !== 'all' || q.length > 0 || hidePaid}
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}

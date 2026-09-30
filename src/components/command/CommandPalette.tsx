@@ -13,6 +13,7 @@ type CommandPaletteProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   shareUrl?: string
+  weddingDate?: string
   lineItems: LineItem[]
   categories: Category[]
   funds: Fund[]
@@ -24,6 +25,7 @@ export function CommandPalette({
   open,
   onOpenChange,
   shareUrl,
+  weddingDate,
   lineItems,
   categories,
   funds,
@@ -55,6 +57,7 @@ export function CommandPalette({
     () =>
       buildCommands({
         shareUrl,
+        weddingDate,
         lineItems,
         categories,
         funds,
@@ -63,7 +66,7 @@ export function CommandPalette({
         onOpenItem,
         onImport: () => setImportOpen(true),
       }),
-    [shareUrl, lineItems, categories, funds, navigate, onAddExpense, onOpenItem],
+    [shareUrl, weddingDate, lineItems, categories, funds, navigate, onAddExpense, onOpenItem],
   )
   const filtered = useMemo(() => filterCommands(commands, query), [commands, query])
   const grouped = useMemo(

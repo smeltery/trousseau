@@ -9,6 +9,7 @@ export function WeekGrid({
   byDate,
   today,
   selected,
+  weddingDate,
   onSelect,
   onOpenItem,
 }: {
@@ -16,6 +17,7 @@ export function WeekGrid({
   byDate: Map<string, LineItem[]>
   today: string
   selected: string | null
+  weddingDate?: string
   onSelect: (key: string) => void
   onOpenItem: (id: string) => void
 }) {
@@ -30,8 +32,9 @@ export function WeekGrid({
       >
         {days.map((key, i) => {
           const dues = byDate.get(key) ?? []
-          const tone = dayTone(dues, today)
+          const tone = dayTone(dues, today, key)
           const isToday = key === today
+          const isWedding = Boolean(weddingDate && key === weddingDate)
           const isSelected = key === selected
           const d = parseDateKey(key)
           const drop = dayDropProps(key, () => onSelect(key))
@@ -40,6 +43,7 @@ export function WeekGrid({
               key={key}
               role="gridcell"
               aria-selected={isSelected}
+              aria-label={isWedding ? `Wedding day ${key}` : undefined}
               onClick={() => onSelect(key)}
               onDragOver={drop.onDragOver}
               onDrop={drop.onDrop}
@@ -60,11 +64,21 @@ export function WeekGrid({
               tabIndex={key === focusKey ? 0 : -1}
               className={`flex min-h-[9rem] cursor-pointer flex-col gap-1.5 p-2 text-left transition-[box-shadow,filter] hover:brightness-[0.97] sm:min-h-[14rem] sm:p-2.5 ${TONE_CELL[tone]} ${
                 isSelected ? 'ring-2 ring-inset ring-[var(--accent-deep)]' : ''
-              } ${isToday ? 'shadow-[inset_0_0_0_1px_var(--lichen)]' : ''}`}
+              } ${isToday ? 'shadow-[inset_0_0_0_1px_var(--lichen)]' : ''} ${
+                isWedding && !isSelected ? 'ring-1 ring-inset ring-[var(--accent-deep)]' : ''
+              }`}
             >
               <div className="flex items-baseline justify-between gap-1">
-                <span className="text-[10px] font-semibold tracking-[0.14em] text-[var(--ink-faint)] uppercase">
+                <span className="flex items-center gap-1 text-[10px] font-semibold tracking-[0.14em] text-[var(--ink-faint)] uppercase">
                   {WEEKDAYS[i]}
+                  {isWedding ? (
+                    <span
+                      aria-hidden
+                      className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full text-[8px] font-bold normal-case tracking-tight text-[var(--accent-deep)] ring-1 ring-[var(--accent-deep)]"
+                    >
+                      W
+                    </span>
+                  ) : null}
                 </span>
                 <span
                   className={`text-sm tabular-nums ${
