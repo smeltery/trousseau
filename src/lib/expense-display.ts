@@ -76,12 +76,13 @@ export function canMarkPaid(item: LineItem): boolean {
 export function recordPaymentPatch(
   item: LineItem,
   payment: number,
-  meta?: { note?: string; method?: string },
+  meta?: { note?: string; method?: string; fundId?: string },
 ): Partial<LineItem> | null {
   if (!(payment > 0)) return null
   const paidAmount = Math.round((item.paidAmount + payment) * 100) / 100
   const note = meta?.note?.trim() || undefined
   const method = meta?.method?.trim() || undefined
+  const fundId = meta?.fundId?.trim() || undefined
   const payments = [
     ...(item.payments ?? []),
     {
@@ -90,6 +91,7 @@ export function recordPaymentPatch(
       date: todayKey(),
       ...(note ? { note } : {}),
       ...(method ? { method } : {}),
+      ...(fundId ? { fundId } : {}),
     },
   ]
   if (item.amount > 0 && paidAmount >= item.amount) {

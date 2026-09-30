@@ -1,13 +1,14 @@
 import type { WhoPays } from '../../db/types'
 import type { SiteSettings } from '../../lib/site-settings'
 
-export type ExpenseFilter = 'all' | 'unpaid' | 'overdue' | 'undated' | 'reimburse'
+export type ExpenseFilter = 'all' | 'unpaid' | 'overdue' | 'dueSoon' | 'undated' | 'reimburse'
 export type WhoPaysFilter = 'all' | 'unset' | WhoPays
 
 const FILTERS: { id: ExpenseFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'unpaid', label: 'Unpaid' },
   { id: 'overdue', label: 'Overdue' },
+  { id: 'dueSoon', label: 'Due soon' },
   { id: 'undated', label: 'No due date' },
   { id: 'reimburse', label: 'Reimburse aging' },
 ]

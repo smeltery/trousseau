@@ -103,7 +103,8 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
       INSERT INTO line_items (
         id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
         remaining_balance_due_date, payments, installments, expected_back_date, back_received, due_offset_days,
-        balance_offset_days, who_pays
+        balance_offset_days, expected_back_offset_days, who_pays, who_pays_left, who_pays_right,
+        quoted_amount, per_guest_amount
       )
       VALUES (
         ${item.id}, ${budgetId}, ${item.categoryId}, ${item.label}, ${item.amount},
@@ -112,19 +113,21 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
         ${item.remainingBalanceDueDate ?? null}, ${paymentsJson}, ${installmentsJson},
         ${item.expectedBackDate ?? null}, ${item.backReceived ?? null},
         ${item.dueOffsetDays ?? null}, ${item.balanceOffsetDays ?? null},
-        ${item.whoPays ?? null}
+        ${item.expectedBackOffsetDays ?? null},
+        ${item.whoPays ?? null}, ${item.whoPaysLeft ?? null}, ${item.whoPaysRight ?? null},
+        ${item.quotedAmount ?? null}, ${item.perGuestAmount ?? null}
       )
     `
   }
   for (const att of payload.attachments) {
     await sql`
       INSERT INTO attachments (
-        id, budget_id, line_item_id, kind, name, url, mime, size, blob_pathname, created_at
+        id, budget_id, line_item_id, kind, name, url, mime, size, blob_pathname, role, created_at
       )
       VALUES (
         ${att.id}, ${budgetId}, ${att.lineItemId}, ${att.kind}, ${att.name},
         ${att.url ?? null}, ${att.mime ?? null}, ${att.size ?? null},
-        ${att.blobPathname ?? null}, ${att.createdAt}
+        ${att.blobPathname ?? null}, ${att.role ?? null}, ${att.createdAt}
       )
     `
   }
@@ -172,11 +175,17 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     back_received: boolean | null
     due_offset_days: number | null
     balance_offset_days: number | null
+    expected_back_offset_days: number | null
     who_pays: string | null
+    who_pays_left: number | null
+    who_pays_right: number | null
+    quoted_amount: number | null
+    per_guest_amount: number | null
   }>`
     SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort,
       remaining_balance_due_date, payments, installments, expected_back_date, back_received, due_offset_days,
-      balance_offset_days, who_pays
+      balance_offset_days, expected_back_offset_days, who_pays, who_pays_left, who_pays_right,
+      quoted_amount, per_guest_amount
     FROM line_items WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const attachments = await sql<{
@@ -188,14 +197,15 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     mime: string | null
     size: number | null
     blob_pathname: string | null
+    role: string | null
     created_at: string
   }>`
-    SELECT id, line_item_id, kind, name, url, mime, size, blob_pathname, created_at
+    SELECT id, line_item_id, kind, name, url, mime, size, blob_pathname, role, created_at
     FROM attachments WHERE budget_id = ${budgetId}
   `
 
   return {
-    version: 5,
+    version: 6,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,
@@ -212,12 +222,12 @@ export async function insertAttachment(
 ): Promise<void> {
   await sql`
     INSERT INTO attachments (
-      id, budget_id, line_item_id, kind, name, url, mime, size, blob_pathname, created_at
+      id, budget_id, line_item_id, kind, name, url, mime, size, blob_pathname, role, created_at
     )
     VALUES (
       ${att.id}, ${budgetId}, ${att.lineItemId}, ${att.kind}, ${att.name},
       ${att.url ?? null}, ${att.mime ?? null}, ${att.size ?? null},
-      ${att.blobPathname ?? null}, ${att.createdAt}
+      ${att.blobPathname ?? null}, ${att.role ?? null}, ${att.createdAt}
     )
   `
   await sql`UPDATE budgets SET updated_at = NOW() WHERE id = ${budgetId}`
@@ -250,7 +260,12 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
   if (!value || typeof value !== 'object') return false
   const v = value as BackupPayload
   return (
-    (v.version === 1 || v.version === 2 || v.version === 3 || v.version === 4) &&
+    (v.version === 1 ||
+      v.version === 2 ||
+      v.version === 3 ||
+      v.version === 4 ||
+      v.version === 5 ||
+      v.version === 6) &&
     Array.isArray(v.funds) &&
     Array.isArray(v.categories) &&
     Array.isArray(v.lineItems) &&

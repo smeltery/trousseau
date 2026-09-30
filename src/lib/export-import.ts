@@ -34,6 +34,7 @@ export async function buildBackupPayload(): Promise<{
       url: att.url,
       mime: att.mime,
       size: att.size,
+      role: att.role,
       createdAt: att.createdAt,
     }
     if (att.kind === 'file' && att.blob && !att.url) {
@@ -51,7 +52,7 @@ export async function buildBackupPayload(): Promise<{
 
   return {
     payload: {
-      version: 5,
+      version: 6,
       exportedAt: new Date().toISOString(),
       funds,
       categories,
@@ -63,8 +64,15 @@ export async function buildBackupPayload(): Promise<{
   }
 }
 
-function assertBackupVersion(version: unknown): asserts version is 1 | 2 | 3 | 4 | 5 {
-  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) {
+function assertBackupVersion(version: unknown): asserts version is 1 | 2 | 3 | 4 | 5 | 6 {
+  if (
+    version !== 1 &&
+    version !== 2 &&
+    version !== 3 &&
+    version !== 4 &&
+    version !== 5 &&
+    version !== 6
+  ) {
     throw new Error('Unsupported backup version')
   }
 }
@@ -123,6 +131,7 @@ export async function exportBackup(): Promise<Blob> {
       url: att.url,
       mime: att.mime,
       size: att.size,
+      role: att.role,
       createdAt: att.createdAt,
     }
     if (att.kind === 'file' && att.blob) {
@@ -135,7 +144,7 @@ export async function exportBackup(): Promise<Blob> {
   }
 
   const payload: BackupPayload = {
-    version: 5,
+    version: 6,
     exportedAt: new Date().toISOString(),
     funds,
     categories,
@@ -166,6 +175,7 @@ export async function importBackup(file: Blob): Promise<void> {
       url: att.url,
       mime: att.mime,
       size: att.size,
+      role: att.role,
       createdAt: att.createdAt,
     }
     if (att.kind === 'file' && att.filePath) {

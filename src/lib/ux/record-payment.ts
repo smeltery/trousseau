@@ -8,7 +8,7 @@ import { dismissToast, showToast } from '../toast'
 export async function recordPaymentWithUndo(
   item: LineItem,
   payment: number,
-  meta?: { note?: string; method?: string },
+  meta?: { note?: string; method?: string; fundId?: string },
 ): Promise<Partial<LineItem> | null> {
   const patch = recordPaymentPatch(item, payment, meta)
   if (!patch) return null

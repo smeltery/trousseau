@@ -6,19 +6,24 @@ import { dbWrite } from '../../lib/db-write'
 import { formatDue } from '../../lib/expense-display'
 import { formatMoney, parseMoneyInput } from '../../lib/money'
 import { showToast } from '../../lib/toast'
+import { installmentMismatch } from '../../lib/calendar-dues'
+import { recordPaymentWithUndo } from '../../lib/ux/record-payment'
 import { LineItemField } from './line-item-field'
 
 export function LineItemInstallmentsSection({
   item,
   onChange,
+  onPaid,
 }: {
   item: LineItem
   onChange: (next: InstallmentStub[]) => void
+  onPaid?: (patch: Partial<LineItem>) => void
 }) {
   const stubs = sortInstallments(item.installments ?? [])
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
   const [note, setNote] = useState('')
+  const mismatch = installmentMismatch(item)
 
   async function persist(next: InstallmentStub[]) {
     await dbWrite(() => db.lineItems.update(item.id, { installments: next.length ? next : undefined }))
@@ -33,6 +38,12 @@ export function LineItemInstallmentsSection({
       <p className="text-sm text-[var(--ink-faint)]">
         Extra dated amounts beyond deposit and remaining balance.
       </p>
+      {mismatch != null ? (
+        <p className="text-sm text-[var(--danger)]" role="status">
+          Installments total {formatMoney(Math.abs(mismatch))}{' '}
+          {mismatch > 0 ? 'more' : 'less'} than remaining due.
+        </p>
+      ) : null}
       {stubs.length > 0 ? (
         <ul className="divide-y divide-[var(--line-soft)] border border-[var(--line-soft)]">
           {stubs.map((inst) => (
@@ -41,16 +52,33 @@ export function LineItemInstallmentsSection({
                 {formatDue(inst.date)} · {formatMoney(inst.amount)}
                 {inst.note ? ` · ${inst.note}` : ''}
               </span>
-              <button
-                type="button"
-                className="text-[var(--ink-faint)] hover:text-[var(--danger)]"
-                onClick={async () => {
-                  await persist(stubs.filter((s) => s.id !== inst.id))
-                  showToast('Installment removed')
-                }}
-              >
-                Remove
-              </button>
+              <span className="flex flex-wrap gap-2">
+                {item.status !== 'paid' && inst.amount > 0 ? (
+                  <button
+                    type="button"
+                    className="font-semibold text-[var(--accent-deep)] hover:underline"
+                    onClick={async () => {
+                      const live = (await db.lineItems.get(item.id)) ?? item
+                      const patch = await recordPaymentWithUndo(live, inst.amount, {
+                        note: inst.note ? `Installment · ${inst.note}` : 'Installment',
+                      })
+                      if (patch) onPaid?.(patch)
+                    }}
+                  >
+                    Pay this
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-[var(--ink-faint)] hover:text-[var(--danger)]"
+                  onClick={async () => {
+                    await persist(stubs.filter((s) => s.id !== inst.id))
+                    showToast('Installment removed')
+                  }}
+                >
+                  Remove
+                </button>
+              </span>
             </li>
           ))}
         </ul>

@@ -86,3 +86,11 @@ ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays TEXT;
 
 -- Backup payload v5: multi-installment due schedules on lines.
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS installments TEXT;
+
+-- Backup payload v6: post-wedding offsets, who-pays $, quote lock, plate, attachment roles.
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS expected_back_offset_days INT;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays_left DOUBLE PRECISION;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays_right DOUBLE PRECISION;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS quoted_amount DOUBLE PRECISION;
+ALTER TABLE line_items ADD COLUMN IF NOT EXISTS per_guest_amount DOUBLE PRECISION;
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS role TEXT;

@@ -11,6 +11,7 @@ import { LineItemInstallmentsSection } from './line-item-installments'
 import { LineItemPaymentSection } from './line-item-payments'
 import { LineItemPercentHelpers } from './line-item-percent'
 import { LineItemPlateHelper } from './line-item-plate'
+import { LineItemQuoteSection } from './line-item-quote'
 import { LineItemReceiptAssist } from './line-item-receipt'
 import { LineItemReimburseSection } from './line-item-reimburse'
 import { LineItemWhoPaysField } from './line-item-who-pays'
@@ -60,6 +61,11 @@ export function LineItemForm({ item }: { item: LineItem }) {
 
   async function persist(patch: Partial<LineItem>) {
     await dbWrite(() => db.lineItems.update(item.id, patch))
+  }
+
+  function applyPaidPatch(patch: Partial<LineItem>) {
+    if (patch.paidAmount != null) setPaid(String(patch.paidAmount))
+    if (patch.status) setStatus(patch.status)
   }
 
   return (
@@ -117,10 +123,25 @@ export function LineItemForm({ item }: { item: LineItem }) {
             />
           </LineItemField>
           <LineItemPlateHelper
+            perGuestAmount={item.perGuestAmount}
             onApply={(n) => {
               setAmount(String(n))
               dirty.current.amount = false
               void persist({ amount: n })
+            }}
+            onLinkPerGuest={(perGuest) => {
+              void dbWrite(async () => {
+                if (perGuest == null) {
+                  await db.lineItems
+                    .where('id')
+                    .equals(item.id)
+                    .modify((row) => {
+                      delete row.perGuestAmount
+                    })
+                  return
+                }
+                await db.lineItems.update(item.id, { perGuestAmount: perGuest })
+              })
             }}
           />
           <LineItemPercentHelpers
@@ -166,8 +187,11 @@ export function LineItemForm({ item }: { item: LineItem }) {
           />
         </LineItemField>
       </div>
+      <LineItemQuoteSection item={item} />
       <LineItemWhoPaysField
         value={whoPays}
+        leftAmount={item.whoPaysLeft}
+        rightAmount={item.whoPaysRight}
         onPersist={(next) => {
           setWhoPays(next ?? '')
           void dbWrite(async () => {
@@ -183,14 +207,21 @@ export function LineItemForm({ item }: { item: LineItem }) {
               })
           })
         }}
-      />
-      <LineItemPaymentSection
-        item={item}
-        onApplied={(patch) => {
-          if (patch.paidAmount != null) setPaid(String(patch.paidAmount))
-          if (patch.status) setStatus(patch.status)
+        onPersistSplit={(left, right) => {
+          void dbWrite(async () => {
+            await db.lineItems
+              .where('id')
+              .equals(item.id)
+              .modify((row) => {
+                if (left != null && left > 0) row.whoPaysLeft = left
+                else delete row.whoPaysLeft
+                if (right != null && right > 0) row.whoPaysRight = right
+                else delete row.whoPaysRight
+              })
+          })
         }}
       />
+      <LineItemPaymentSection item={item} onApplied={applyPaidPatch} />
       <LineItemField label="Status">
         <select
           value={status}
@@ -226,7 +257,11 @@ export function LineItemForm({ item }: { item: LineItem }) {
         onDueOffset={setDueOffset}
         onBalanceOffset={setBalanceOffset}
       />
-      <LineItemInstallmentsSection item={item} onChange={() => undefined} />
+      <LineItemInstallmentsSection
+        item={item}
+        onChange={() => undefined}
+        onPaid={applyPaidPatch}
+      />
       {category?.group === 'reimbursement' ? (
         <LineItemReimburseSection
           item={item}
@@ -273,8 +308,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
       <LineItemReceiptAssist
         item={item}
         onApplied={(patch) => {
-          if (patch.paidAmount != null) setPaid(String(patch.paidAmount))
-          if (patch.status) setStatus(patch.status)
+          applyPaidPatch(patch)
           if (patch.dueDate !== undefined) setDueDate(patch.dueDate ?? '')
         }}
       />

@@ -8,7 +8,12 @@ export function dateFromWeddingOffset(weddingDate: string, offsetDays: number): 
   return addDays(weddingDate, -offsetDays)
 }
 
-/** Recompute dueDate / remainingBalanceDueDate for lines with wedding offsets. */
+/** YYYY-MM-DD for N days after the wedding (reimbursement expected-back). */
+export function dateAfterWedding(weddingDate: string, offsetDays: number): string {
+  return addDays(weddingDate, offsetDays)
+}
+
+/** Recompute due / balance / expected-back dates for lines with wedding offsets. */
 export async function recomputeWeddingAnchoredDues(weddingDate: string): Promise<number> {
   const items = await db.lineItems.toArray()
   const updates: { id: string; patch: Partial<LineItem> }[] = []
@@ -19,6 +24,9 @@ export async function recomputeWeddingAnchoredDues(weddingDate: string): Promise
     }
     if (item.balanceOffsetDays != null) {
       patch.remainingBalanceDueDate = dateFromWeddingOffset(weddingDate, item.balanceOffsetDays)
+    }
+    if (item.expectedBackOffsetDays != null) {
+      patch.expectedBackDate = dateAfterWedding(weddingDate, item.expectedBackOffsetDays)
     }
     if (Object.keys(patch).length) updates.push({ id: item.id, patch })
   }

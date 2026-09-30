@@ -10,6 +10,7 @@ import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/funds/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
 import { PrintBudgetSummary } from '../components/expenses/PrintBudgetSummary'
+import { PostWeddingWrap } from '../components/expenses/PostWeddingWrap'
 import { OverviewHero } from '../components/OverviewHero'
 import { Reveal } from '../components/Reveal'
 import { db, loadDemoSample, resetToBlank } from '../db/dexie'
@@ -268,6 +269,15 @@ export function TrackerApp() {
             setAddDueDate(undefined)
             setAdding(true)
           }}
+        />
+      </Reveal>
+      <Reveal>
+        <PostWeddingWrap
+          site={site}
+          funds={funds}
+          categories={categories}
+          lineItems={lineItems}
+          onOpenItem={setOpenItemId}
         />
       </Reveal>
       <Reveal>

@@ -7,7 +7,7 @@ import { formatMoney } from '../lib/money'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { showToast } from '../lib/toast'
 import { recomputeWeddingAnchoredDues } from '../lib/ux/wedding-dues'
-import { whoPaysRollup } from '../lib/ux/who-pays-rollup'
+import { whoPaysDisplayLines } from '../lib/ux/who-pays-rollup'
 import { EditableText } from './EditableText'
 import { SettlingMoney } from './SettlingMoney'
 import { SiteNav } from './SiteNav'
@@ -51,7 +51,7 @@ export function OverviewHero({
   const [shareDismissed, setShareDismissed] = useState(() => isHintDismissed('share'))
   const [dueDismissed, setDueDismissed] = useState(() => isHintDismissed('due'))
   const countdown = weddingCountdown(site.weddingDate)
-  const pays = whoPaysRollup(lineItems, site).filter((r) => r.key !== 'unset')
+  const pays = whoPaysDisplayLines(lineItems, site)
 
   const hint: HintKind | null = (() => {
     if (blankNames && !namesDismissed) return 'names'
@@ -188,7 +188,7 @@ export function OverviewHero({
               <p className="text-sm leading-[18px] tracking-[0.02em] text-[var(--on-dark-faint)]">
                 Who pays ·{' '}
                 {pays.map((r, i) => (
-                  <span key={r.key}>
+                  <span key={r.label}>
                     {i > 0 ? ' · ' : ''}
                     {r.label} {formatMoney(r.amount)}
                   </span>
