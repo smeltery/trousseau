@@ -1,7 +1,14 @@
 import type { WhoPays } from '../../db/types'
 import type { SiteSettings } from '../../lib/site-settings'
 
-export type ExpenseFilter = 'all' | 'unpaid' | 'overdue' | 'dueSoon' | 'undated' | 'reimburse'
+export type ExpenseFilter =
+  | 'all'
+  | 'unpaid'
+  | 'overdue'
+  | 'dueSoon'
+  | 'undated'
+  | 'reimburse'
+  | 'noReceipt'
 export type WhoPaysFilter = 'all' | 'unset' | WhoPays
 
 const FILTERS: { id: ExpenseFilter; label: string }[] = [
@@ -11,6 +18,7 @@ const FILTERS: { id: ExpenseFilter; label: string }[] = [
   { id: 'dueSoon', label: 'Due soon' },
   { id: 'undated', label: 'No due date' },
   { id: 'reimburse', label: 'Reimburse aging' },
+  { id: 'noReceipt', label: 'Paid, no receipt' },
 ]
 
 export function ExpenseFilterBar({
@@ -19,20 +27,24 @@ export function ExpenseFilterBar({
   whoFilter,
   query,
   hidePaid,
+  showArchived,
   onFilter,
   onWhoFilter,
   onQuery,
   onHidePaid,
+  onShowArchived,
 }: {
   site: SiteSettings
   filter: ExpenseFilter
   whoFilter: WhoPaysFilter
   query: string
   hidePaid: boolean
+  showArchived: boolean
   onFilter: (next: ExpenseFilter) => void
   onWhoFilter: (next: WhoPaysFilter) => void
   onQuery: (next: string) => void
   onHidePaid: (next: boolean) => void
+  onShowArchived: (next: boolean) => void
 }) {
   return (
     <>
@@ -110,6 +122,14 @@ export function ExpenseFilterBar({
             Hide paid
           </label>
         ) : null}
+        <label className="inline-flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => onShowArchived(e.target.checked)}
+          />
+          Show archived
+        </label>
       </div>
     </>
   )

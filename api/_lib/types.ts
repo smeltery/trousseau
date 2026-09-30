@@ -24,6 +24,13 @@ export interface InstallmentStub {
   note?: string
 }
 
+export interface FundContribution {
+  id: string
+  amount: number
+  date: string
+  note?: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -34,6 +41,7 @@ export interface Fund {
   receivedDate?: string
   thanked?: boolean
   earmarkCategoryId?: string
+  contributions?: FundContribution[]
 }
 
 export interface Category {
@@ -41,6 +49,7 @@ export interface Category {
   name: string
   group: CategoryGroup
   sort: number
+  archived?: boolean
 }
 
 export interface LineItem {
@@ -84,7 +93,7 @@ export interface AttachmentMeta {
 }
 
 export interface BackupPayload {
-  version: 1 | 2 | 3 | 4 | 5 | 6
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7
   exportedAt: string
   funds: Fund[]
   categories: Category[]

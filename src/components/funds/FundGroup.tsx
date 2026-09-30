@@ -1,5 +1,5 @@
 import { db, newId } from '../../db/dexie'
-import type { Category, Fund, FundType } from '../../db/types'
+import type { Category, Fund, FundType, LineItem } from '../../db/types'
 import { dbWrite } from '../../lib/db-write'
 import { showToast } from '../../lib/toast'
 import { EditableText } from '../EditableText'
@@ -11,6 +11,7 @@ export function FundGroup({
   type,
   funds,
   categories,
+  lineItems,
   emptyLabel,
   emptyWhy,
   selectMode,
@@ -22,6 +23,7 @@ export function FundGroup({
   type: FundType
   funds: Fund[]
   categories?: Category[]
+  lineItems?: LineItem[]
   emptyLabel: string
   emptyWhy: string
   selectMode?: boolean
@@ -81,6 +83,7 @@ export function FundGroup({
               index={index}
               siblings={funds}
               categories={categories}
+              lineItems={lineItems}
               selectMode={Boolean(selectMode)}
               selected={Boolean(selectedIds?.has(fund.id))}
               onToggleSelect={onToggleSelect}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/dexie'
-import type { Category, Fund } from '../../db/types'
+import type { Category, Fund, LineItem } from '../../db/types'
 import { patchSiteSettings, type SiteSettings } from '../../lib/site-settings'
 import { sectionScrollMt } from '../../lib/ux/scroll-mt'
 import { formatMoney, sum } from '../../lib/money'
@@ -25,13 +25,23 @@ interface FundsSectionProps {
   site: SiteSettings
   funds: Fund[]
   categories?: Category[]
+  lineItems?: LineItem[]
   syncBanner?: boolean
 }
 
-export function FundsSection({ site, funds, categories: categoriesProp, syncBanner = false }: FundsSectionProps) {
+export function FundsSection({
+  site,
+  funds,
+  categories: categoriesProp,
+  lineItems: lineItemsProp,
+  syncBanner = false,
+}: FundsSectionProps) {
   const liveCategories =
     useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? ([] as Category[])
+  const liveItems =
+    useLiveQuery(() => db.lineItems.toArray(), []) ?? ([] as LineItem[])
   const categories = categoriesProp ?? liveCategories
+  const lineItems = lineItemsProp ?? liveItems
 
   const [filter, setFilter] = useState<GiftFilter>('all')
   const [query, setQuery] = useState('')
@@ -205,6 +215,7 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
               type="gift"
               funds={gifts}
               categories={categories}
+              lineItems={lineItems}
               emptyLabel="No gifts yet"
               emptyWhy="Cash gifts and checks that fund the day."
               selectMode={selectMode}
@@ -216,6 +227,7 @@ export function FundsSection({ site, funds, categories: categoriesProp, syncBann
               onRenameTitle={(savingsColumn) => patchSiteSettings({ savingsColumn })}
               type="savings"
               funds={savings}
+              lineItems={lineItems}
               emptyLabel="No savings yet"
               emptyWhy="What you’ve set aside together for the wedding."
             />

@@ -3,6 +3,7 @@ import type {
   AttachmentRole,
   Category,
   Fund,
+  FundContribution,
   InstallmentStub,
   LineItem,
   PaymentStub,
@@ -28,6 +29,16 @@ export function parseInstallments(raw: string | null): InstallmentStub[] | undef
   }
 }
 
+export function parseContributions(raw: string | null): FundContribution[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw) as FundContribution[]
+    return Array.isArray(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function mapFundRow(f: {
   id: string
   label: string
@@ -38,6 +49,7 @@ export function mapFundRow(f: {
   received_date: string | null
   thanked: boolean | null
   earmark_category_id: string | null
+  contributions: string | null
 }): Fund {
   return {
     id: f.id,
@@ -49,11 +61,24 @@ export function mapFundRow(f: {
     receivedDate: f.received_date ?? undefined,
     thanked: f.thanked ?? undefined,
     earmarkCategoryId: f.earmark_category_id ?? undefined,
+    contributions: parseContributions(f.contributions),
   }
 }
 
-export function mapCategoryRow(c: Category): Category {
-  return { id: c.id, name: c.name, group: c.group, sort: c.sort }
+export function mapCategoryRow(c: {
+  id: string
+  name: string
+  group: Category['group']
+  sort: number
+  archived: boolean | null
+}): Category {
+  return {
+    id: c.id,
+    name: c.name,
+    group: c.group,
+    sort: c.sort,
+    archived: c.archived ?? undefined,
+  }
 }
 
 export function mapLineItemRow(i: {

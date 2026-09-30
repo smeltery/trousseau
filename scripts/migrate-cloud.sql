@@ -94,3 +94,7 @@ ALTER TABLE line_items ADD COLUMN IF NOT EXISTS who_pays_right DOUBLE PRECISION;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS quoted_amount DOUBLE PRECISION;
 ALTER TABLE line_items ADD COLUMN IF NOT EXISTS per_guest_amount DOUBLE PRECISION;
 ALTER TABLE attachments ADD COLUMN IF NOT EXISTS role TEXT;
+
+-- Backup payload v7: dated fund contributions + archived categories.
+ALTER TABLE funds ADD COLUMN IF NOT EXISTS contributions TEXT;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS archived BOOLEAN;

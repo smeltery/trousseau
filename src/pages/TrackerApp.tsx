@@ -254,7 +254,12 @@ export function TrackerApp() {
         undatedUnpaidCount={undatedUnpaidCount}
       />
       <Reveal>
-        <FundsSection site={site} funds={funds} syncBanner={cloudMode} />
+        <FundsSection
+          site={site}
+          funds={funds}
+          lineItems={lineItems}
+          syncBanner={cloudMode}
+        />
       </Reveal>
       <Reveal delayMs={40}>
         <ExpenseGroups
