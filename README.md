@@ -12,7 +12,7 @@
 [![Dev env: Flox](https://img.shields.io/badge/dev%20env-flox-7c3aed.svg)](https://flox.dev)
 
 <p align="center">
-  <img src="public/og.png" alt="Trousseau: a wedding budget that lives with you" width="800" />
+  <img src="public/og.png" alt="Trousseau: one wedding budget for both of you, synced by a secret link" width="800" />
 </p>
 
 Wedding budget tracker with **no accounts**: a secret share URL is the password. Opening `/app` resumes or creates a synced budget at `/b/…`; anyone with that link can edit. Export a zip anytime for an offline archive. Each browser keeps an IndexedDB cache for a fast UI; Postgres + Blob hold the live data.
@@ -32,7 +32,7 @@ Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full 
 | `/` | Marketing site |
 | `/app` | Resume or create a share link → `/b/…` |
 | `/app?new=1` | Blank budget (new share link) |
-| `/app?demo=1` | Filled generic demo (new share link) |
+| `/app?demo=1` | Fresh randomized demo budget (new share link) |
 | `/?import=1` | Import a zip over the home page (creates a new share link) |
 | `/b/<token>` | Shared budget: treat the URL like a password |
 

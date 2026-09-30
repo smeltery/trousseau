@@ -32,7 +32,7 @@ flowchart LR
 ## Blank, demo, and import
 
 - `/app?new=1` starts a blank budget and opens a new share link.
-- `/app?demo=1` loads the filled generic demo and opens a new share link.
+- `/app?demo=1` loads a fresh randomized demo budget and opens a new share link.
 - `/?import=1` (or **Import**) opens the import dialog over the home page; restoring a Trousseau `.zip` creates a share link.
 
 ## Share link
