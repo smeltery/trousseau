@@ -42,3 +42,6 @@ metrics-uuid
 .vercel
 public/.local-blob/
 .data/
+.venv-rembg/
+
+:memory:.ses

@@ -13,6 +13,15 @@ export const features = [
   },
 ] as const
 
+export const nameStory = {
+  eyebrow: 'The name',
+  title: 'What a trousseau once held',
+  lead:
+    'A trousseau is the collection of clothes, linens, and keepsakes traditionally gathered for marriage.',
+  body:
+    'This app borrows the word for the modern pile: gifts and savings coming in, vendor lines going out, receipts and notes beside the dollars. One shared link holds that collection for both of you until the day arrives.',
+} as const
+
 export const tracks = [
   {
     label: 'Gifts and savings',
@@ -27,6 +36,13 @@ export const tracks = [
     body: 'Attach receipts and keep short notes on the same line as the dollar amount.',
   },
 ] as const
+
+export const calendarStory = {
+  eyebrow: 'Due dates',
+  title: 'See what’s coming before it is late',
+  body:
+    'Every expense with a date lands on a quiet calendar and agenda. Overdue, due soon, and paid stay easy to scan so the week ahead is never a surprise.',
+} as const
 
 export const steps = [
   {
@@ -63,6 +79,10 @@ export const customs = [
 
 export const faqs = [
   {
+    q: 'What does trousseau mean?',
+    a: 'Traditionally, the clothes and household goods gathered for marriage. Here it is the shared pile of gifts, savings, vendor lines, and receipts you keep together until the wedding.',
+  },
+  {
     q: 'Do we need accounts?',
     a: 'No. Trousseau uses a secret share link instead of logins. Anyone with the URL can edit; don’t post it publicly.',
   },
@@ -93,7 +113,9 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Learn',
     links: [
+      { label: 'The name', to: '/#name' },
       { label: 'How it works', to: '/#how' },
+      { label: 'Due dates', to: '/#due' },
       { label: 'Privacy', to: '/#privacy' },
       { label: 'Backup', to: '/#backup' },
       { label: 'Questions', to: '/#questions' },

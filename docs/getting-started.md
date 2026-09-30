@@ -40,7 +40,7 @@ Use `localhost` (not `127.0.0.1`) in `POSTGRES_URL`. Local Docker uses the `pg` 
 | --- | --- |
 | `/` | Marketing site |
 | `/app` | Resume remembered share or create one → soft-navigate to `/b/…` |
-| `/app?new=1` | Start a blank budget (asks before replacing; new share link) |
+| `/app?new=1` | Start a blank budget (new share link) |
 | `/app?demo=1` | Load the filled generic demo (new share link) |
 | `/app?import=1` | Redirects to `/?import=1` |
 | `/?import=1` | Open the import dialog on the home page (import creates a share link) |

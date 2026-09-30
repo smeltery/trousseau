@@ -6,7 +6,6 @@ import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { clearRememberedShareToken } from '../lib/cloud/session'
 import { leaveCloudBudget, enterCloudBudget, publishShareLink } from '../lib/cloud/sync'
-import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { queueCelebrate } from '../lib/pending-celebrate'
 import { showToast } from '../lib/toast'
@@ -44,15 +43,6 @@ export function BackupBar({ shareUrl }: { shareUrl?: string }) {
   }
 
   async function replaceAndShare(kind: 'blank' | 'demo') {
-    if (kind === 'blank') {
-      const ok = await askConfirm({
-        title: 'Start a blank budget?',
-        body: 'This replaces your current budget and opens a new share link.',
-        confirmLabel: 'Start blank',
-        danger: true,
-      })
-      if (!ok) return
-    }
     setBusy(true)
     try {
       await leaveCloudBudget()

@@ -31,7 +31,7 @@ Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full 
 | --- | --- |
 | `/` | Marketing site |
 | `/app` | Resume or create a share link → `/b/…` |
-| `/app?new=1` | Blank budget (asks before replacing; new share link) |
+| `/app?new=1` | Blank budget (new share link) |
 | `/app?demo=1` | Filled generic demo (new share link) |
 | `/?import=1` | Import a zip over the home page (creates a new share link) |
 | `/b/<token>` | Shared budget: treat the URL like a password |

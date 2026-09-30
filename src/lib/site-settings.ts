@@ -38,7 +38,7 @@ export const DEFAULT_SITE: SiteSettings = {
   },
 }
 
-/** Demo sample labels for “Try demo”: fictional couple. */
+/** @deprecated Prefer buildDemoSample() for couple names — kept for older call sites. */
 export const DEMO_SITE: SiteSettings = {
   ...DEFAULT_SITE,
   brandLeft: 'Alex',

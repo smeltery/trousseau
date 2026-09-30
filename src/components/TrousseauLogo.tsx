@@ -1,16 +1,25 @@
 import { useId } from 'react'
 
 /** Interlocking platinum + brass bands for Trousseau lockups. */
-export function TrousseauMark({ className, title }: { className?: string; title?: string }) {
+export function TrousseauMark({
+  className,
+  title,
+  animate = false,
+}: {
+  className?: string
+  title?: string
+  /** Gentle independent float on each band (nav / idle). */
+  animate?: boolean
+}) {
   const uid = useId().replace(/:/g, '')
   return (
     <svg
-      viewBox="0 0 72 56"
+      viewBox="4 4 64 50"
       fill="none"
       aria-hidden={title ? undefined : true}
       role={title ? 'img' : undefined}
       aria-label={title}
-      className={className}
+      className={`${animate ? 'logo-mark' : ''} ${className ?? ''}`.trim()}
     >
       {title ? <title>{title}</title> : null}
       <defs>
@@ -26,16 +35,20 @@ export function TrousseauMark({ className, title }: { className?: string; title?
         </linearGradient>
       </defs>
       <g transform="rotate(-12 36 30)">
-        <path
-          fill={`url(#${uid}-silver)`}
-          fillRule="evenodd"
-          d="M26 30m-18 0a18 18 0 1 0 36 0a18 18 0 1 0-36 0zm18-12.5a12.5 12.5 0 1 1 0 25a12.5 12.5 0 1 1 0-25z"
-        />
-        <path
-          fill={`url(#${uid}-gold)`}
-          fillRule="evenodd"
-          d="M46 30m-18 0a18 18 0 1 0 36 0a18 18 0 1 0-36 0zm18-12.5a12.5 12.5 0 1 1 0 25a12.5 12.5 0 1 1 0-25z"
-        />
+        <g className={animate ? 'logo-ring logo-ring-silver' : undefined}>
+          <path
+            fill={`url(#${uid}-silver)`}
+            fillRule="evenodd"
+            d="M26 30m-18 0a18 18 0 1 0 36 0a18 18 0 1 0-36 0zm18-12.5a12.5 12.5 0 1 1 0 25a12.5 12.5 0 1 1 0-25z"
+          />
+        </g>
+        <g className={animate ? 'logo-ring logo-ring-gold' : undefined}>
+          <path
+            fill={`url(#${uid}-gold)`}
+            fillRule="evenodd"
+            d="M46 30m-18 0a18 18 0 1 0 36 0a18 18 0 1 0-36 0zm18-12.5a12.5 12.5 0 1 1 0 25a12.5 12.5 0 1 1 0-25z"
+          />
+        </g>
       </g>
     </svg>
   )
@@ -46,15 +59,17 @@ export function TrousseauLogo({
   markClassName,
   wordClassName,
   onDark = false,
+  animateMark = false,
 }: {
   className?: string
   markClassName?: string
   wordClassName?: string
   onDark?: boolean
+  animateMark?: boolean
 }) {
   return (
-    <span className={`inline-flex items-center gap-3 ${className ?? ''}`}>
-      <TrousseauMark className={markClassName ?? 'h-9 w-auto'} />
+    <span className={`logo-lockup inline-flex items-center ${className ?? ''}`}>
+      <TrousseauMark animate={animateMark} className={markClassName ?? 'h-9 w-auto'} />
       <span
         className={
           wordClassName ??
