@@ -17,6 +17,7 @@ import {
 } from './marketing/TrustSections'
 import { MarketingFooter } from './marketing/Footer'
 import { ImportBackupDialog } from '../components/ImportBackupDialog'
+import { SkipToMain } from '../components/a11y/SkipToMain'
 import { Reveal } from '../components/Reveal'
 import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
@@ -49,6 +50,8 @@ export function MarketingPage() {
 
   return (
     <div className="overflow-x-clip">
+      <SkipToMain />
+      <main id="main">
       <MarketingHero />
       <Reveal>
         <NameSection />
@@ -81,6 +84,7 @@ export function MarketingPage() {
         <BeginSection />
       </Reveal>
       <MarketingFooter />
+      </main>
 
       {importOpen ? (
         <ImportBackupDialog

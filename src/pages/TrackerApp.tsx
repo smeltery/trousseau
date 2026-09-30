@@ -38,6 +38,7 @@ import { showToast } from '../lib/toast'
 import { noteCloudUpdatedAt } from '../lib/sync-status'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 import { BootError, BootLoading, BootResumeChoice } from './BootScreen'
+import { SkipToMain } from '../components/a11y/SkipToMain'
 
 export function TrackerApp() {
   const { token: shareToken } = useParams<{ token?: string }>()
@@ -49,6 +50,7 @@ export function TrackerApp() {
   const [resumeChoice, setResumeChoice] = useState<string | null>(null)
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [addDueDate, setAddDueDate] = useState<string | undefined>()
   const [cmdOpen, setCmdOpen] = useState(false)
   const hydratedTokenRef = useRef<string | null>(null)
 
@@ -231,13 +233,18 @@ export function TrackerApp() {
 
   return (
     <div className="relative">
+      <SkipToMain />
+      <main id="main">
       <OverviewHero
         site={site}
         allocated={allocated}
         spent={spent}
         remaining={remaining}
         fundCount={funds.length}
-        onAddExpense={() => setAdding(true)}
+        onAddExpense={() => {
+          setAddDueDate(undefined)
+          setAdding(true)
+        }}
         onOpenCommands={() => setCmdOpen(true)}
         syncBanner={cloudMode}
         shareUrl={shareUrl}
@@ -256,7 +263,10 @@ export function TrackerApp() {
           allocated={allocated}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
-          onAddExpense={() => setAdding(true)}
+          onAddExpense={() => {
+            setAddDueDate(undefined)
+            setAdding(true)
+          }}
         />
       </Reveal>
       <Reveal>
@@ -266,6 +276,10 @@ export function TrackerApp() {
           weddingDate={site.weddingDate}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
+          onAddExpense={(dueDate) => {
+            setAddDueDate(dueDate)
+            setAdding(true)
+          }}
         />
       </Reveal>
       <Reveal>
@@ -278,15 +292,25 @@ export function TrackerApp() {
         categories={categories}
         lineItems={lineItems}
       />
+      </main>
 
       {openItemId ? (
-        <LineItemSheet lineItemId={openItemId} onClose={() => setOpenItemId(null)} />
+        <LineItemSheet
+          lineItemId={openItemId}
+          onClose={() => setOpenItemId(null)}
+          onOpenItem={setOpenItemId}
+        />
       ) : null}
       {adding ? (
         <AddExpenseDialog
-          onClose={() => setAdding(false)}
+          initialDueDate={addDueDate}
+          onClose={() => {
+            setAdding(false)
+            setAddDueDate(undefined)
+          }}
           onCreated={(id) => {
             setAdding(false)
+            setAddDueDate(undefined)
             setOpenItemId(id)
           }}
         />
@@ -298,7 +322,10 @@ export function TrackerApp() {
         lineItems={lineItems}
         categories={categories}
         funds={funds}
-        onAddExpense={() => setAdding(true)}
+        onAddExpense={() => {
+          setAddDueDate(undefined)
+          setAdding(true)
+        }}
         onOpenItem={setOpenItemId}
       />
     </div>

@@ -2,18 +2,12 @@ import type { Attachment, Category, CategoryGroup, LineItem } from '../db/types'
 import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
-import {
-  canMarkPaid,
-  categoryDisplayTotals,
-  formatDue,
-  formatLineAmount,
-  paperLineStatus,
-} from '../lib/expense-display'
+import { categoryDisplayTotals } from '../lib/expense-display'
 import { formatMoney } from '../lib/money'
-import { markPaidWithUndo } from '../lib/ux/mark-paid'
 import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
 import { EditableText } from './EditableText'
+import { ExpenseLineRow } from './expenses/ExpenseLineRow'
 
 const reorderBtn =
   'flex h-8 w-8 items-center justify-center text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] disabled:opacity-30'
@@ -28,6 +22,9 @@ export function ExpenseGroupBlock({
   attachments,
   enteringIds,
   filterActive,
+  selectMode,
+  selectedIds,
+  onToggleSelect,
   onOpenItem,
 }: {
   group: CategoryGroup
@@ -39,6 +36,9 @@ export function ExpenseGroupBlock({
   attachments: Attachment[]
   enteringIds: Set<string>
   filterActive?: boolean
+  selectMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
   onOpenItem: (id: string) => void
 }) {
   const visibleCats = filterActive
@@ -161,101 +161,23 @@ export function ExpenseGroupBlock({
                   {items.length === 0 ? (
                     <li className="py-4 text-sm text-[var(--ink-faint)]">No expenses in this category.</li>
                   ) : (
-                    items.map((item, itemIndex) => {
-                      const noteHint = item.notes?.trim()
-                      const docCount = attachments.filter((a) => a.lineItemId === item.id).length
-                      const { label: statusLabel, tone: statusTone } = paperLineStatus(item)
-                      const amount = formatLineAmount(item)
-                      const showMarkPaid = canMarkPaid(item)
-                      const siblings = allLineItems
-                        .filter((i) => i.categoryId === cat.id)
-                        .sort((a, b) => a.sort - b.sort)
-                      return (
-                        <li key={item.id}>
-                          <div
-                            className={`expense-row group flex w-full items-center gap-2 border-b border-[var(--line-soft)] py-[14px] hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] sm:gap-3${
-                              enteringIds.has(item.id) ? ' expense-row-enter' : ''
-                            }`}
-                          >
-                            {!filterActive && siblings.length > 1 ? (
-                              <span className="flex shrink-0 flex-col">
-                                <button
-                                  type="button"
-                                  aria-label={`Move ${item.label} up`}
-                                  disabled={itemIndex === 0}
-                                  className={reorderBtn}
-                                  onClick={async () => {
-                                    const prev = siblings[itemIndex - 1]
-                                    if (!prev) return
-                                    await dbWrite(() => swapSort('lineItems', item.id, prev.id))
-                                  }}
-                                >
-                                  ↑
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={`Move ${item.label} down`}
-                                  disabled={itemIndex === siblings.length - 1}
-                                  className={reorderBtn}
-                                  onClick={async () => {
-                                    const next = siblings[itemIndex + 1]
-                                    if (!next) return
-                                    await dbWrite(() => swapSort('lineItems', item.id, next.id))
-                                  }}
-                                >
-                                  ↓
-                                </button>
-                              </span>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => onOpenItem(item.id)}
-                              className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4"
-                            >
-                              <span className="min-w-0 flex-1 grow basis-0">
-                                <span className="block text-base leading-5 transition-colors group-hover:text-[var(--accent-deep)]">
-                                  {item.label}
-                                </span>
-                                <span className="mt-0.5 block text-sm text-[var(--ink-faint)]">
-                                  {item.dueDate ? (
-                                    <span className={statusLabel === 'Overdue' ? 'text-[var(--danger)]' : undefined}>
-                                      Due {formatDue(item.dueDate)}
-                                    </span>
-                                  ) : (
-                                    <span>No due date</span>
-                                  )}
-                                  {noteHint ? ' · note' : ''}
-                                  {docCount > 0 ? ` · ${docCount} doc${docCount === 1 ? '' : 's'}` : ''}
-                                  {statusLabel !== '-' ? (
-                                    <span className={`sm:hidden ${statusTone}`}> · {statusLabel}</span>
-                                  ) : null}
-                                </span>
-                              </span>
-                              <span
-                                className={`hidden w-[72px] shrink-0 items-center text-[12px] font-semibold tracking-[0.08em] uppercase leading-4 sm:flex ${statusTone}`}
-                              >
-                                {statusLabel}
-                              </span>
-                              <span className="flex w-[100px] shrink-0 justify-end font-[family-name:var(--font-display)] text-[18px] leading-6 tabular-nums sm:w-[140px] sm:text-[20px]">
-                                {amount}
-                              </span>
-                            </button>
-                            {showMarkPaid ? (
-                              <button
-                                type="button"
-                                aria-label={`Mark ${item.label} paid`}
-                                className="shrink-0 px-1 text-xs font-semibold tracking-[0.04em] text-[var(--accent-deep)] hover:underline sm:px-2"
-                                onClick={() => void markPaidWithUndo(item)}
-                              >
-                                Paid
-                              </button>
-                            ) : (
-                              <span className="w-10 shrink-0 sm:hidden" aria-hidden />
-                            )}
-                          </div>
-                        </li>
-                      )
-                    })
+                    items.map((item, itemIndex) => (
+                      <ExpenseLineRow
+                        key={item.id}
+                        item={item}
+                        itemIndex={itemIndex}
+                        siblings={allLineItems
+                          .filter((i) => i.categoryId === cat.id)
+                          .sort((a, b) => a.sort - b.sort)}
+                        docCount={attachments.filter((a) => a.lineItemId === item.id).length}
+                        entering={enteringIds.has(item.id)}
+                        filterActive={Boolean(filterActive)}
+                        selectMode={Boolean(selectMode)}
+                        selected={Boolean(selectedIds?.has(item.id))}
+                        onToggleSelect={onToggleSelect}
+                        onOpenItem={onOpenItem}
+                      />
+                    ))
                   )}
                 </ul>
               </div>

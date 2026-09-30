@@ -201,9 +201,16 @@ export function CommandPalette({
                                   : 'text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
                               }`}
                             >
-                              <span className="min-w-0 truncate">{cmd.label}</span>
+                              <span className="min-w-0">
+                                <span className="block truncate">{cmd.label}</span>
+                                {cmd.snippet ? (
+                                  <span className="mt-0.5 block truncate text-xs text-[var(--ink-faint)]">
+                                    {cmd.snippet}
+                                  </span>
+                                ) : null}
+                              </span>
                               {cmd.hint ? (
-                                <span className="shrink-0 text-xs text-[var(--ink-faint)]">
+                                <span className="shrink-0 self-start text-xs text-[var(--ink-faint)]">
                                   {cmd.hint}
                                 </span>
                               ) : null}

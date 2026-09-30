@@ -5,6 +5,7 @@ import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { canMarkPaid } from '../lib/expense-display'
 import { markPaidWithUndo } from '../lib/ux/mark-paid'
+import { duplicateExpense } from '../lib/ux/duplicate-expense'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 import { AttachmentList } from './AttachmentList'
@@ -13,9 +14,10 @@ import { LineItemForm } from './expenses/LineItemForm'
 interface LineItemSheetProps {
   lineItemId: string
   onClose: () => void
+  onOpenItem?: (id: string) => void
 }
 
-export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
+export function LineItemSheet({ lineItemId, onClose, onOpenItem }: LineItemSheetProps) {
   const titleId = useId()
   const item = useLiveQuery(async () => {
     const row = await db.lineItems.get(lineItemId)
@@ -81,6 +83,17 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
         Delete expense
       </button>
       <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={async () => {
+            const id = await duplicateExpense(item)
+            if (!id) return
+            onOpenItem?.(id)
+          }}
+        >
+          Duplicate
+        </button>
         {canMarkPaid(item) ? (
           <button type="button" className="btn-ghost" onClick={() => void markPaidWithUndo(item)}>
             Mark paid

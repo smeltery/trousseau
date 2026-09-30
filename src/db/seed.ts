@@ -94,33 +94,15 @@ const COUPLE_NAMES = [
   ['Nina', 'Leo'],
 ] as const
 
-const FAMILY_GIFT_LABELS = [
-  'Family gift',
-  'Parents\' gift',
-  'Both families',
-  'Family contribution',
-] as const
-
-const FRIENDS_GIFT_LABELS = [
-  'Friends & shower',
-  'Shower gifts',
-  'Friends & coworkers',
-  'Bridal shower',
-] as const
-
-const SAVINGS_LABELS = [
-  'Couple savings',
-  'Our savings',
-  'Joint wedding fund',
-  'Honeymoon & wedding savings',
-] as const
+const FAMILY_GIFT_LABELS = ['Family gift', "Parents' gift", 'Both families', 'Family contribution'] as const
+const FRIENDS_GIFT_LABELS = ['Friends & shower', 'Shower gifts', 'Friends & coworkers', 'Bridal shower'] as const
+const SAVINGS_LABELS = ['Couple savings', 'Our savings', 'Joint wedding fund', 'Honeymoon & wedding savings'] as const
 
 type VendorSpec = {
   name: string
   group: Category['group']
   min: number
   max: number
-  /** How this category usually gets paid. */
   plan: 'deposit-balance' | 'budget-deposit-remaining' | 'paid-in-full' | 'budget-only' | 'refund'
 }
 
@@ -276,22 +258,23 @@ export function buildDemoSample(): {
   const savings = Math.max(500, roundNice(fundPool - family - friends, 100))
 
   const funds: Fund[] = [
-    { id: id('fund', 1), label: pick(FAMILY_GIFT_LABELS), amount: family, type: 'gift', sort: 0 },
-    { id: id('fund', 2), label: pick(FRIENDS_GIFT_LABELS), amount: friends, type: 'gift', sort: 1 },
+    { id: id('fund', 1), label: pick(FAMILY_GIFT_LABELS), amount: family, type: 'gift', sort: 0, source: pick(['Mom & Dad', 'Both families', 'The Millers']), receivedDate: offsetDate(-randInt(30, 90)) },
+    { id: id('fund', 2), label: pick(FRIENDS_GIFT_LABELS), amount: friends, type: 'gift', sort: 1, source: pick(['College friends', 'Coworkers', 'Bridal party']), receivedDate: offsetDate(-randInt(7, 45)) },
     { id: id('fund', 3), label: pick(SAVINGS_LABELS), amount: savings, type: 'savings', sort: 2 },
   ]
-  // After the latest demo due offsets (~100d) so balances land before the wedding.
-  const weddingDate = offsetDate(randInt(100, 140))
 
-  const site: SiteSettings = {
-    ...DEFAULT_SITE,
-    brandLeft,
-    brandRight,
-    weddingDate,
-    fundsSub: 'Sample gifts and savings so you can explore the layout before using your own numbers.',
+  return {
+    funds,
+    categories,
+    lineItems,
+    site: {
+      ...DEFAULT_SITE,
+      brandLeft,
+      brandRight,
+      weddingDate: offsetDate(randInt(100, 140)),
+      fundsSub: 'Sample gifts and savings so you can explore the layout before using your own numbers.',
+    },
   }
-
-  return { funds, categories, lineItems, site }
 }
 
 /** @deprecated Prefer blank* exports / buildDemoSample() */

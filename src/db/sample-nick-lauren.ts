@@ -31,8 +31,24 @@ export const nickLaurenSite: SiteSettings = {
 }
 
 export const nickLaurenFunds: Fund[] = [
-  { id: id('fund', 1), label: 'Adamous', amount: 25000, type: 'gift', sort: 0 },
-  { id: id('fund', 2), label: 'Freys', amount: 7600, type: 'gift', sort: 1 },
+  {
+    id: id('fund', 1),
+    label: 'Adamous',
+    amount: 25000,
+    type: 'gift',
+    sort: 0,
+    source: 'The Adamous family',
+    receivedDate: '2025-11-12',
+  },
+  {
+    id: id('fund', 2),
+    label: 'Freys',
+    amount: 7600,
+    type: 'gift',
+    sort: 1,
+    source: 'The Freys',
+    receivedDate: '2025-12-03',
+  },
   { id: id('fund', 3), label: 'Total Targeting', amount: 7000, type: 'savings', sort: 2 },
 ]
 
@@ -80,7 +96,7 @@ export const nickLaurenLineItems: LineItem[] = [
 
 export function nickLaurenBackupPayload(): BackupPayload {
   return {
-    version: 1,
+    version: 2,
     exportedAt: '2026-09-28T00:00:00.000Z',
     funds: nickLaurenFunds,
     categories: nickLaurenCategories,

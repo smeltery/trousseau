@@ -3,10 +3,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/dexie'
 import type { Category, LineItem, LineStatus } from '../../db/types'
 import { GROUP_LABELS, STATUS_LABELS } from '../../lib/budget'
+import { todayKey } from '../../lib/calendar'
 import { dbWrite } from '../../lib/db-write'
-import { recordPaymentPatch } from '../../lib/expense-display'
 import { parseMoneyInput } from '../../lib/money'
 import { showToast } from '../../lib/toast'
+import { recordPaymentWithUndo } from '../../lib/ux/record-payment'
 
 const STATUSES: LineStatus[] = ['planned', 'deposit', 'partial', 'paid']
 
@@ -19,9 +20,10 @@ export function LineItemForm({ item }: { item: LineItem }) {
   const [status, setStatus] = useState(item.status)
   const [dueDate, setDueDate] = useState(item.dueDate ?? '')
   const [notes, setNotes] = useState(item.notes ?? '')
+  const [vendorUrl, setVendorUrl] = useState(item.vendorUrl ?? '')
   const [categoryId, setCategoryId] = useState(item.categoryId)
   const [payment, setPayment] = useState('')
-  const dirty = useRef({ label: false, amount: false, paid: false, notes: false })
+  const dirty = useRef({ label: false, amount: false, paid: false, notes: false, vendorUrl: false })
 
   useEffect(() => {
     if (!dirty.current.label) setLabel(item.label)
@@ -30,6 +32,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
     setStatus(item.status)
     setDueDate(item.dueDate ?? '')
     if (!dirty.current.notes) setNotes(item.notes ?? '')
+    if (!dirty.current.vendorUrl) setVendorUrl(item.vendorUrl ?? '')
     setCategoryId(item.categoryId)
   }, [item])
 
@@ -132,7 +135,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
             type="button"
             className="btn-ghost"
             onClick={async () => {
-              const patch = recordPaymentPatch(item, parseMoneyInput(payment))
+              const patch = await recordPaymentWithUndo(item, parseMoneyInput(payment))
               if (!patch) {
                 showToast('Enter a payment amount')
                 return
@@ -140,8 +143,6 @@ export function LineItemForm({ item }: { item: LineItem }) {
               setPaid(String(patch.paidAmount))
               if (patch.status) setStatus(patch.status)
               setPayment('')
-              await persist(patch)
-              showToast(patch.status === 'paid' ? 'Marked paid' : 'Payment recorded')
             }}
           >
             Add payment
@@ -186,6 +187,24 @@ export function LineItemForm({ item }: { item: LineItem }) {
           />
         </Field>
       </div>
+      <Field label="Vendor link">
+        <input
+          type="url"
+          inputMode="url"
+          value={vendorUrl}
+          onChange={(e) => {
+            dirty.current.vendorUrl = true
+            setVendorUrl(e.target.value)
+          }}
+          onBlur={() => {
+            dirty.current.vendorUrl = false
+            const next = vendorUrl.trim()
+            void persist({ vendorUrl: next || undefined })
+          }}
+          className="field-input"
+          placeholder="https://…"
+        />
+      </Field>
       <Field label="Notes">
         <textarea
           rows={3}
@@ -202,6 +221,63 @@ export function LineItemForm({ item }: { item: LineItem }) {
           placeholder="Vendor contact, confirmation numbers…"
         />
       </Field>
+      <ReceiptAssist
+        item={item}
+        onApplied={(patch) => {
+          if (patch.paidAmount != null) setPaid(String(patch.paidAmount))
+          if (patch.status) setStatus(patch.status)
+          if (patch.dueDate !== undefined) setDueDate(patch.dueDate ?? '')
+        }}
+      />
+    </div>
+  )
+}
+
+function ReceiptAssist({
+  item,
+  onApplied,
+}: {
+  item: LineItem
+  onApplied: (patch: Partial<LineItem>) => void
+}) {
+  async function persist(patch: Partial<LineItem>) {
+    await dbWrite(() => db.lineItems.update(item.id, patch))
+    onApplied(patch)
+  }
+
+  return (
+    <div className="rounded-sm border border-[var(--line-soft)] bg-[color-mix(in_srgb,var(--paper)_70%,transparent)] px-4 py-3">
+      <p className="text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
+        Receipt assist
+      </p>
+      <p className="mt-1 text-sm text-[var(--ink-faint)]">
+        No OCR — quick fills after you attach a receipt.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-ghost px-3 py-1.5 text-sm"
+          disabled={!(item.amount > 0) || item.status === 'paid'}
+          onClick={async () => {
+            const patch = { paidAmount: item.amount, status: 'paid' as const }
+            await persist(patch)
+            showToast('Paid set to expected')
+          }}
+        >
+          Set paid to expected
+        </button>
+        <button
+          type="button"
+          className="btn-ghost px-3 py-1.5 text-sm"
+          onClick={async () => {
+            const dueDate = todayKey()
+            await persist({ dueDate })
+            showToast('Due set to today')
+          }}
+        >
+          Set due to today
+        </button>
+      </div>
     </div>
   )
 }

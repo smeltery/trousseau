@@ -68,8 +68,11 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
 
   for (const fund of payload.funds) {
     await sql`
-      INSERT INTO funds (id, budget_id, label, amount, type, sort)
-      VALUES (${fund.id}, ${budgetId}, ${fund.label}, ${fund.amount}, ${fund.type}, ${fund.sort})
+      INSERT INTO funds (id, budget_id, label, amount, type, sort, source, received_date)
+      VALUES (
+        ${fund.id}, ${budgetId}, ${fund.label}, ${fund.amount}, ${fund.type}, ${fund.sort},
+        ${fund.source ?? null}, ${fund.receivedDate ?? null}
+      )
     `
   }
   for (const cat of payload.categories) {
@@ -81,11 +84,12 @@ async function replaceChildren(budgetId: string, payload: BackupPayload): Promis
   for (const item of payload.lineItems) {
     await sql`
       INSERT INTO line_items (
-        id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, sort
+        id, budget_id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort
       )
       VALUES (
         ${item.id}, ${budgetId}, ${item.categoryId}, ${item.label}, ${item.amount},
-        ${item.paidAmount}, ${item.status}, ${item.dueDate ?? null}, ${item.notes ?? null}, ${item.sort}
+        ${item.paidAmount}, ${item.status}, ${item.dueDate ?? null}, ${item.notes ?? null},
+        ${item.vendorUrl ?? null}, ${item.sort}
       )
     `
   }
@@ -110,8 +114,17 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   const b = budget.rows[0]
   if (!b) throw new Error('Budget not found')
 
-  const funds = await sql<Fund & { budget_id: string }>`
-    SELECT id, label, amount, type, sort FROM funds WHERE budget_id = ${budgetId} ORDER BY sort
+  const funds = await sql<{
+    id: string
+    label: string
+    amount: number
+    type: Fund['type']
+    sort: number
+    source: string | null
+    received_date: string | null
+  }>`
+    SELECT id, label, amount, type, sort, source, received_date
+    FROM funds WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const categories = await sql<Category & { budget_id: string }>`
     SELECT id, name, "group", sort FROM categories WHERE budget_id = ${budgetId} ORDER BY sort
@@ -125,9 +138,10 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
     status: string
     due_date: string | null
     notes: string | null
+    vendor_url: string | null
     sort: number
   }>`
-    SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, sort
+    SELECT id, category_id, label, amount, paid_amount, status, due_date, notes, vendor_url, sort
     FROM line_items WHERE budget_id = ${budgetId} ORDER BY sort
   `
   const attachments = await sql<{
@@ -146,7 +160,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
   `
 
   return {
-    version: 1,
+    version: 2,
     exportedAt: b.updated_at.toISOString(),
     updatedAt: b.updated_at.toISOString(),
     site: b.site ?? undefined,
@@ -156,6 +170,8 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
       amount: Number(f.amount),
       type: f.type,
       sort: f.sort,
+      source: f.source ?? undefined,
+      receivedDate: f.received_date ?? undefined,
     })),
     categories: categories.rows.map((c) => ({
       id: c.id,
@@ -172,6 +188,7 @@ export async function loadSnapshot(budgetId: string): Promise<CloudSnapshot> {
       status: i.status as LineItem['status'],
       dueDate: i.due_date ?? undefined,
       notes: i.notes ?? undefined,
+      vendorUrl: i.vendor_url ?? undefined,
       sort: i.sort,
     })),
     attachments: attachments.rows.map(
@@ -234,7 +251,7 @@ export function isBackupPayload(value: unknown): value is BackupPayload {
   if (!value || typeof value !== 'object') return false
   const v = value as BackupPayload
   return (
-    v.version === 1 &&
+    (v.version === 1 || v.version === 2) &&
     Array.isArray(v.funds) &&
     Array.isArray(v.categories) &&
     Array.isArray(v.lineItems) &&

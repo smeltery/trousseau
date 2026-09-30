@@ -9,6 +9,10 @@ export interface Fund {
   amount: number
   type: FundType
   sort: number
+  /** Gift giver / source (optional). */
+  source?: string
+  /** When the gift or savings was received (YYYY-MM-DD). */
+  receivedDate?: string
 }
 
 export interface Category {
@@ -27,6 +31,8 @@ export interface LineItem {
   status: LineStatus
   dueDate?: string
   notes?: string
+  /** Vendor site or booking link (optional). */
+  vendorUrl?: string
   sort: number
 }
 
@@ -47,8 +53,9 @@ export interface Meta {
   value: string
 }
 
+/** Backup / cloud snapshot shape. v1 and v2 are both accepted on import. */
 export interface BackupPayload {
-  version: 1
+  version: 1 | 2
   exportedAt: string
   funds: Fund[]
   categories: Category[]
