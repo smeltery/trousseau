@@ -166,7 +166,7 @@ export function SiteNav({
                   if (variant === 'marketing') window.history.replaceState(null, '', '/')
                 }
               }}
-              className="inline-flex items-center rounded-sm leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+              className="inline-flex translate-y-px items-center rounded-sm leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
             >
               <TrousseauLogo
                 onDark
