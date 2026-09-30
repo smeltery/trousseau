@@ -1,16 +1,27 @@
-import type { LineItem } from '../db/types'
+import type { InstallmentStub, LineItem } from '../db/types'
 
-export type DueKind = 'deposit' | 'balance'
+export type DueKind = 'deposit' | 'balance' | `inst:${string}`
 
-/** Unique calendar due keys for an item (deposit + remaining balance). */
+export function installmentKind(id: string): DueKind {
+  return `inst:${id}`
+}
+
+export function parseInstallmentKind(kind: DueKind): string | null {
+  return kind.startsWith('inst:') ? kind.slice(5) : null
+}
+
+/** Unique calendar due keys for an item (deposit + balance + installments). */
 export function dueDateKeys(item: LineItem): string[] {
   const keys = new Set<string>()
   if (item.dueDate) keys.add(item.dueDate)
   if (item.remainingBalanceDueDate) keys.add(item.remainingBalanceDueDate)
+  for (const inst of item.installments ?? []) {
+    if (inst.date) keys.add(inst.date)
+  }
   return [...keys]
 }
 
-/** Expand items due on a day into deposit / balance entries (two chips if same day). */
+/** Expand items due on a day into deposit / balance / installment entries. */
 export function dueEntriesForDay(
   items: LineItem[],
   dateKey: string,
@@ -19,6 +30,9 @@ export function dueEntriesForDay(
   for (const item of items) {
     if (item.dueDate === dateKey) out.push({ item, kind: 'deposit' })
     if (item.remainingBalanceDueDate === dateKey) out.push({ item, kind: 'balance' })
+    for (const inst of item.installments ?? []) {
+      if (inst.date === dateKey) out.push({ item, kind: installmentKind(inst.id) })
+    }
   }
   return out
 }
@@ -71,6 +85,26 @@ export function cashDueThisMonth(items: LineItem[], today: string): number {
   return cashDueInRange(items, start, end)
 }
 
+/** Wedding weekend window: wedding day ± 1 day when wedding is set; else this week. */
+export function weddingWeekendRange(
+  weddingDate: string | undefined,
+  today: string,
+): { start: string; end: string } {
+  if (weddingDate) {
+    return { start: addDaysIso(weddingDate, -1), end: addDaysIso(weddingDate, 1) }
+  }
+  return { start: today, end: addDaysIso(today, 6) }
+}
+
+export function cashDueWeddingWeekend(
+  items: LineItem[],
+  weddingDate: string | undefined,
+  today: string,
+): number {
+  const { start, end } = weddingWeekendRange(weddingDate, today)
+  return cashDueInRange(items, start, end)
+}
+
 /** Remaining dues through wedding vs funds left, with optional monthly pace. */
 export function cashRunway(
   items: LineItem[],
@@ -99,4 +133,8 @@ export function cashRunway(
     monthlyPace: duesBeforeWedding / months,
     short: duesBeforeWedding > fundsLeft,
   }
+}
+
+export function sortInstallments(list: InstallmentStub[]): InstallmentStub[] {
+  return [...list].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 }

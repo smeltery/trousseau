@@ -21,10 +21,12 @@ import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
 import { CalendarAgenda, CalendarStatsLegend } from './calendar/CalendarAgenda'
 import { CashDueStrip } from './calendar/CashDueStrip'
+import { DayOfCashStrip } from './calendar/DayOfCashStrip'
 import { MonthGrid } from './calendar/MonthGrid'
 import { WeekGrid } from './calendar/WeekGrid'
 import { YearGrid } from './calendar/YearGrid'
 import type { CalendarView } from './calendar/tones'
+import type { SiteSettings } from '../lib/site-settings'
 
 interface DueCalendarProps {
   categories: Category[]
@@ -32,6 +34,7 @@ interface DueCalendarProps {
   weddingDate?: string
   coupleNames?: string
   fundsLeft?: number
+  site?: SiteSettings
   syncBanner?: boolean
   onOpenItem: (id: string) => void
   onAddExpense?: (dueDate?: string) => void
@@ -49,6 +52,7 @@ export function DueCalendar({
   weddingDate,
   coupleNames,
   fundsLeft,
+  site,
   syncBanner = false,
   onOpenItem,
   onAddExpense,
@@ -191,12 +195,15 @@ export function DueCalendar({
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-5 sm:gap-y-2">
           <CalendarStatsLegend overdue={stats.overdue} upcoming={stats.upcoming} paid={stats.paid} />
-          <CashDueStrip
-            items={lineItems}
-            today={today}
-            weddingDate={weddingDate}
-            fundsLeft={fundsLeft}
-          />
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <CashDueStrip
+              items={lineItems}
+              today={today}
+              weddingDate={weddingDate}
+              fundsLeft={fundsLeft}
+            />
+            {site ? <DayOfCashStrip site={site} items={lineItems} /> : null}
+          </div>
         </div>
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16">
           <div>

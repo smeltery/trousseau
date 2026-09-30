@@ -1,6 +1,7 @@
 import type { DragEvent } from 'react'
 import { db } from '../../db/dexie'
 import type { DueKind } from '../../lib/calendar-dues'
+import { parseInstallmentKind } from '../../lib/calendar-dues'
 import { dbWrite } from '../../lib/db-write'
 import { showToast } from '../../lib/toast'
 
@@ -12,10 +13,12 @@ export function encodeDragPayload(id: string, kind: DueKind): string {
 
 function parseDragPayload(raw: string): { id: string; kind: DueKind } | null {
   if (!raw) return null
-  const [id, kindRaw] = raw.split('|')
-  if (!id) return null
-  const kind: DueKind = kindRaw === 'balance' ? 'balance' : 'deposit'
-  return { id, kind }
+  const pipe = raw.indexOf('|')
+  if (pipe < 0) return null
+  const id = raw.slice(0, pipe)
+  const kindRaw = raw.slice(pipe + 1) as DueKind
+  if (!id || !kindRaw) return null
+  return { id, kind: kindRaw }
 }
 
 /** Shared drop-target handlers for calendar day cells. */
@@ -36,7 +39,15 @@ export function dayDropProps(dateKey: string, onMoved?: () => void) {
       void (async () => {
         const item = await db.lineItems.get(id)
         if (!item) return
-        if (kind === 'balance') {
+        const instId = parseInstallmentKind(kind)
+        if (instId) {
+          const list = item.installments ?? []
+          const next = list.map((inst) => (inst.id === instId ? { ...inst, date: dateKey } : inst))
+          if (!list.some((inst) => inst.id === instId)) return
+          if (list.find((inst) => inst.id === instId)?.date === dateKey) return
+          await dbWrite(() => db.lineItems.update(id, { installments: next }))
+          showToast(`Moved installment to ${dateKey}`)
+        } else if (kind === 'balance') {
           if (item.remainingBalanceDueDate === dateKey) return
           await dbWrite(() =>
             db.lineItems.update(id, {

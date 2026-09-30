@@ -16,6 +16,15 @@ export interface PaymentStub {
   method?: string
 }
 
+/** Extra dated installment beyond deposit / remaining balance. */
+export interface InstallmentStub {
+  id: string
+  amount: number
+  /** YYYY-MM-DD */
+  date: string
+  note?: string
+}
+
 export interface Fund {
   id: string
   label: string
@@ -54,6 +63,8 @@ export interface LineItem {
   remainingBalanceDueDate?: string
   /** Dated payment stubs when recording payments. */
   payments?: PaymentStub[]
+  /** Extra dated installments beyond deposit/balance. */
+  installments?: InstallmentStub[]
   /** Reimbursement expected-back date. */
   expectedBackDate?: string
   /** Reimbursement marked received. */
@@ -84,9 +95,9 @@ export interface Meta {
   value: string
 }
 
-/** Backup / cloud snapshot shape. v1–v4 accepted on import. */
+/** Backup / cloud snapshot shape. v1–v5 accepted on import. */
 export interface BackupPayload {
-  version: 1 | 2 | 3 | 4
+  version: 1 | 2 | 3 | 4 | 5
   exportedAt: string
   funds: Fund[]
   categories: Category[]

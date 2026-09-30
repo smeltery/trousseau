@@ -1,5 +1,5 @@
 import { db } from '../../db/dexie'
-import type { LineItem } from '../../db/types'
+import type { LineItem, WhoPays } from '../../db/types'
 import { dbWrite } from '../db-write'
 import { canMarkPaid, markPaidPatch } from '../expense-display'
 import { showToast } from '../toast'
@@ -53,4 +53,32 @@ export async function bulkSetCategory(items: LineItem[], categoryId: string): Pr
   )
   showToast(`Moved ${targets.length} to category`)
   return targets.length
+}
+
+export async function bulkSetWhoPays(
+  items: LineItem[],
+  whoPays: WhoPays | undefined,
+): Promise<number> {
+  if (!items.length) {
+    showToast('Nothing to update')
+    return 0
+  }
+  await dbWrite(() =>
+    db.transaction('rw', db.lineItems, async () => {
+      for (const item of items) {
+        if (whoPays) {
+          await db.lineItems.update(item.id, { whoPays })
+        } else {
+          await db.lineItems
+            .where('id')
+            .equals(item.id)
+            .modify((row) => {
+              delete row.whoPays
+            })
+        }
+      }
+    }),
+  )
+  showToast(whoPays ? `Assigned who pays on ${items.length}` : `Cleared who pays on ${items.length}`)
+  return items.length
 }

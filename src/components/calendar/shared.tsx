@@ -21,8 +21,11 @@ export function DueChip({
   const { label: status, chip } = paperLineStatus(item, today)
   const amount = formatLineAmount(item)
   const amountHint = amount === '-' ? '' : amount
-  const kindLabel = dueKind === 'balance' ? 'Balance' : 'Deposit'
+  const kindLabel =
+    dueKind === 'balance' ? 'Balance' : dueKind === 'deposit' ? 'Deposit' : 'Installment'
   const name = `${kindLabel} · ${item.label}`
+  const dateField =
+    dueKind === 'balance' ? 'balance' : dueKind === 'deposit' ? 'deposit' : 'installment'
   return (
     <button
       type="button"
@@ -34,7 +37,7 @@ export function DueChip({
         e.dataTransfer.effectAllowed = 'move'
       }}
       title={`${name}${amountHint ? ` · ${amountHint}` : ''} · ${status}. Drag to reschedule or open.`}
-      aria-label={`Open ${name}${amountHint ? `, ${amountHint}` : ''}, ${status}. Drag to another day to change ${dueKind} date.`}
+      aria-label={`Open ${name}${amountHint ? `, ${amountHint}` : ''}, ${status}. Drag to another day to change ${dateField} date.`}
       onClick={(e) => {
         e.stopPropagation()
         onOpen()

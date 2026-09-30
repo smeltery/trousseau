@@ -1,9 +1,19 @@
-import type { AttachmentMeta, Category, Fund, LineItem, PaymentStub } from './types.js'
+import type { AttachmentMeta, Category, Fund, InstallmentStub, LineItem, PaymentStub } from './types.js'
 
 export function parsePayments(raw: string | null): PaymentStub[] | undefined {
   if (!raw) return undefined
   try {
     const parsed = JSON.parse(raw) as PaymentStub[]
+    return Array.isArray(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function parseInstallments(raw: string | null): InstallmentStub[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw) as InstallmentStub[]
     return Array.isArray(parsed) ? parsed : undefined
   } catch {
     return undefined
@@ -51,6 +61,7 @@ export function mapLineItemRow(i: {
   sort: number
   remaining_balance_due_date: string | null
   payments: string | null
+  installments: string | null
   expected_back_date: string | null
   back_received: boolean | null
   due_offset_days: number | null
@@ -70,6 +81,7 @@ export function mapLineItemRow(i: {
     sort: i.sort,
     remainingBalanceDueDate: i.remaining_balance_due_date ?? undefined,
     payments: parsePayments(i.payments),
+    installments: parseInstallments(i.installments),
     expectedBackDate: i.expected_back_date ?? undefined,
     backReceived: i.back_received ?? undefined,
     dueOffsetDays: i.due_offset_days ?? undefined,

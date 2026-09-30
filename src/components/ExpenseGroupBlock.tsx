@@ -4,7 +4,7 @@ import { db, newId } from '../db/dexie'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
 import { categoryDisplayTotals } from '../lib/expense-display'
-import { giftCoverageForCategory } from '../lib/gift-coverage'
+import { earmarkShortfall } from '../lib/ux/earmark-gap'
 import { formatMoney, sum } from '../lib/money'
 import { swapSort } from '../lib/reorder'
 import { showToast } from '../lib/toast'
@@ -87,7 +87,11 @@ export function ExpenseGroupBlock({
               catAll.filter((i) => !/^budget$/i.test(i.label.trim())).map((i) => i.amount),
             )
             const envelopeLeft = totals.amount - committed
-            const giftCovered = giftCoverageForCategory(funds, cat.id)
+            const { covered: giftCovered, gap: earmarkGap } = earmarkShortfall(
+              funds,
+              cat.id,
+              totals.amount,
+            )
             const siblingCats = cats
             return (
               <div key={cat.id}>
@@ -178,7 +182,19 @@ export function ExpenseGroupBlock({
                         </span>
                       </>
                     ) : null}
-                    {giftCovered > 0 ? ` · ${formatMoney(giftCovered)} gift-covered` : ''}
+                    {giftCovered > 0 ? (
+                      <>
+                        {' · '}
+                        <span>
+                          {formatMoney(giftCovered)} gift-covered
+                          {earmarkGap > 0
+                            ? ` · ${formatMoney(earmarkGap)} short of budget`
+                            : totals.amount > 0
+                              ? ' · covers budget'
+                              : ''}
+                        </span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <ul>

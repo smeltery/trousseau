@@ -5,13 +5,17 @@ import { isOverdue, todayKey } from '../lib/calendar'
 import { expensesRunningTotal } from '../lib/expense-display'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { readHidePaid, writeHidePaid } from '../lib/ux/hide-paid'
+import { isReimbursementAging } from '../lib/ux/reimburse-aging'
 import { patchSiteSettings, type SiteSettings } from '../lib/site-settings'
 import { EditableText } from './EditableText'
 import { ExpenseGroupBlock } from './ExpenseGroupBlock'
 import { ExpenseBulkBar } from './expenses/ExpenseBulkBar'
+import {
+  ExpenseFilterBar,
+  type ExpenseFilter,
+  type WhoPaysFilter,
+} from './expenses/ExpenseFilterBar'
 import { SettlingMoney } from './SettlingMoney'
-
-type ExpenseFilter = 'all' | 'unpaid' | 'overdue' | 'undated'
 
 interface ExpenseGroupsProps {
   site: SiteSettings
@@ -23,13 +27,6 @@ interface ExpenseGroupsProps {
   onOpenItem: (id: string) => void
   onAddExpense: () => void
 }
-
-const FILTERS: { id: ExpenseFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'unpaid', label: 'Unpaid' },
-  { id: 'overdue', label: 'Overdue' },
-  { id: 'undated', label: 'No due date' },
-]
 
 export function ExpenseGroups({
   site,
@@ -43,6 +40,7 @@ export function ExpenseGroups({
 }: ExpenseGroupsProps) {
   const today = todayKey()
   const [filter, setFilter] = useState<ExpenseFilter>('all')
+  const [whoFilter, setWhoFilter] = useState<WhoPaysFilter>('all')
   const [query, setQuery] = useState('')
   const [hidePaid, setHidePaid] = useState(readHidePaid)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -52,7 +50,12 @@ export function ExpenseGroups({
   const over = moneyLeft < 0
   const seenIds = useRef(new Set(lineItems.map((i) => i.id)))
   const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
-  const selectMode = filter === 'unpaid' || filter === 'overdue' || filter === 'undated'
+  const selectMode =
+    filter === 'unpaid' ||
+    filter === 'overdue' ||
+    filter === 'undated' ||
+    filter === 'reimburse' ||
+    whoFilter !== 'all'
   const q = query.trim().toLowerCase()
 
   const visibleItems = lineItems.filter((item) => {
@@ -64,17 +67,25 @@ export function ExpenseGroups({
       if (!isOverdue(item, today)) return false
     } else if (filter === 'undated') {
       if (item.status === 'paid' || item.dueDate || /^budget$/i.test(item.label.trim())) return false
+    } else if (filter === 'reimburse') {
+      if (!isReimbursementAging(item, categories, today)) return false
+    }
+    if (whoFilter === 'unset') {
+      if (item.whoPays) return false
+    } else if (whoFilter !== 'all') {
+      if (item.whoPays !== whoFilter) return false
     }
     if (!q) return true
     const cat = categories.find((c) => c.id === item.categoryId)?.name ?? ''
     const hay = `${item.label} ${item.notes ?? ''} ${cat} ${item.vendorUrl ?? ''}`.toLowerCase()
     return hay.includes(q)
   })
-  const filterEmpty = (filter !== 'all' || q.length > 0 || hidePaid) && visibleItems.length === 0
+  const filterEmpty =
+    (filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid) && visibleItems.length === 0
 
   useEffect(() => {
     setSelectedIds(new Set())
-  }, [filter, query])
+  }, [filter, whoFilter, query])
 
   useEffect(() => {
     const fresh = new Set<string>()
@@ -138,66 +149,20 @@ export function ExpenseGroups({
           </button>
         </div>
 
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div
-            role="tablist"
-            aria-label="Expense filter"
-            className="inline-flex border border-[var(--line-soft)] bg-[var(--paper)]"
-            onKeyDown={(e) => {
-              const i = FILTERS.findIndex((f) => f.id === filter)
-              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                e.preventDefault()
-                const next =
-                  e.key === 'ArrowRight'
-                    ? FILTERS[(i + 1) % FILTERS.length]!
-                    : FILTERS[(i - 1 + FILTERS.length) % FILTERS.length]!
-                setFilter(next.id)
-              }
-            }}
-          >
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="tab"
-                aria-selected={filter === f.id}
-                tabIndex={filter === f.id ? 0 : -1}
-                onClick={() => setFilter(f.id)}
-                className={`px-3 py-2 text-sm font-semibold transition-colors ${
-                  filter === f.id
-                    ? 'bg-[var(--grove)] text-[var(--on-dark)]'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <label className="relative block min-w-0 sm:w-64">
-            <span className="sr-only">Search expenses</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search vendor, notes…"
-              className="field-input w-full py-2 text-sm"
-            />
-          </label>
-        </div>
-
-        {filter === 'all' ? (
-          <label className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-            <input
-              type="checkbox"
-              checked={hidePaid}
-              onChange={(e) => {
-                setHidePaid(e.target.checked)
-                writeHidePaid(e.target.checked)
-              }}
-            />
-            Hide paid
-          </label>
-        ) : null}
+        <ExpenseFilterBar
+          site={site}
+          filter={filter}
+          whoFilter={whoFilter}
+          query={query}
+          hidePaid={hidePaid}
+          onFilter={setFilter}
+          onWhoFilter={setWhoFilter}
+          onQuery={setQuery}
+          onHidePaid={(next) => {
+            setHidePaid(next)
+            writeHidePaid(next)
+          }}
+        />
 
         {selectMode ? (
           <ExpenseBulkBar
@@ -219,6 +184,7 @@ export function ExpenseGroups({
               type="button"
               onClick={() => {
                 setFilter('all')
+                setWhoFilter('all')
                 setQuery('')
                 setHidePaid(false)
                 writeHidePaid(false)
@@ -245,7 +211,7 @@ export function ExpenseGroups({
                 allLineItems={lineItems}
                 attachments={attachments}
                 enteringIds={enteringIds}
-                filterActive={filter !== 'all' || q.length > 0 || hidePaid}
+                filterActive={filter !== 'all' || whoFilter !== 'all' || q.length > 0 || hidePaid}
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}

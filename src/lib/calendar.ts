@@ -10,11 +10,13 @@ export {
   cashDueInRange,
   cashDueThisMonth,
   cashDueThisWeek,
+  cashDueWeddingWeekend,
   cashRunway,
   dueDateKeys,
   dueEntriesForDay,
   earliestDueDate,
   remainingDue,
+  weddingWeekendRange,
 } from './calendar-dues'
 
 export { buildDueDatesIcs } from './calendar-ics'

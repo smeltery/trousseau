@@ -7,7 +7,9 @@ import { dbWrite } from '../../lib/db-write'
 import { parseMoneyInput } from '../../lib/money'
 import { LineItemDuesSection } from './line-item-dues'
 import { LineItemField } from './line-item-field'
+import { LineItemInstallmentsSection } from './line-item-installments'
 import { LineItemPaymentSection } from './line-item-payments'
+import { LineItemPercentHelpers } from './line-item-percent'
 import { LineItemPlateHelper } from './line-item-plate'
 import { LineItemReceiptAssist } from './line-item-receipt'
 import { LineItemReimburseSection } from './line-item-reimburse'
@@ -121,6 +123,24 @@ export function LineItemForm({ item }: { item: LineItem }) {
               void persist({ amount: n })
             }}
           />
+          <LineItemPercentHelpers
+            expected={parseMoneyInput(amount)}
+            onApplyPaid={(n) => {
+              setPaid(String(n))
+              dirty.current.paid = false
+              const patch: Partial<LineItem> = { paidAmount: n }
+              if (n > 0 && status === 'planned') {
+                patch.status = 'deposit'
+                setStatus('deposit')
+              }
+              void persist(patch)
+            }}
+            onApplyAmount={(n) => {
+              setAmount(String(n))
+              dirty.current.amount = false
+              void persist({ amount: n })
+            }}
+          />
         </div>
         <LineItemField label="Paid so far">
           <input
@@ -206,6 +226,7 @@ export function LineItemForm({ item }: { item: LineItem }) {
         onDueOffset={setDueOffset}
         onBalanceOffset={setBalanceOffset}
       />
+      <LineItemInstallmentsSection item={item} onChange={() => undefined} />
       {category?.group === 'reimbursement' ? (
         <LineItemReimburseSection
           item={item}

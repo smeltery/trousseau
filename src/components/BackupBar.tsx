@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/dexie'
 import { downloadBackupZip } from '../lib/backup-actions'
 import { celebrate } from '../lib/celebrate'
 import { askConfirm } from '../lib/confirm'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { replaceBudgetAndShare } from '../lib/replace-budget'
+import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 import { truncateShareUrl } from '../lib/ux/format-share-url'
+import { downloadTrackerCsvs } from '../lib/ux/csv-export'
 import { sectionScrollMt } from '../lib/ux/scroll-mt'
 import { showToast } from '../lib/toast'
 import { ShareQr } from './backup/ShareQr'
@@ -21,6 +25,11 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const funds = useLiveQuery(() => db.funds.toArray(), []) ?? []
+  const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
+  const lineItems = useLiveQuery(() => db.lineItems.toArray(), []) ?? []
+  const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [])
+  const site = parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE
 
   async function onExport() {
     setBusy(true)
@@ -101,6 +110,28 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
               className="btn-primary w-full shrink-0 self-start disabled:opacity-50 sm:w-auto sm:self-auto"
             >
               Export backup
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-6 border-t border-[var(--line-soft)] py-8 sm:flex-row sm:items-end sm:justify-between sm:gap-12 sm:py-10">
+            <div className="max-w-sm">
+              <p className="font-[family-name:var(--font-display)] text-[clamp(1.35rem,3vw,1.5rem)] leading-snug tracking-tight">
+                Export CSV sheets
+              </p>
+              <p className="mt-2 text-sm leading-[22px] text-[var(--ink-faint)]">
+                Gifts, expenses, and dues as separate CSV downloads for spreadsheets.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                downloadTrackerCsvs(funds, lineItems, categories, site)
+                showToast('CSV downloads started')
+              }}
+              className="btn-ghost w-full shrink-0 self-start sm:w-auto sm:self-auto"
+            >
+              Export CSVs
             </button>
           </div>
 

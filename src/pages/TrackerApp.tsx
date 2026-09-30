@@ -241,6 +241,7 @@ export function TrackerApp() {
         spent={spent}
         remaining={remaining}
         fundCount={funds.length}
+        lineItems={lineItems}
         onAddExpense={() => {
           setAddDueDate(undefined)
           setAdding(true)
@@ -275,6 +276,7 @@ export function TrackerApp() {
           lineItems={lineItems}
           weddingDate={site.weddingDate} coupleNames={`${site.brandLeft} & ${site.brandRight}`}
           fundsLeft={remaining}
+          site={site}
           syncBanner={cloudMode}
           onOpenItem={setOpenItemId}
           onAddExpense={(d) => {
