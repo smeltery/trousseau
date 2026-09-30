@@ -1,22 +1,19 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/dexie'
-import type { LineItem, LineStatus } from '../db/types'
-import { STATUS_LABELS } from '../lib/budget'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
-import { canMarkPaid, markPaidPatch, recordPaymentPatch } from '../lib/expense-display'
-import { parseMoneyInput } from '../lib/money'
+import { canMarkPaid } from '../lib/expense-display'
+import { markPaidWithUndo } from '../lib/ux/mark-paid'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 import { AttachmentList } from './AttachmentList'
+import { LineItemForm } from './expenses/LineItemForm'
 
 interface LineItemSheetProps {
   lineItemId: string
   onClose: () => void
 }
-
-const STATUSES: LineStatus[] = ['planned', 'deposit', 'partial', 'paid']
 
 export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
   const titleId = useId()
@@ -58,56 +55,55 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
     )
   }
 
+  const footer = (
+    <>
+      <button
+        type="button"
+        className="text-sm text-[var(--danger)] hover:underline"
+        onClick={async () => {
+          const ok = await askConfirm({
+            title: `Delete “${item.label}”?`,
+            body: 'Attachments on this line will be removed too.',
+            confirmLabel: 'Delete',
+            danger: true,
+          })
+          if (!ok) return
+          await dbWrite(() =>
+            db.transaction('rw', db.lineItems, db.attachments, async () => {
+              await db.attachments.where('lineItemId').equals(item.id).delete()
+              await db.lineItems.delete(item.id)
+            }),
+          )
+          showToast('Expense deleted')
+          onClose()
+        }}
+      >
+        Delete expense
+      </button>
+      <div className="flex flex-wrap gap-3">
+        {canMarkPaid(item) ? (
+          <button type="button" className="btn-ghost" onClick={() => void markPaidWithUndo(item)}>
+            Mark paid
+          </button>
+        ) : null}
+        <button type="button" onClick={onClose} className="btn-primary">
+          Done
+        </button>
+      </div>
+    </>
+  )
+
   return (
     <SheetShell
       titleId={titleId}
       onClose={onClose}
       title={item.label}
       subtitle={category?.name}
+      footer={footer}
     >
       <LineItemForm key={item.id} item={item} />
       <div className="mt-10 border-t border-[var(--line)] pt-8">
         <AttachmentList lineItemId={item.id} attachments={attachments} />
-      </div>
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-6">
-        <button
-          type="button"
-          className="text-sm text-[var(--danger)] hover:underline"
-          onClick={async () => {
-            const ok = await askConfirm({
-              title: `Delete “${item.label}”?`,
-              body: 'Attachments on this line will be removed too.',
-              confirmLabel: 'Delete',
-              danger: true,
-            })
-            if (!ok) return
-            await dbWrite(() =>
-              db.transaction('rw', db.lineItems, db.attachments, async () => {
-                await db.attachments.where('lineItemId').equals(item.id).delete()
-                await db.lineItems.delete(item.id)
-              }),
-            )
-            showToast('Expense deleted')
-            onClose()
-          }}
-        >
-          Delete expense
-        </button>
-        <div className="flex flex-wrap gap-3">
-          {canMarkPaid(item) ? (
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={async () => {
-                await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
-                showToast('Marked paid')
-              }}
-            >
-              Mark paid
-            </button>
-          ) : null}
-          <button type="button" onClick={onClose} className="btn-primary">Done</button>
-        </div>
       </div>
     </SheetShell>
   )
@@ -118,12 +114,14 @@ function SheetShell({
   title,
   subtitle,
   onClose,
+  footer,
   children,
 }: {
   titleId: string
   title: string
   subtitle?: string
   onClose: () => void
+  footer?: ReactNode
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -144,7 +142,7 @@ function SheetShell({
         aria-labelledby={titleId}
         className="relative z-10 flex max-h-[92dvh] w-full max-w-xl min-w-0 flex-col overflow-hidden rounded-t-2xl bg-[var(--wash)] shadow-[var(--sheet-shadow)] animate-[sheet-in_0.35s_var(--ease-out)] sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--line)] px-6 py-5">
           <div className="min-w-0">
             {subtitle ? (
               <p className="text-xs font-semibold tracking-[0.14em] text-[var(--ink-muted)] uppercase">
@@ -166,166 +164,13 @@ function SheetShell({
             Close
           </button>
         </div>
-        <div className="min-w-0 overflow-x-hidden overflow-y-auto px-6 py-6">{children}</div>
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">{children}</div>
+        {footer ? (
+          <div className="sticky bottom-0 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--wash)] px-6 py-4">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
-  )
-}
-
-function LineItemForm({ item }: { item: LineItem }) {
-  const [label, setLabel] = useState(item.label)
-  const [amount, setAmount] = useState(String(item.amount))
-  const [paid, setPaid] = useState(String(item.paidAmount))
-  const [status, setStatus] = useState(item.status)
-  const [dueDate, setDueDate] = useState(item.dueDate ?? '')
-  const [notes, setNotes] = useState(item.notes ?? '')
-  const [payment, setPayment] = useState('')
-
-  async function persist(patch: Partial<LineItem>) {
-    await dbWrite(() => db.lineItems.update(item.id, patch))
-  }
-
-  return (
-    <div className="grid gap-5">
-      <Field label="Label">
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          onBlur={() => {
-            const next = label.trim() || item.label
-            setLabel(next)
-            void persist({ label: next })
-          }}
-          className="field-input"
-        />
-      </Field>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Expected amount">
-          <input
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            onBlur={() => {
-              const n = parseMoneyInput(amount)
-              setAmount(String(n))
-              void persist({ amount: n })
-            }}
-            className="field-input"
-          />
-        </Field>
-        <Field label="Paid so far">
-          <input
-            inputMode="decimal"
-            value={paid}
-            onChange={(e) => setPaid(e.target.value)}
-            onBlur={() => {
-              const n = parseMoneyInput(paid)
-              setPaid(String(n))
-              const patch: Partial<LineItem> = { paidAmount: n }
-              if (n > 0 && status === 'planned') {
-                patch.status =
-                  n >= parseMoneyInput(amount) && parseMoneyInput(amount) > 0 ? 'paid' : 'partial'
-                setStatus(patch.status)
-              }
-              void persist(patch)
-            }}
-            className="field-input"
-          />
-        </Field>
-      </div>
-      {item.status !== 'paid' ? (
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-[8rem] flex-1">
-            <span className="mb-1.5 block text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
-              Record payment
-            </span>
-            <input
-              inputMode="decimal"
-              value={payment}
-              onChange={(e) => setPayment(e.target.value)}
-              placeholder="Amount"
-              className="field-input"
-            />
-          </label>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={async () => {
-              const patch = recordPaymentPatch(item, parseMoneyInput(payment))
-              if (!patch) {
-                showToast('Enter a payment amount')
-                return
-              }
-              setPaid(String(patch.paidAmount))
-              if (patch.status) setStatus(patch.status)
-              setPayment('')
-              await persist(patch)
-              showToast(patch.status === 'paid' ? 'Marked paid' : 'Payment recorded')
-            }}
-          >
-            Add payment
-          </button>
-        </div>
-      ) : null}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Status">
-          <select
-            value={status}
-            onChange={(e) => {
-              const next = e.target.value as LineStatus
-              setStatus(next)
-              if (next === 'paid') {
-                const n = parseMoneyInput(amount)
-                const paidAmount = n > 0 ? n : parseMoneyInput(paid)
-                setPaid(String(paidAmount))
-                void persist({ status: next, paidAmount })
-                return
-              }
-              void persist({ status: next })
-            }}
-            className="field-input"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Due date">
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => {
-              const next = e.target.value
-              setDueDate(next)
-              void persist({ dueDate: next || undefined })
-            }}
-            className="field-input"
-          />
-        </Field>
-      </div>
-      <Field label="Notes">
-        <textarea
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={() => void persist({ notes: notes.trim() || undefined })}
-          className="field-input resize-y"
-          placeholder="Vendor contact, confirmation numbers…"
-        />
-      </Field>
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
-        {label}
-      </span>
-      {children}
-    </label>
   )
 }

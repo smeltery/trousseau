@@ -1,14 +1,23 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { db, newId } from '../db/dexie'
 import type { Attachment } from '../db/types'
-import { askConfirm } from '../lib/confirm'
-import { apiDeleteAttachment, apiUploadFile, apiAddLinkAttachment } from '../lib/cloud/api-client'
+import { apiUploadFile, apiAddLinkAttachment } from '../lib/cloud/api-client'
 import { getActiveCloudToken } from '../lib/cloud/session'
 import { dbWrite } from '../lib/db-write'
+import { AttachmentRow } from './expenses/AttachmentRow'
 
 interface AttachmentListProps {
   lineItemId: string
   attachments: Attachment[]
+}
+
+type UploadJob = {
+  localId: string
+  name: string
+  progress: number
+  error?: string
+  file: File
+  id: string
 }
 
 export function AttachmentList({ lineItemId, attachments }: AttachmentListProps) {
@@ -17,52 +26,73 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
   const [dragging, setDragging] = useState(false)
   const [justAdded, setJustAdded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploads, setUploads] = useState<UploadJob[]>([])
+
+  function patchUpload(localId: string, patch: Partial<UploadJob>) {
+    setUploads((prev) => prev.map((u) => (u.localId === localId ? { ...u, ...patch } : u)))
+  }
+
+  async function uploadOne(job: UploadJob) {
+    setError(null)
+    patchUpload(job.localId, { progress: 0.05, error: undefined })
+    const token = getActiveCloudToken()
+    if (token) {
+      try {
+        const uploaded = await apiUploadFile(token, {
+          id: job.id,
+          lineItemId,
+          name: job.file.name,
+          mime: job.file.type || 'application/octet-stream',
+          blob: job.file,
+          onProgress: (ratio) => patchUpload(job.localId, { progress: ratio }),
+        })
+        await dbWrite(() => db.attachments.add(uploaded))
+        setUploads((prev) => prev.filter((u) => u.localId !== job.localId))
+        setJustAdded(true)
+        window.setTimeout(() => setJustAdded(false), 900)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed'
+        patchUpload(job.localId, { error: message, progress: 0 })
+        setError(message)
+      }
+      return
+    }
+    await dbWrite(() =>
+      db.attachments.add({
+        id: job.id,
+        lineItemId,
+        kind: 'file',
+        name: job.file.name,
+        mime: job.file.type || 'application/octet-stream',
+        size: job.file.size,
+        blob: job.file,
+        createdAt: new Date().toISOString(),
+      }),
+    )
+    setUploads((prev) => prev.filter((u) => u.localId !== job.localId))
+    setJustAdded(true)
+    window.setTimeout(() => setJustAdded(false), 900)
+  }
 
   async function addFiles(files: FileList | File[]) {
     setError(null)
-    const list = Array.from(files)
-    let added = 0
-    const token = getActiveCloudToken()
-    for (const file of list) {
+    const jobs: UploadJob[] = []
+    for (const file of Array.from(files)) {
       if (file.size > 25 * 1024 * 1024) {
         setError(`${file.name} is larger than 25 MB`)
         continue
       }
-      const id = newId('att')
-      if (token) {
-        try {
-          const uploaded = await apiUploadFile(token, {
-            id,
-            lineItemId,
-            name: file.name,
-            mime: file.type || 'application/octet-stream',
-            blob: file,
-          })
-          await dbWrite(() => db.attachments.add(uploaded))
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Upload failed')
-          continue
-        }
-      } else {
-        await dbWrite(() =>
-          db.attachments.add({
-            id,
-            lineItemId,
-            kind: 'file',
-            name: file.name,
-            mime: file.type || 'application/octet-stream',
-            size: file.size,
-            blob: file,
-            createdAt: new Date().toISOString(),
-          }),
-        )
-      }
-      added += 1
+      jobs.push({
+        localId: crypto.randomUUID(),
+        id: newId('att'),
+        name: file.name,
+        progress: 0,
+        file,
+      })
     }
-    if (added > 0) {
-      setJustAdded(true)
-      window.setTimeout(() => setJustAdded(false), 900)
-    }
+    if (!jobs.length) return
+    setUploads((prev) => [...prev, ...jobs])
+    for (const job of jobs) await uploadOne(job)
   }
 
   async function addLink() {
@@ -160,130 +190,54 @@ export function AttachmentList({ lineItemId, attachments }: AttachmentListProps)
           }}
           className="min-w-0 rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
         />
-        <button
-          type="button"
-          onClick={() => void addLink()}
-          className="btn-primary shrink-0 whitespace-nowrap"
-        >
+        <button type="button" onClick={() => void addLink()} className="btn-primary shrink-0 whitespace-nowrap">
           Add link
         </button>
       </div>
 
       {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
 
-      {attachments.length === 0 ? (
+      {uploads.length > 0 ? (
+        <ul className="space-y-3 border-t border-[var(--line)] pt-4">
+          {uploads.map((job) => (
+            <li key={job.localId} className="space-y-2">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium">{job.name}</span>
+                {job.error ? (
+                  <button
+                    type="button"
+                    className="shrink-0 font-semibold text-[var(--accent-deep)] underline decoration-1 underline-offset-4"
+                    onClick={() => void uploadOne(job)}
+                  >
+                    Retry
+                  </button>
+                ) : (
+                  <span className="shrink-0 tabular-nums text-[var(--ink-faint)]">
+                    {Math.round(job.progress * 100)}%
+                  </span>
+                )}
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--line-soft)]">
+                <div
+                  className={`h-full ${job.error ? 'bg-[var(--danger)]' : 'bg-[var(--accent)]'}`}
+                  style={{ width: `${Math.max(job.error ? 100 : job.progress * 100, 4)}%` }}
+                />
+              </div>
+              {job.error ? <p className="text-xs text-[var(--danger)]">{job.error}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {attachments.length === 0 && uploads.length === 0 ? (
         <p className="text-sm text-[var(--ink-faint)]">No documents yet.</p>
-      ) : (
+      ) : attachments.length > 0 ? (
         <ul className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
           {attachments.map((att) => (
             <AttachmentRow key={att.id} attachment={att} />
           ))}
         </ul>
-      )}
+      ) : null}
     </div>
   )
-}
-
-function AttachmentRow({ attachment }: { attachment: Attachment }) {
-  const objectUrl = useMemo(() => {
-    if (attachment.kind === 'file' && attachment.blob) {
-      return URL.createObjectURL(attachment.blob)
-    }
-    return null
-  }, [attachment])
-
-  useEffect(() => {
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [objectUrl])
-
-  const fileHref = objectUrl ?? (attachment.kind === 'file' ? attachment.url : undefined)
-  const isImage = Boolean(attachment.mime?.startsWith('image/'))
-  const isPdf = attachment.mime === 'application/pdf' || attachment.name.toLowerCase().endsWith('.pdf')
-
-  return (
-    <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
-      {attachment.kind === 'file' && fileHref && isImage ? (
-        <a href={fileHref} target="_blank" rel="noreferrer" className="shrink-0">
-          <img
-            src={fileHref}
-            alt=""
-            className="h-16 w-16 rounded-sm object-cover ring-1 ring-[var(--line)]"
-          />
-        </a>
-      ) : null}
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{attachment.name}</p>
-        <p className="text-sm text-[var(--ink-faint)]">
-          {attachment.kind === 'link'
-            ? 'Link'
-            : [attachment.mime, attachment.size ? formatBytes(attachment.size) : null]
-                .filter(Boolean)
-                .join(' · ')}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-3 text-sm">
-          {attachment.kind === 'link' && attachment.url ? (
-            <a
-              href={attachment.url}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--accent)] hover:underline"
-            >
-              Open link
-            </a>
-          ) : null}
-          {attachment.kind === 'file' && fileHref ? (
-            <a
-              href={fileHref}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-[var(--accent)] hover:underline"
-            >
-              {isPdf || isImage ? 'Preview' : 'Open'}
-            </a>
-          ) : null}
-          {attachment.kind === 'file' && fileHref ? (
-            <a
-              href={fileHref}
-              download={attachment.name}
-              className="font-medium text-[var(--accent)] hover:underline"
-            >
-              Download
-            </a>
-          ) : null}
-          <button
-            type="button"
-            className="text-[var(--ink-faint)] hover:text-[var(--danger)]"
-            onClick={async () => {
-              const ok = await askConfirm({
-                title: `Remove “${attachment.name}”?`,
-                confirmLabel: 'Remove',
-                danger: true,
-              })
-              if (!ok) return
-              const token = getActiveCloudToken()
-              if (token) {
-                try {
-                  await apiDeleteAttachment(token, attachment.id)
-                } catch {
-                  // Still remove locally if remote is gone.
-                }
-              }
-              await dbWrite(() => db.attachments.delete(attachment.id))
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </li>
-  )
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }

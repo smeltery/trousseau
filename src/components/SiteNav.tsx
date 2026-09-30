@@ -4,8 +4,10 @@ import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
 import { pushCloudBudget } from '../lib/cloud/sync'
 import {
+  getPendingEditCount,
   getSyncStatus,
   setSyncStatus,
+  subscribePendingEdits,
   subscribeSyncStatus,
   syncStatusLabel,
   type SyncStatus,
@@ -62,6 +64,7 @@ export function SiteNav({
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [sync, setSync] = useState<SyncStatus>(() => getSyncStatus())
+  const [pending, setPending] = useState(() => getPendingEditCount())
   const menuTitleId = useId()
   const menuRef = useRef<HTMLDivElement>(null)
   const importFromQuery = variant === 'app' && searchParams.get('import') === '1'
@@ -70,6 +73,7 @@ export function SiteNav({
   useDialogFocus(menuRef, menuOpen)
 
   useEffect(() => subscribeSyncStatus(setSync), [])
+  useEffect(() => subscribePendingEdits(setPending), [])
 
   useEffect(() => {
     function onOnline() {
@@ -135,7 +139,7 @@ export function SiteNav({
   const desktopSections = variant === 'marketing' ? marketingSections : appSections
   const sheetSections = variant === 'marketing' ? marketingSheetSections : appSections
   const homeTo = variant === 'app' ? `${location.pathname}${location.search}` : '/'
-  const syncLabel = syncBanner ? syncStatusLabel(sync) : null
+  const syncLabel = syncBanner ? syncStatusLabel(sync, pending) : null
 
   return (
     <>

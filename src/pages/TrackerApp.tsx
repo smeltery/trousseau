@@ -9,6 +9,7 @@ import { DueCalendar } from '../components/DueCalendar'
 import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/funds/FundsSection'
 import { LineItemSheet } from '../components/LineItemSheet'
+import { PrintBudgetSummary } from '../components/expenses/PrintBudgetSummary'
 import { OverviewHero } from '../components/OverviewHero'
 import { Reveal } from '../components/Reveal'
 import { db, loadDemoSample, resetToBlank } from '../db/dexie'
@@ -25,12 +26,12 @@ import {
   ensureCloudBudget,
   enterCloudBudget,
   leaveCloudBudget,
-  pullCloudBudgetIfStale,
 } from '../lib/cloud/sync'
 import { applyDocumentTitle } from '../lib/ux/document-title'
+import { useCloudFocusAndUnload } from '../lib/ux/cloud-focus'
 import { dbWrite } from '../lib/db-write'
 import { expensesPaidTotal, expensesRunningTotal } from '../lib/expense-display'
-import { isOverdue, todayKey } from '../lib/calendar'
+import { isOverdue, todayKey, undatedUnpaidItems } from '../lib/calendar'
 import { sum } from '../lib/money'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
 import { showToast } from '../lib/toast'
@@ -145,31 +146,7 @@ export function TrackerApp() {
     celebrate()
   }, [ready])
 
-  useEffect(() => {
-    if (!ready || !cloudMode) return
-    let lastToastAt = 0
-    async function onFocus() {
-      try {
-        const changed = await pullCloudBudgetIfStale()
-        if (!changed) return
-        const now = Date.now()
-        if (now - lastToastAt < 60_000) return
-        lastToastAt = now
-        showToast('Shared budget updated')
-      } catch {
-        // Offline / transient: keep local cache.
-      }
-    }
-    function onVis() {
-      if (document.visibilityState === 'visible') void onFocus()
-    }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [ready, cloudMode])
+  useCloudFocusAndUnload(ready, cloudMode)
 
   useEffect(() => {
     if (!ready) return
@@ -250,6 +227,7 @@ export function TrackerApp() {
 
   const shareUrl = cloudMode ? window.location.href : undefined
   const overdueCount = lineItems.filter((i) => isOverdue(i, todayKey())).length
+  const undatedUnpaidCount = undatedUnpaidItems(lineItems).length
 
   return (
     <div className="relative">
@@ -264,6 +242,7 @@ export function TrackerApp() {
         syncBanner={cloudMode}
         shareUrl={shareUrl}
         overdueCount={overdueCount}
+        undatedUnpaidCount={undatedUnpaidCount}
       />
       <Reveal>
         <FundsSection site={site} funds={funds} syncBanner={cloudMode} />
@@ -293,6 +272,12 @@ export function TrackerApp() {
         <BackupBar shareUrl={shareUrl} syncBanner={cloudMode} />
       </Reveal>
       <TrackerFooter />
+      <PrintBudgetSummary
+        site={site}
+        funds={funds}
+        categories={categories}
+        lineItems={lineItems}
+      />
 
       {openItemId ? (
         <LineItemSheet lineItemId={openItemId} onClose={() => setOpenItemId(null)} />

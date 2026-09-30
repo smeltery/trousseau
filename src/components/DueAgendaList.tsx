@@ -1,8 +1,7 @@
 import type { LineItem } from '../db/types'
-import { db } from '../db/dexie'
-import { canMarkPaid, formatDue, formatLineAmount, markPaidPatch, paperLineStatus } from '../lib/expense-display'
-import { dbWrite } from '../lib/db-write'
-import { showToast } from '../lib/toast'
+import { formatDue, formatLineAmount, paperLineStatus } from '../lib/expense-display'
+import { canMarkPaid } from '../lib/expense-display'
+import { markPaidWithUndo } from '../lib/ux/mark-paid'
 
 export function CalendarLegend({
   swatch,
@@ -77,6 +76,7 @@ export function DueAgendaList({
                     <span className="mt-0.5 block text-sm text-[var(--ink-faint)]">
                       {categoryName(item.categoryId)}
                       {showDate && item.dueDate ? ` · ${formatDue(item.dueDate)}` : ''}
+                      {showDate && !item.dueDate ? ' · No due date' : ''}
                     </span>
                   </span>
                   <span
@@ -90,10 +90,7 @@ export function DueAgendaList({
                     type="button"
                     aria-label={`Mark ${item.label} paid`}
                     className="shrink-0 self-center px-2 text-xs font-semibold text-[var(--accent-deep)] hover:underline"
-                    onClick={async () => {
-                      await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
-                      showToast('Marked paid')
-                    }}
+                    onClick={() => void markPaidWithUndo(item)}
                   >
                     Paid
                   </button>

@@ -1,9 +1,10 @@
-type HintStep = 'date' | 'gift' | 'share'
+type HintStep = 'date' | 'gift' | 'share' | 'due'
 
 const KEYS: Record<HintStep, string> = {
   date: 'trousseau:hint-date-dismissed',
   gift: 'trousseau:hint-gift-dismissed',
   share: 'trousseau:share-hint-dismissed',
+  due: 'trousseau:hint-due-dismissed',
 }
 
 function read(key: string): boolean {

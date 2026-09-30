@@ -135,6 +135,14 @@ export function BackupBar({ shareUrl, syncBanner = false }: { shareUrl?: string;
               >
                 Import backup
               </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => window.print()}
+                className={linkQuiet}
+              >
+                Print budget summary
+              </button>
             </div>
           </div>
 

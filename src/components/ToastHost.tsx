@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
-import { subscribeToasts } from '../lib/toast'
+import { dismissToast, subscribeToasts } from '../lib/toast'
+
+type ToastRow = {
+  id: string
+  message: string
+  action?: { label: string; onClick: () => void }
+}
 
 export function ToastHost() {
-  const [toasts, setToasts] = useState<{ id: string; message: string }[]>([])
+  const [toasts, setToasts] = useState<ToastRow[]>([])
 
   useEffect(() => subscribeToasts(setToasts), [])
 
@@ -16,9 +22,21 @@ export function ToastHost() {
       {toasts.map((toast) => (
         <p
           key={toast.id}
-          className="toast-enter max-w-sm rounded-sm border border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-4 py-3 text-sm font-medium text-[var(--on-dark)] shadow-[var(--sheet-shadow)] backdrop-blur-xl"
+          className="toast-enter pointer-events-auto flex max-w-sm items-center gap-3 rounded-sm border border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-4 py-3 text-sm font-medium text-[var(--on-dark)] shadow-[var(--sheet-shadow)] backdrop-blur-xl"
         >
-          {toast.message}
+          <span className="min-w-0 flex-1">{toast.message}</span>
+          {toast.action ? (
+            <button
+              type="button"
+              className="shrink-0 font-semibold text-[var(--accent)] underline decoration-1 underline-offset-4 hover:text-[var(--on-dark)]"
+              onClick={() => {
+                toast.action?.onClick()
+                dismissToast(toast.id)
+              }}
+            >
+              {toast.action.label}
+            </button>
+          ) : null}
         </p>
       ))}
     </div>

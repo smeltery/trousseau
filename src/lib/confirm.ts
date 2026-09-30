@@ -6,21 +6,48 @@ export type ConfirmRequest = {
   danger?: boolean
 }
 
-type Listener = (request: ConfirmRequest | null) => void
+export type ChoiceRequest = {
+  title: string
+  body?: string
+  primaryLabel: string
+  secondaryLabel: string
+  cancelLabel?: string
+  primaryDanger?: boolean
+  secondaryDanger?: boolean
+}
+
+type ConfirmListener = (request: ConfirmRequest | null) => void
+type ChoiceListener = (request: ChoiceRequest | null) => void
 
 let pending: ConfirmRequest | null = null
 let resolvePending: ((ok: boolean) => void) | null = null
-const listeners = new Set<Listener>()
+const confirmListeners = new Set<ConfirmListener>()
 
-function emit() {
-  for (const listener of listeners) listener(pending)
+let choicePending: ChoiceRequest | null = null
+let resolveChoice: ((value: 'primary' | 'secondary' | 'cancel') => void) | null = null
+const choiceListeners = new Set<ChoiceListener>()
+
+function emitConfirm() {
+  for (const listener of confirmListeners) listener(pending)
 }
 
-export function subscribeConfirm(listener: Listener): () => void {
-  listeners.add(listener)
+function emitChoice() {
+  for (const listener of choiceListeners) listener(choicePending)
+}
+
+export function subscribeConfirm(listener: ConfirmListener): () => void {
+  confirmListeners.add(listener)
   listener(pending)
   return () => {
-    listeners.delete(listener)
+    confirmListeners.delete(listener)
+  }
+}
+
+export function subscribeChoice(listener: ChoiceListener): () => void {
+  choiceListeners.add(listener)
+  listener(choicePending)
+  return () => {
+    choiceListeners.delete(listener)
   }
 }
 
@@ -31,7 +58,7 @@ export function askConfirm(request: ConfirmRequest): Promise<boolean> {
     resolvePending = null
   }
   pending = request
-  emit()
+  emitConfirm()
   return new Promise((resolve) => {
     resolvePending = resolve
   })
@@ -41,6 +68,27 @@ export function answerConfirm(ok: boolean): void {
   const resolve = resolvePending
   resolvePending = null
   pending = null
-  emit()
+  emitConfirm()
   resolve?.(ok)
+}
+
+/** Three-way choice (keep mine / take theirs / cancel). */
+export function askChoice(request: ChoiceRequest): Promise<'primary' | 'secondary' | 'cancel'> {
+  if (resolveChoice) {
+    resolveChoice('cancel')
+    resolveChoice = null
+  }
+  choicePending = request
+  emitChoice()
+  return new Promise((resolve) => {
+    resolveChoice = resolve
+  })
+}
+
+export function answerChoice(value: 'primary' | 'secondary' | 'cancel'): void {
+  const resolve = resolveChoice
+  resolveChoice = null
+  choicePending = null
+  emitChoice()
+  resolve?.(value)
 }

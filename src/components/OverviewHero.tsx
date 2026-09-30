@@ -19,9 +19,10 @@ interface OverviewHeroProps {
   syncBanner?: boolean
   shareUrl?: string
   overdueCount?: number
+  undatedUnpaidCount?: number
 }
 
-type HintKind = 'names' | 'date' | 'gift' | 'share'
+type HintKind = 'names' | 'date' | 'gift' | 'share' | 'due'
 
 export function OverviewHero({
   site,
@@ -34,6 +35,7 @@ export function OverviewHero({
   syncBanner = false,
   shareUrl,
   overdueCount = 0,
+  undatedUnpaidCount = 0,
 }: OverviewHeroProps) {
   const over = remaining < 0
   const blankNames = site.brandLeft === 'Groom' && site.brandRight === 'Bride'
@@ -41,6 +43,7 @@ export function OverviewHero({
   const [dateDismissed, setDateDismissed] = useState(() => isHintDismissed('date'))
   const [giftDismissed, setGiftDismissed] = useState(() => isHintDismissed('gift'))
   const [shareDismissed, setShareDismissed] = useState(() => isHintDismissed('share'))
+  const [dueDismissed, setDueDismissed] = useState(() => isHintDismissed('due'))
   const countdown = weddingCountdown(site.weddingDate)
 
   const hint: HintKind | null = (() => {
@@ -48,6 +51,7 @@ export function OverviewHero({
     if (!site.weddingDate && !dateDismissed) return 'date'
     if (fundCount === 0 && !giftDismissed) return 'gift'
     if (shareUrl && !shareDismissed) return 'share'
+    if (undatedUnpaidCount > 0 && !dueDismissed) return 'due'
     return null
   })()
 
@@ -61,9 +65,12 @@ export function OverviewHero({
     } else if (kind === 'gift') {
       dismissHint('gift')
       setGiftDismissed(true)
-    } else {
+    } else if (kind === 'share') {
       dismissHint('share')
       setShareDismissed(true)
+    } else {
+      dismissHint('due')
+      setDueDismissed(true)
     }
   }
 
@@ -83,6 +90,7 @@ export function OverviewHero({
     date: 'Set your wedding date for a countdown',
     gift: 'Add a gift or savings to fund the day',
     share: 'Copy the share link for your partner',
+    due: 'Set a due date on an unpaid expense',
   }
 
   return (
@@ -146,6 +154,11 @@ export function OverviewHero({
                 }
                 if (hint === 'share') {
                   void copyShare()
+                  return
+                }
+                if (hint === 'due') {
+                  hideHint('due')
+                  document.getElementById('expenses')?.scrollIntoView({ behavior: 'smooth' })
                   return
                 }
                 hideHint(hint)
