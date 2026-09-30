@@ -1,21 +1,14 @@
 import { Link } from 'react-router-dom'
+import { FooterLegalBar } from '../../components/nav/FooterLegalBar'
 import { TrousseauLogo } from '../../components/TrousseauLogo'
 import { footerColumns, type FooterLink } from './content'
 
 function FooterNavLink({ link }: { link: FooterLink }) {
-  const className =
-    'text-[0.95rem] font-medium text-[var(--on-dark)] transition-colors hover:text-[var(--accent)]'
-
-  if ('href' in link) {
-    return (
-      <a href={link.href} download={link.download} className={className}>
-        {link.label}
-      </a>
-    )
-  }
-
   return (
-    <Link to={link.to} className={className}>
+    <Link
+      to={link.to}
+      className="text-[0.95rem] font-medium text-[var(--on-dark)] transition-colors hover:text-[var(--accent)]"
+    >
       {link.label}
     </Link>
   )
@@ -55,14 +48,7 @@ export function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-[color-mix(in_srgb,var(--on-dark)_12%,transparent)] pt-8 sm:mt-16 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[color-mix(in_srgb,var(--on-dark)_45%,transparent)]">
-            A quiet wedding budget for two.
-          </p>
-          <p className="text-sm text-[color-mix(in_srgb,var(--on-dark)_45%,transparent)]">
-            Made with care
-          </p>
-        </div>
+        <FooterLegalBar />
       </div>
     </footer>
   )

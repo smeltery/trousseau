@@ -1,7 +1,8 @@
 import type { LineItem } from '../db/types'
-import { isOverdue } from '../lib/calendar'
-import { formatDue } from '../lib/expense-display'
-import { formatMoney } from '../lib/money'
+import { db } from '../db/dexie'
+import { canMarkPaid, formatDue, formatLineAmount, markPaidPatch, paperLineStatus } from '../lib/expense-display'
+import { dbWrite } from '../lib/db-write'
+import { showToast } from '../lib/toast'
 
 export function CalendarLegend({
   swatch,
@@ -48,27 +49,20 @@ export function DueAgendaList({
       ) : (
         <ul className="mt-4 divide-y divide-[var(--line-soft)] border-t border-[var(--line-soft)]">
           {items.map((item) => {
-            const overdue = isOverdue(item, today)
-            const paid = item.status === 'paid'
-            const amount =
-              item.amount > 0
-                ? formatMoney(item.amount)
-                : item.paidAmount > 0
-                  ? formatMoney(item.paidAmount)
-                  : '-'
-            const bar = overdue ? 'bg-[var(--danger)]' : paid ? 'bg-[var(--lichen)]' : 'bg-[var(--accent)]'
-            const badge = overdue ? 'Overdue' : paid ? 'Paid' : 'Due'
-            const badgeTone = overdue
-              ? 'text-[var(--danger)]'
-              : paid
-                ? 'text-[var(--lichen)]'
-                : 'text-[var(--accent-deep)]'
+            const { label: badge, tone: badgeTone, chip } = paperLineStatus(item, today)
+            const amount = formatLineAmount(item)
+            const bar =
+              chip === 'overdue'
+                ? 'bg-[var(--danger)]'
+                : chip === 'paid'
+                  ? 'bg-[var(--lichen)]'
+                  : 'bg-[var(--accent)]'
             return (
-              <li key={item.id}>
+              <li key={item.id} className="flex items-stretch gap-1">
                 <button
                   type="button"
                   onClick={() => onOpenItem(item.id)}
-                  className="group flex w-full gap-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+                  className="group flex min-w-0 flex-1 gap-3 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
                 >
                   <span aria-hidden className={`mt-1 w-1 shrink-0 self-stretch rounded-full ${bar}`} />
                   <span className="min-w-0 flex-1">
@@ -86,11 +80,24 @@ export function DueAgendaList({
                     </span>
                   </span>
                   <span
-                    className={`shrink-0 self-center font-[family-name:var(--font-display)] text-xl tabular-nums ${overdue ? 'text-[var(--danger)]' : ''}`}
+                    className={`shrink-0 self-center font-[family-name:var(--font-display)] text-xl tabular-nums ${chip === 'overdue' ? 'text-[var(--danger)]' : ''}`}
                   >
                     {amount}
                   </span>
                 </button>
+                {canMarkPaid(item) ? (
+                  <button
+                    type="button"
+                    aria-label={`Mark ${item.label} paid`}
+                    className="shrink-0 self-center px-2 text-xs font-semibold text-[var(--accent-deep)] hover:underline"
+                    onClick={async () => {
+                      await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
+                      showToast('Marked paid')
+                    }}
+                  >
+                    Paid
+                  </button>
+                ) : null}
               </li>
             )
           })}

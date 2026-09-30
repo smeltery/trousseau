@@ -280,11 +280,14 @@ export function buildDemoSample(): {
     { id: id('fund', 2), label: pick(FRIENDS_GIFT_LABELS), amount: friends, type: 'gift', sort: 1 },
     { id: id('fund', 3), label: pick(SAVINGS_LABELS), amount: savings, type: 'savings', sort: 2 },
   ]
+  // After the latest demo due offsets (~100d) so balances land before the wedding.
+  const weddingDate = offsetDate(randInt(100, 140))
 
   const site: SiteSettings = {
     ...DEFAULT_SITE,
     brandLeft,
     brandRight,
+    weddingDate,
     fundsSub: 'Sample gifts and savings so you can explore the layout before using your own numbers.',
   }
 

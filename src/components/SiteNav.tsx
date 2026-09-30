@@ -1,16 +1,28 @@
-import { useEffect, useId, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { celebrate } from '../lib/celebrate'
 import { goToSharedBudget } from '../lib/cloud/navigate'
+import { pushCloudBudget } from '../lib/cloud/sync'
+import {
+  getSyncStatus,
+  setSyncStatus,
+  subscribeSyncStatus,
+  syncStatusLabel,
+  type SyncStatus,
+} from '../lib/sync-status'
 import { showToast } from '../lib/toast'
+import { useDialogFocus } from '../lib/use-dialog-focus'
 import { ImportBackupDialog } from './ImportBackupDialog'
+import { SyncBanner } from './nav/SyncBanner'
 import { SiteNavMenu } from './SiteNavMenu'
 import { TrousseauLogo } from './TrousseauLogo'
 
 type SiteNavProps = {
   variant: 'marketing' | 'app'
-  /** Show the share/sync notice under the bar (app only). */
   syncBanner?: boolean
+  shareUrl?: string
+  onOpenCommands?: () => void
+  overdueCount?: number
 }
 
 const navQuiet =
@@ -34,15 +46,43 @@ const marketingSheetSections = [
   { label: 'Questions', href: '#questions' },
 ] as const
 
-export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
+export function SiteNav({
+  variant,
+  syncBanner = false,
+  shareUrl,
+  onOpenCommands,
+  overdueCount = 0,
+}: SiteNavProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [importRequested, setImportRequested] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [sync, setSync] = useState<SyncStatus>(() => getSyncStatus())
   const menuTitleId = useId()
+  const menuRef = useRef<HTMLDivElement>(null)
   const importFromQuery = variant === 'app' && searchParams.get('import') === '1'
   const importOpen = variant === 'app' && (importRequested || importFromQuery)
+
+  useDialogFocus(menuRef, menuOpen)
+
+  useEffect(() => subscribeSyncStatus(setSync), [])
+
+  useEffect(() => {
+    function onOnline() {
+      if (getSyncStatus() === 'offline') void pushCloudBudget()
+    }
+    function onOffline() {
+      setSyncStatus('offline')
+    }
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
 
   function closeImport() {
     setImportRequested(false)
@@ -55,13 +95,20 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
   function jumpTo(href: string) {
     setMenuOpen(false)
     const id = href.slice(1)
-    // Defer so the sheet can close before scrolling on mobile.
     requestAnimationFrame(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      if (href !== window.location.hash) {
-        window.history.replaceState(null, '', href)
-      }
+      if (href !== window.location.hash) window.history.replaceState(null, '', href)
     })
+  }
+
+  async function copyShare() {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      showToast('Share link copied')
+    } catch {
+      showToast(shareUrl)
+    }
   }
 
   useEffect(() => {
@@ -78,18 +125,15 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setMenuOpen(false)
     }
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prev
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [menuOpen])
 
   const sheetClass = variant === 'marketing' ? 'lg:hidden' : 'md:hidden'
   const desktopSections = variant === 'marketing' ? marketingSections : appSections
   const sheetSections = variant === 'marketing' ? marketingSheetSections : appSections
+  const homeTo = variant === 'app' ? `${location.pathname}${location.search}` : '/'
+  const syncLabel = syncBanner ? syncStatusLabel(sync) : null
 
   return (
     <>
@@ -111,18 +155,18 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
               : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-none'
           }`}
         >
-          <div className="page-shell flex items-center justify-between gap-4 py-4">
+          <div className="page-shell flex min-h-14 items-center justify-between gap-4 py-3">
             <Link
-              to="/"
+              to={homeTo}
               onClick={(e) => {
                 setMenuOpen(false)
-                if (window.location.pathname === '/') {
+                if (variant === 'app' || window.location.pathname === '/') {
                   e.preventDefault()
                   window.scrollTo({ top: 0, behavior: 'smooth' })
-                  window.history.replaceState(null, '', '/')
+                  if (variant === 'marketing') window.history.replaceState(null, '', '/')
                 }
               }}
-              className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+              className="inline-flex translate-y-px items-center rounded-sm leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
             >
               <TrousseauLogo
                 onDark
@@ -133,7 +177,7 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
             </Link>
 
             <div
-              className={`hidden items-center ${variant === 'marketing' ? 'gap-7 lg:flex' : 'gap-8 md:flex'}`}
+              className={`hidden items-center ${variant === 'marketing' ? 'gap-7 lg:flex' : 'gap-6 md:flex'}`}
             >
               {desktopSections.map((section) => (
                 <a
@@ -161,9 +205,27 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
                   </Link>
                 </>
               ) : (
-                <button type="button" onClick={() => setImportRequested(true)} className="btn-nav">
-                  Import
-                </button>
+                <>
+                  {shareUrl ? (
+                    <button type="button" onClick={() => void copyShare()} className={navQuiet}>
+                      Copy link
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenCommands) onOpenCommands()
+                      else window.dispatchEvent(new CustomEvent('trousseau:command'))
+                    }}
+                    className={navQuiet}
+                    title="Command menu"
+                  >
+                    <kbd className="font-[family-name:var(--font-body)] text-[12px]">⌘K</kbd>
+                  </button>
+                  <button type="button" onClick={() => setImportRequested(true)} className="btn-nav">
+                    Import
+                  </button>
+                </>
               )}
             </div>
 
@@ -183,26 +245,37 @@ export function SiteNav({ variant, syncBanner = false }: SiteNavProps) {
           </div>
         </nav>
         {syncBanner ? (
-          <div className="border-b border-[color-mix(in_srgb,var(--on-dark)_14%,transparent)] bg-[color-mix(in_srgb,var(--grove)_88%,transparent)] px-[var(--page-pad)] py-2.5 text-center backdrop-blur-md">
-            <p className="text-sm text-[var(--on-dark-muted)]">
-              Synced budget · anyone with this link can edit. Treat the URL like a password.
-            </p>
-          </div>
+          <SyncBanner
+            syncLabel={syncLabel}
+            sync={sync}
+            shareUrl={shareUrl}
+            onCopyShare={() => void copyShare()}
+          />
         ) : null}
 
         {menuOpen ? (
-          <SiteNavMenu
-            variant={variant}
-            menuId={menuTitleId}
-            sheetClass={sheetClass}
-            sections={sheetSections}
-            onJump={jumpTo}
-            onClose={() => setMenuOpen(false)}
-            onImport={() => {
-              setMenuOpen(false)
-              setImportRequested(true)
-            }}
-          />
+          <div ref={menuRef}>
+            <SiteNavMenu
+              variant={variant}
+              menuId={menuTitleId}
+              sheetClass={sheetClass}
+              sections={sheetSections}
+              shareUrl={shareUrl}
+              overdueCount={overdueCount}
+              onJump={jumpTo}
+              onClose={() => setMenuOpen(false)}
+              onImport={() => {
+                setMenuOpen(false)
+                setImportRequested(true)
+              }}
+              onCopyShare={() => void copyShare()}
+              onOpenCommands={() => {
+                setMenuOpen(false)
+                if (onOpenCommands) onOpenCommands()
+                else window.dispatchEvent(new CustomEvent('trousseau:command'))
+              }}
+            />
+          </div>
         ) : null}
       </div>
 

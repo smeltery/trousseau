@@ -5,6 +5,7 @@ import type { LineItem, LineStatus } from '../db/types'
 import { STATUS_LABELS } from '../lib/budget'
 import { askConfirm } from '../lib/confirm'
 import { dbWrite } from '../lib/db-write'
+import { canMarkPaid, markPaidPatch, recordPaymentPatch } from '../lib/expense-display'
 import { parseMoneyInput } from '../lib/money'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
@@ -37,11 +38,8 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prev
     }
   }, [onClose])
 
@@ -52,7 +50,6 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
       </SheetShell>
     )
   }
-
   if (item === null) {
     return (
       <SheetShell titleId={titleId} onClose={onClose} title="Expense">
@@ -72,7 +69,7 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
       <div className="mt-10 border-t border-[var(--line)] pt-8">
         <AttachmentList lineItemId={item.id} attachments={attachments} />
       </div>
-      <div className="mt-10 flex justify-between border-t border-[var(--line)] pt-6">
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-6">
         <button
           type="button"
           className="text-sm text-[var(--danger)] hover:underline"
@@ -96,13 +93,21 @@ export function LineItemSheet({ lineItemId, onClose }: LineItemSheetProps) {
         >
           Delete expense
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn-primary"
-        >
-          Done
-        </button>
+        <div className="flex flex-wrap gap-3">
+          {canMarkPaid(item) ? (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={async () => {
+                await dbWrite(() => db.lineItems.update(item.id, markPaidPatch(item)))
+                showToast('Marked paid')
+              }}
+            >
+              Mark paid
+            </button>
+          ) : null}
+          <button type="button" onClick={onClose} className="btn-primary">Done</button>
+        </div>
       </div>
     </SheetShell>
   )
@@ -174,6 +179,7 @@ function LineItemForm({ item }: { item: LineItem }) {
   const [status, setStatus] = useState(item.status)
   const [dueDate, setDueDate] = useState(item.dueDate ?? '')
   const [notes, setNotes] = useState(item.notes ?? '')
+  const [payment, setPayment] = useState('')
 
   async function persist(patch: Partial<LineItem>) {
     await dbWrite(() => db.lineItems.update(item.id, patch))
@@ -193,7 +199,6 @@ function LineItemForm({ item }: { item: LineItem }) {
           className="field-input"
         />
       </Field>
-
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Expected amount">
           <input
@@ -218,7 +223,8 @@ function LineItemForm({ item }: { item: LineItem }) {
               setPaid(String(n))
               const patch: Partial<LineItem> = { paidAmount: n }
               if (n > 0 && status === 'planned') {
-                patch.status = n >= parseMoneyInput(amount) && parseMoneyInput(amount) > 0 ? 'paid' : 'partial'
+                patch.status =
+                  n >= parseMoneyInput(amount) && parseMoneyInput(amount) > 0 ? 'paid' : 'partial'
                 setStatus(patch.status)
               }
               void persist(patch)
@@ -227,7 +233,40 @@ function LineItemForm({ item }: { item: LineItem }) {
           />
         </Field>
       </div>
-
+      {item.status !== 'paid' ? (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="min-w-[8rem] flex-1">
+            <span className="mb-1.5 block text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
+              Record payment
+            </span>
+            <input
+              inputMode="decimal"
+              value={payment}
+              onChange={(e) => setPayment(e.target.value)}
+              placeholder="Amount"
+              className="field-input"
+            />
+          </label>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={async () => {
+              const patch = recordPaymentPatch(item, parseMoneyInput(payment))
+              if (!patch) {
+                showToast('Enter a payment amount')
+                return
+              }
+              setPaid(String(patch.paidAmount))
+              if (patch.status) setStatus(patch.status)
+              setPayment('')
+              await persist(patch)
+              showToast(patch.status === 'paid' ? 'Marked paid' : 'Payment recorded')
+            }}
+          >
+            Add payment
+          </button>
+        </div>
+      ) : null}
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Status">
           <select
@@ -235,6 +274,13 @@ function LineItemForm({ item }: { item: LineItem }) {
             onChange={(e) => {
               const next = e.target.value as LineStatus
               setStatus(next)
+              if (next === 'paid') {
+                const n = parseMoneyInput(amount)
+                const paidAmount = n > 0 ? n : parseMoneyInput(paid)
+                setPaid(String(paidAmount))
+                void persist({ status: next, paidAmount })
+                return
+              }
               void persist({ status: next })
             }}
             className="field-input"
@@ -259,7 +305,6 @@ function LineItemForm({ item }: { item: LineItem }) {
           />
         </Field>
       </div>
-
       <Field label="Notes">
         <textarea
           rows={3}

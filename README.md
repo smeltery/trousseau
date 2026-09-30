@@ -36,8 +36,6 @@ Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres. Full 
 | `/?import=1` | Import a zip over the home page (creates a new share link) |
 | `/b/<token>` | Shared budget: treat the URL like a password |
 
-A downloadable sample wedding zip lives at [`public/samples/sample-wedding.zip`](public/samples/sample-wedding.zip) (`bun run sample:wedding` rebuilds it).
-
 ## Why Trousseau?
 
 A *trousseau* is the collection of clothes, linens, and keepsakes traditionally gathered for marriage. This app borrows the word for the modern pile: gifts and savings coming in, vendor lines going out, receipts and notes beside the dollars. One shared link holds that collection for both of you until the day arrives.

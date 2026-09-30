@@ -27,25 +27,51 @@
   }
 
   .boot-key {
+    /* Rotate only — keep motion on a dedicated child so iOS doesn't stall nested transforms. */
+    transform: none;
+  }
+
+  .boot-art-float {
+    display: block;
+    width: 100%;
+    height: auto;
     transform: rotate(-12deg);
     transform-origin: center;
+    animation: boot-art-float 6.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes boot-art-float {
+    0%,
+    100% {
+      transform: rotate(-12deg) translate3d(0, 0, 0);
+    }
+    50% {
+      transform: rotate(-12deg) translate3d(0, -10px, 0);
+    }
   }
 
   .boot-progress {
-    display: flex;
+    display: block;
     width: 7.5rem;
     height: 2px;
     overflow: hidden;
     border-radius: 999px;
     background: color-mix(in srgb, var(--accent) 22%, transparent);
+    /* Own compositing layer, outside rise-in, so iOS keeps the bar moving. */
+    isolation: isolate;
+    transform: translateZ(0);
   }
 
   .boot-progress-fill {
+    display: block;
     height: 100%;
     width: 42%;
     border-radius: inherit;
     background: var(--accent);
     animation: boot-bar 1.6s ease-in-out infinite;
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   @media (min-width: 640px) {
@@ -198,8 +224,9 @@
   .nav-menu-toggle {
     position: relative;
     display: inline-flex;
-    height: 40px;
-    width: 40px;
+    flex-shrink: 0;
+    height: 2.5rem;
+    width: 2.5rem;
     align-items: center;
     justify-content: center;
     border: 0;
@@ -244,5 +271,14 @@
 
   .nav-menu-toggle[aria-expanded='true'] .nav-menu-bar:nth-child(4) {
     transform: translate(-50%, 0) rotate(-45deg);
+  }
+
+  /* Native date picker glyph on dark hero surfaces.
+     Use invert only — color-scheme:dark already lightens the glyph, so both together
+     double-invert and leave a black icon. */
+  .date-on-dark::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
+    filter: invert(1) brightness(1.1);
   }
 }

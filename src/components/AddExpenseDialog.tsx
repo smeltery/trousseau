@@ -4,6 +4,7 @@ import { db, newId } from '../db/dexie'
 import type { CategoryGroup } from '../db/types'
 import { GROUP_LABELS } from '../lib/budget'
 import { dbWrite } from '../lib/db-write'
+import { parseMoneyInput } from '../lib/money'
 import { showToast } from '../lib/toast'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 
@@ -20,7 +21,9 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
   const [categoryId, setCategoryId] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newGroup, setNewGroup] = useState<CategoryGroup>('vendor')
-  const [label, setLabel] = useState('Deposit')
+  const [label, setLabel] = useState('')
+  const [amountText, setAmountText] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const selectedCategoryId = categoryId || categories[0]?.id || ''
 
   useDialogFocus(formRef)
@@ -48,6 +51,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
 
     if (!catId) return
 
+    const amount = parseMoneyInput(amountText)
     const siblings = await db.lineItems.where('categoryId').equals(catId).toArray()
     const sort = siblings.length ? Math.max(...siblings.map((s) => s.sort)) + 1 : 0
     const id = newId('line')
@@ -56,9 +60,10 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
         id,
         categoryId: catId,
         label: label.trim() || 'Expense',
-        amount: 0,
+        amount,
         paidAmount: 0,
         status: 'planned',
+        dueDate: dueDate || undefined,
         sort,
       }),
     )
@@ -81,7 +86,7 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
         aria-modal="true"
         aria-labelledby={titleId}
         onSubmit={(e) => void submit(e)}
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--wash)] p-6 shadow-[var(--sheet-shadow)] animate-[sheet-in_0.35s_var(--ease-out)] sm:rounded-2xl"
+        className="relative z-10 max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-[var(--wash)] p-6 shadow-[var(--sheet-shadow)] animate-[sheet-in_0.35s_var(--ease-out)] sm:rounded-2xl"
       >
         <h2
           id={titleId}
@@ -159,19 +164,43 @@ export function AddExpenseDialog({ onClose, onCreated }: AddExpenseDialogProps) 
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="w-full rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
+              placeholder="Deposit"
               required
             />
           </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
+                Amount
+              </span>
+              <input
+                inputMode="decimal"
+                value={amountText}
+                onChange={(e) => setAmountText(e.target.value)}
+                className="w-full rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
+                placeholder="0"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold tracking-[0.12em] text-[var(--ink-muted)] uppercase">
+                Due date
+              </span>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full rounded-sm border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:border-[var(--accent)]"
+              />
+            </label>
+          </div>
         </div>
 
         <div className="mt-8 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-[var(--ink-muted)]">
             Cancel
           </button>
-          <button
-            type="submit"
-            className="btn-primary"
-          >
+          <button type="submit" className="btn-primary">
             Create
           </button>
         </div>

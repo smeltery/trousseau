@@ -1,3 +1,5 @@
+import type { To } from 'react-router-dom'
+
 export const features = [
   {
     title: 'Yours to rename',
@@ -92,13 +94,11 @@ export const faqs = [
   },
   {
     q: 'Can we start from a sample?',
-    a: 'Yes. Try the filled demo, or open Import to drop a Trousseau .zip (including the sample wedding download). Import creates a new share link.',
+    a: 'Yes. Try the filled demo, or open Import to drop a Trousseau .zip. Import creates a new share link.',
   },
 ] as const
 
-export type FooterLink =
-  | { label: string; to: string }
-  | { label: string; href: string; download?: string }
+export type FooterLink = { label: string; to: To }
 
 export const footerColumns: { title: string; links: FooterLink[] }[] = [
   {
@@ -113,22 +113,12 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Learn',
     links: [
-      { label: 'The name', to: '/#name' },
-      { label: 'How it works', to: '/#how' },
-      { label: 'Due dates', to: '/#due' },
-      { label: 'Privacy', to: '/#privacy' },
-      { label: 'Backup', to: '/#backup' },
-      { label: 'Questions', to: '/#questions' },
-    ],
-  },
-  {
-    title: 'Samples',
-    links: [
-      {
-        label: 'Sample wedding budget',
-        href: '/samples/sample-wedding.zip',
-        download: 'sample-wedding.zip',
-      },
+      { label: 'The name', to: { pathname: '/', hash: 'name' } },
+      { label: 'How it works', to: { pathname: '/', hash: 'how' } },
+      { label: 'Due dates', to: { pathname: '/', hash: 'due' } },
+      { label: 'Privacy', to: { pathname: '/', hash: 'privacy' } },
+      { label: 'Backup', to: { pathname: '/', hash: 'backup' } },
+      { label: 'Questions', to: { pathname: '/', hash: 'questions' } },
     ],
   },
 ]

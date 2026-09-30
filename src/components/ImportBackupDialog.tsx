@@ -4,8 +4,6 @@ import { publishShareLink } from '../lib/cloud/sync'
 import { dbWrite } from '../lib/db-write'
 import { useDialogFocus } from '../lib/use-dialog-focus'
 
-const SAMPLE_URL = '/samples/sample-wedding.zip'
-
 interface ImportBackupDialogProps {
   onClose: () => void
   onImported?: (share?: { token: string; url: string }) => void
@@ -124,11 +122,23 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
         </p>
 
         <div
+          role="button"
+          tabIndex={busy ? -1 : 0}
           onDragOver={onDragOver}
           onDragEnter={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className={`mt-6 rounded-sm border border-dashed px-4 py-10 text-center transition-colors ${
+          onClick={() => {
+            if (!busy) inputRef.current?.click()
+          }}
+          onKeyDown={(e) => {
+            if (busy) return
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              inputRef.current?.click()
+            }
+          }}
+          className={`mt-6 cursor-pointer rounded-sm border border-dashed px-4 py-10 text-center transition-colors ${
             dragging
               ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
               : 'border-[var(--line)] bg-[color-mix(in_srgb,var(--paper)_70%,transparent)]'
@@ -137,17 +147,7 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
           <p className="font-[family-name:var(--font-display)] text-xl tracking-tight text-[var(--ink)]">
             {dragging ? 'Drop to select' : 'Drop a .zip here'}
           </p>
-          <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            Or{' '}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-              className="font-semibold text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)] disabled:opacity-50"
-            >
-              choose a file
-            </button>
-          </p>
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">Or tap to choose a file</p>
         </div>
 
         {file ? (
@@ -176,17 +176,6 @@ export function ImportBackupDialog({ onClose, onImported }: ImportBackupDialogPr
             Cancel
           </button>
         </div>
-
-        <p className="mt-6 text-sm text-[var(--ink-faint)]">
-          Need a starting point?{' '}
-          <a
-            href={SAMPLE_URL}
-            download="sample-wedding.zip"
-            className="font-medium text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--ink)]"
-          >
-            Download sample wedding
-          </a>
-        </p>
 
         <input
           ref={inputRef}

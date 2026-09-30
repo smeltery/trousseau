@@ -8,6 +8,8 @@ export interface SiteSettings {
   heroEyebrow: string
   brandLeft: string
   brandRight: string
+  /** Optional YYYY-MM-DD wedding day for countdown + calendar context. */
+  weddingDate?: string
   fundsEyebrow: string
   fundsTitle: string
   fundsSub: string
@@ -53,6 +55,7 @@ export function parseSiteSettings(raw: string | undefined): SiteSettings {
     return {
       ...DEFAULT_SITE,
       ...parsed,
+      weddingDate: parsed.weddingDate || undefined,
       groupLabels: {
         ...DEFAULT_SITE.groupLabels,
         ...(parsed.groupLabels ?? {}),

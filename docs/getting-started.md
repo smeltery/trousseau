@@ -64,4 +64,4 @@ For production-style local runs without Docker, set `POSTGRES_URL` and `BLOB_REA
 
 ## First load
 
-A new tracker starts blank with starter categories and **Groom & Bride** on the hero, then lands on a share URL. Click any label to rename it. Use **Try demo** / **Load demo** for sample numbers, or download [`sample-wedding.zip`](../public/samples/sample-wedding.zip) and import it.
+A new tracker starts blank with starter categories and **Groom & Bride** on the hero, then lands on a share URL. Click any label to rename it. Use **Try demo** / **Load demo** for sample numbers.

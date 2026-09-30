@@ -17,6 +17,7 @@ import {
   rememberShareToken,
   setActiveCloudToken,
 } from './session'
+import { setSyncStatus } from '../sync-status'
 
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 let pushing = false
@@ -111,13 +112,22 @@ export function scheduleCloudPush(): void {
 export async function pushCloudBudget(): Promise<void> {
   const token = getActiveCloudToken()
   if (!token || pushing || pullPaused) return
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    setSyncStatus('offline')
+    return
+  }
   pushing = true
+  setSyncStatus('saving')
   try {
     const { payload } = await buildBackupPayload()
     // Include file metadata that already has cloud urls; local-only blobs stay out of PUT
     // (they should have been uploaded via attachment API).
     const { updatedAt } = await apiPutBudget(token, payload)
     await db.meta.put({ key: CLOUD_UPDATED_META, value: updatedAt })
+    setSyncStatus('saved')
+  } catch (err) {
+    console.error(err)
+    setSyncStatus(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error')
   } finally {
     pushing = false
   }

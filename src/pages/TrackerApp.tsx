@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AddExpenseDialog } from '../components/AddExpenseDialog'
 import { BackupBar } from '../components/BackupBar'
+import { CommandPalette } from '../components/command/CommandPalette'
+import { TrackerFooter } from '../components/nav/TrackerFooter'
 import { DueCalendar } from '../components/DueCalendar'
 import { ExpenseGroups } from '../components/ExpenseGroups'
 import { FundsSection } from '../components/FundsSection'
@@ -21,8 +23,11 @@ import {
   pullCloudBudgetIfStale,
 } from '../lib/cloud/sync'
 import { dbWrite } from '../lib/db-write'
+import { expensesPaidTotal, expensesRunningTotal } from '../lib/expense-display'
+import { isOverdue, todayKey } from '../lib/calendar'
 import { sum } from '../lib/money'
 import { queueCelebrate, takePendingCelebrate } from '../lib/pending-celebrate'
+import { dismissShareHint, isShareHintDismissed } from '../lib/share-hint'
 import { showToast } from '../lib/toast'
 import { DEFAULT_SITE, parseSiteSettings, SITE_META_KEY } from '../lib/site-settings'
 import { BootError, BootLoading } from './BootScreen'
@@ -36,6 +41,7 @@ export function TrackerApp() {
   const [bootError, setBootError] = useState<string | null>(null)
   const [openItemId, setOpenItemId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [cmdOpen, setCmdOpen] = useState(false)
   const hydratedTokenRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -83,6 +89,10 @@ export function TrackerApp() {
 
         if (wantDemo || wantNew) {
           setSearchParams({}, { replace: true })
+          // Let BootLoading paint + start its bar before heavy IndexedDB work (iOS stalls otherwise).
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+          })
           await leaveCloudBudget()
           clearRememberedShareToken()
           if (wantNew) {
@@ -129,10 +139,22 @@ export function TrackerApp() {
 
   useEffect(() => {
     if (!ready || !cloudMode) return
+    if (isShareHintDismissed()) return
+    dismissShareHint()
+    showToast('Copy share link in the nav for your partner')
+  }, [ready, cloudMode])
+
+  useEffect(() => {
+    if (!ready || !cloudMode) return
+    let lastToastAt = 0
     async function onFocus() {
       try {
         const changed = await pullCloudBudgetIfStale()
-        if (changed) showToast('Shared budget updated')
+        if (!changed) return
+        const now = Date.now()
+        if (now - lastToastAt < 60_000) return
+        lastToastAt = now
+        showToast('Shared budget updated')
       } catch {
         // Offline / transient: keep local cache.
       }
@@ -172,15 +194,16 @@ export function TrackerApp() {
   }, [ready])
 
   const funds = useLiveQuery(() => db.funds.toArray(), [ready]) ?? []
-  const categories = useLiveQuery(() => db.categories.toArray(), [ready]) ?? []
+  const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray(), [ready]) ?? []
   const lineItems = useLiveQuery(() => db.lineItems.toArray(), [ready]) ?? []
   const attachments = useLiveQuery(() => db.attachments.toArray(), [ready]) ?? []
   const siteMeta = useLiveQuery(() => db.meta.get(SITE_META_KEY), [ready])
   const site = parseSiteSettings(siteMeta?.value) ?? DEFAULT_SITE
 
   const allocated = sum(funds.map((f) => f.amount))
-  const spent = sum(lineItems.map((i) => i.paidAmount))
-  const remaining = allocated - spent
+  const spent = expensesPaidTotal(lineItems)
+  const budgeted = expensesRunningTotal(categories, lineItems)
+  const remaining = allocated - budgeted
   const prevRemaining = useRef<number | null>(null)
 
   useEffect(() => {
@@ -196,6 +219,9 @@ export function TrackerApp() {
 
   if (!ready) return <BootLoading />
 
+  const shareUrl = cloudMode ? window.location.href : undefined
+  const overdueCount = lineItems.filter((i) => isOverdue(i, todayKey())).length
+
   return (
     <div className="relative">
       <OverviewHero
@@ -204,7 +230,10 @@ export function TrackerApp() {
         spent={spent}
         remaining={remaining}
         onAddExpense={() => setAdding(true)}
+        onOpenCommands={() => setCmdOpen(true)}
         syncBanner={cloudMode}
+        shareUrl={shareUrl}
+        overdueCount={overdueCount}
       />
       <Reveal>
         <FundsSection site={site} funds={funds} />
@@ -224,12 +253,14 @@ export function TrackerApp() {
         <DueCalendar
           categories={categories}
           lineItems={lineItems}
+          weddingDate={site.weddingDate}
           onOpenItem={setOpenItemId}
         />
       </Reveal>
       <Reveal>
-        <BackupBar shareUrl={cloudMode ? window.location.href : undefined} />
+        <BackupBar shareUrl={shareUrl} />
       </Reveal>
+      <TrackerFooter />
 
       {openItemId ? (
         <LineItemSheet lineItemId={openItemId} onClose={() => setOpenItemId(null)} />
@@ -243,6 +274,16 @@ export function TrackerApp() {
           }}
         />
       ) : null}
+      <CommandPalette
+        open={cmdOpen}
+        onOpenChange={setCmdOpen}
+        shareUrl={shareUrl}
+        lineItems={lineItems}
+        categories={categories}
+        funds={funds}
+        onAddExpense={() => setAdding(true)}
+        onOpenItem={setOpenItemId}
+      />
     </div>
   )
 }
